@@ -793,13 +793,13 @@
 
 ---@class markview.o.typst
 ---
----@field math_blocks typst.math_blocks
 ---@field codes typst.codes
 ---@field escapes typst.escapes
 ---@field headings typst.headings
----@field math_spans typst.math_spans
 ---@field labels typst.labels
 ---@field list_items typst.list_items
+---@field math_blocks typst.math_blocks
+---@field math_spans typst.math_spans
 ---@field raw_blocks typst.raw_blocks
 ---@field raw_spans typst.raw_spans
 ---@field reference_links typst.links
@@ -956,13 +956,95 @@
 ---@field text string
 
 
--- "block_maths", "codes", "escapes", "headings", "inline_maths", "labels", "list_items", "raw_blocks", "raw_spans", "reference_links", "terms", "url_links"
---[[
-    add_padding: unknown,
-    hl: unknown,
-    text: unknown,
+ ------------------------------------------------------------------------------------------
 
---]]
+
+---@class __typst.code
+---
+---@field class "typst_code"
+---@field inline boolean
+---@field range TSNode.range
+---@field text string[]
+
+
+---@class __typst.escaped
+---
+---@field class "typst_escaped"
+---@field range TSNode.range
+---@field text string[]
+
+
+---@class __typst.heading
+---
+---@field class "typst_heading"
+---@field level integer
+---@field range TSNode.range
+---@field text string[]
+
+
+---@class __typst.label
+---
+---@field class "typst_label"
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.list_item
+---
+---@field class "typst_list_item"
+---@field indent integer
+---@field marker string
+---@field number integer
+---
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.math
+---
+---@field class "typst_math"
+---@field closed boolean
+---@field inline boolean
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.raw_block
+---
+---@field class "typst_raw_block"
+---@field language string?
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.raw_span
+---
+---@field class "typst_raw_span"
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.reference_link
+---
+---@field class "typst_reference_link"
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.url_link
+---
+---@field class "typst_link_url"
+---@field text string[]
+---@field range TSNode.range
+
+
+---@class __typst.term
+---
+---@field class "typst_term"
+---@field term string
+---@field text string[]
+---@field range TSNode.range
+
 
 
 

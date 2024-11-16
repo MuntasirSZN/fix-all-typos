@@ -82,7 +82,7 @@ typst.custom_config = function (config, value)
 end
 
 ---@param buffer integer
----@param item table
+---@param item __typst.code
 typst.code = function (buffer, item)
 	---+${func, Renders Code blocks}
 
@@ -211,6 +211,26 @@ typst.code = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item table
+typst.emphasis = function (buffer, item)
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = ""
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_end, range.col_end - 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = ""
+	});
+end
+
+---@param buffer integer
+---@param item __typst.escaped
 typst.escaped = function (buffer, item)
 	---@type typst.escapes?
 	local config = get_config("escapes");
@@ -228,6 +248,8 @@ typst.escaped = function (buffer, item)
 	});
 end
 
+---@param buffer integer
+---@param item __typst.heading
 typst.heading = function (buffer, item)
 	---+${func}
 
@@ -269,6 +291,8 @@ typst.heading = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.label
 typst.label = function (buffer, item)
 	---+${func}
 
@@ -320,6 +344,8 @@ typst.label = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.reference_link
 typst.link_ref = function (buffer, item)
 	---+${func}
 
@@ -369,6 +395,8 @@ typst.link_ref = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.url_link
 typst.link_url = function (buffer, item)
 	---+${func}
 
@@ -416,6 +444,8 @@ typst.link_url = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.list_item
 typst.list_item = function (buffer, item)
 	---+${func}
 
@@ -485,6 +515,8 @@ typst.list_item = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.math
 typst.math = function (buffer, item)
 	---+${func}
 	local range = item.range;
@@ -608,6 +640,8 @@ typst.math = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.raw_block
 typst.raw_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
@@ -783,6 +817,8 @@ typst.raw_block = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.raw_span
 typst.raw_span = function (buffer, item)
 	---+${func}
 
@@ -834,6 +870,24 @@ typst.raw_span = function (buffer, item)
 	---_
 end
 
+typst.strong = function (buffer, item)
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = ""
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_end, range.col_end - 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = ""
+	});
+end
+
+---@param buffer integer
+---@param item __typst.term
 typst.term = function (buffer, item)
 	---+${func}
 
@@ -859,7 +913,6 @@ typst.term = function (buffer, item)
 	---_
 end
 
-
 typst.render = function (buffer, content)
 	for _, item in ipairs(content or {}) do
 		if typst[item.class:gsub("^typst_", "")] then
@@ -877,7 +930,4 @@ typst.clear = function (buffer, ignore_ns, from, to)
 	end
 end
 
--- local k = vim.tbl_keys(typst);
--- table.sort(k)
--- vim.print(k)
 return typst;
