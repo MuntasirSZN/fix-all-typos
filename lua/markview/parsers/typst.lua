@@ -22,19 +22,44 @@ typst.insert = function (data)
 	table.insert(typst.sorted[data.class], data);
 end
 
-typst.heading = function (_, _, text, range)
-	local level = text[1]:match("^(%=+)"):len();
+--- Typst code parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
+typst.code = function (_, TSNode, text, range)
+	---+${func}
+	local node = TSNode:parent();
+
+	while node do
+		if node:type() == "code" then return; end
+
+		node = node:parent();
+	end
+
+	for l, line in ipairs(text) do
+		if l ==1 then goto continue; end
+
+		text[l] = line:sub(range.col_start + 1);
+
+		::continue::
+	end
 
 	typst.insert({
-		class = "typst_heading",
-		level = level,
+		class = "typst_code",
+		inline = range.row_start == range.row_end,
 
 		text = text,
 		range = range
 	});
+	---_
 end
 
+--- Typst escaped character parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.escaped = function (_, TSNode, text, range)
+	---+${func}
 	local node = TSNode:parent();
 
 	while node do
@@ -49,9 +74,45 @@ typst.escaped = function (_, TSNode, text, range)
 		text = text,
 		range = range
 	});
+	---_
 end
 
+--- Typst heading parser.
+---@param text string[]
+---@param range TSNode.range
+typst.heading = function (_, _, text, range)
+	---+${func}
+	local level = text[1]:match("^(%=+)"):len();
+
+	typst.insert({
+		class = "typst_heading",
+		level = level,
+
+		text = text,
+		range = range
+	});
+	---_
+end
+
+--- Typst label parser.
+---@param text string[]
+---@param range TSNode.range
+typst.label = function (_, _, text, range)
+	typst.insert({
+		class = "typst_label",
+
+		text = text,
+		range = range
+	});
+end
+
+--- Typst list item parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.list_item = function (buffer, TSNode, text, range)
+	---+${func}
 	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start);
 	local marker = text[1]:match("^([%-%+])") or text[1]:match("^(%d+%.)");
 	local number;
@@ -84,36 +145,15 @@ typst.list_item = function (buffer, TSNode, text, range)
 		text = text,
 		range = range
 	});
+	---_
 end
 
-typst.code = function (_, TSNode, text, range)
-	local node = TSNode:parent();
-
-	while node do
-		if node:type() == "code" then return; end
-
-		node = node:parent();
-	end
-
-	for l, line in ipairs(text) do
-		if l ==1 then goto continue; end
-
-		text[l] = line:sub(range.col_start + 1);
-
-		::continue::
-	end
-
-	typst.insert({
-		class = "typst_code",
-		inline = range.row_start == range.row_end,
-
-		text = text,
-		range = range
-	});
-    ::continue::
-end
-
+--- Typst list item parser.
+---@param buffer integer
+---@param text string[]
+---@param range TSNode.range
 typst.math = function (buffer, _, text, range)
+	---+${func}
 	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, false)[1]:sub(0, range.col_end);
 	local inline, closed = false, true;
 
@@ -139,8 +179,12 @@ typst.math = function (buffer, _, text, range)
 		text = text,
 		range = range
 	});
+	---_
 end
 
+--- Typst url links parser.
+---@param text string[]
+---@param range TSNode.range
 typst.link_url = function (_, _, text, range)
 	typst.insert({
 		class = "typst_link_url",
@@ -151,25 +195,10 @@ typst.link_url = function (_, _, text, range)
 	});
 end
 
-typst.strong = function (_, _, text, range)
-	typst.insert({
-		class = "typst_strong",
-
-		text = text,
-		range = range
-	});
-end
-
-typst.emphasis = function (_, _, text, range)
-	typst.insert({
-		class = "typst_emphasis",
-
-		text = text,
-		range = range
-	});
-end
-
-typst.raw = function (_, _, text, range)
+--- Typst inline code parser.
+---@param text string[]
+---@param range TSNode.range
+typst.raw_span = function (_, _, text, range)
 	typst.insert({
 		class = "typst_raw_span",
 
@@ -178,7 +207,13 @@ typst.raw = function (_, _, text, range)
 	});
 end
 
+--- Typst code block parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.raw_block = function (buffer, TSNode, text, range)
+	---+${func}
 	local lang_node = TSNode:field("lang")[1];
 	local language;
 
@@ -199,17 +234,36 @@ typst.raw_block = function (buffer, TSNode, text, range)
 		text = text,
 		range = range
 	});
+	---_
 end
 
-typst.label = function (_, _, text, range)
+--- Typst strong text parser.
+---@param text string[]
+---@param range TSNode.range
+typst.strong = function (_, _, text, range)
 	typst.insert({
-		class = "typst_label",
+		class = "typst_strong",
 
 		text = text,
 		range = range
 	});
 end
 
+--- Typst emphasized text parser.
+---@param text string[]
+---@param range TSNode.range
+typst.emphasis = function (_, _, text, range)
+	typst.insert({
+		class = "typst_emphasis",
+
+		text = text,
+		range = range
+	});
+end
+
+--- Typst reference link parser.
+---@param text string[]
+---@param range TSNode.range
 typst.link_ref = function (_, _, text, range)
 	typst.insert({
 		class = "typst_link_ref",
@@ -219,43 +273,11 @@ typst.link_ref = function (_, _, text, range)
 	});
 end
 
-typst.link_function = function (buffer, TSNode, text, range)
-	---```query
-	---(code
-    ---    (call ← TSNode:child(1)
-    ---        item: (call ← TSNode:child(1):field("item")[1]
-    ---            item: (ident)
-    ---               (group) ← TSNode:child(1):field("item")[1]:child(1)
-	---        )
-	---    )
-	---)
-	---```
-	---@type table
-	local lNode = TSNode:child(1):field("item")[1]:child(1);
-	local dNode = TSNode:child(1):child(1);
-
-	local label, desc;
-
-	if label then
-		label = vim.treesitter.get_node_text(lNode, buffer);
-
-		range.label_start, range.label_end = text[1]:match(utils.escape_string(label));
-	end
-
-	if dNode then
-		desc = vim.treesitter.get_node_text(dNode, buffer);
-
-		range.desc_start, range.desc_end = text[1]:match(utils.escape_string(desc));
-	end
-
-	typst.insert({
-		class = "typst_link_function",
-
-		text = text,
-		range = range
-	});
-end
-
+--- Typst code block parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.term = function (buffer, TSNode, text, range)
 	for l, line in ipairs(text) do
 		if l == 1 then goto continue; end
@@ -285,9 +307,6 @@ typst.parse = function (buffer, TSTree, from, to)
 	typst.content = {};
 
 	local scanned_queries = vim.treesitter.query.parse("typst", [[
-		((code) @typst.link_function
-			(#match? @typst.link_function "^#link"))
-
 		((heading) @typst.heading)
 		((escape) @typst.escaped)
 		((item) @typst.list_item)
@@ -299,7 +318,7 @@ typst.parse = function (buffer, TSTree, from, to)
 
 		((strong) @typst.strong)
 		((emph) @typst.emphasis)
-		((raw_span) @typst.raw)
+		((raw_span) @typst.raw_span)
 		((raw_blck) @typst.raw_block)
 
 		((label) @typst.label)
