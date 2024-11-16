@@ -55,10 +55,10 @@
 ---@field preview markview.o.preview
 ---
 ---@field html markview.o.html
----@field latex table
+---@field latex markview.o.latex
 ---@field markdown markview.o.markdown
 ---@field markdown_inline markview.o.markdown_inline
----@field typst table
+---@field typst markview.o.typst
 ---@field yaml table
 
 ---@class markview.o.experimental
@@ -786,10 +786,183 @@
 ---@field row_end integer
 ---@field col_end integer
 
+
+---•----------------
+--- Typst
+---•----------------
+
+---@class markview.o.typst
+---
+---@field math_blocks typst.math_blocks
+---@field codes typst.codes
+---@field escapes typst.escapes
+---@field headings typst.headings
+---@field math_spans typst.math_spans
+---@field labels typst.labels
+---@field list_items typst.list_items
+---@field raw_blocks typst.raw_blocks
+---@field raw_spans typst.raw_spans
+---@field reference_links typst.links
+---@field terms typst.term
+---@field url_links typst.links
+
+
+---@class typst.codes
+---
+---@field enable boolean
+---@field hl? string
+---@field min_width integer
+---@field pad_amount integer
+---@field pad_char string
+---@field sign? string
+---@field sign_hl? string
+---@field style "simple" | "block"
+---@field text string
+---@field text_direction "left" | "right"
+---@field text_hl? string
+
+
+---@class typst.escapes
+---
+---@field enable boolean
+
+
+---@class typst.headings
+---
+---@field enable boolean
+---@field shift_width integer
+---@field [string] heading.typst
+
+
+---@class heading.typst
+---
+---@field hl? string
+---@field icon? string
+---@field icon_hl? string
+---@field sign? string
+---@field sign_hl? string
+---@field style "simple" | "icon"
+
+
+---@class typst.labels
+---
+---@field corner_left? string
+---@field corner_left_hl? string
+---@field corner_right? string
+---@field corner_right_hl? string
+---@field enable boolean
+---@field hl? string
+---@field icon? string
+---@field icon_hl? string
+---@field padding_left? string
+---@field padding_left_hl? string
+---@field padding_right? string
+---@field padding_right_hl? string
+
+
+---@class typst.links
+---
+---@field corner_left? string
+---@field corner_left_hl? string
+---@field corner_right? string
+---@field corner_right_hl? string
+---@field enable boolean
+---@field hl? string
+---@field icon? string
+---@field icon_hl? string
+---@field padding_left? string
+---@field padding_left_hl? string
+---@field padding_right? string
+---@field padding_right_hl? string
+
+
+---@class typst.list_items
+---
+---@field enable boolean
+---@field indent_size integer
+---@field marker_dot list_items.typst
+---@field marker_minus list_items.typst
+---@field marker_plus list_items.typst
+---@field shift_width integer
+
+
+---@class list_items.typst
+---
+---@field add_padding boolean
+---@field hl? string
+---@field text? string
+
+
+---@class typst.math_blocks
+---
+---@field enable boolean
+---@field hl? string
+---@field pad_amount integer
+---@field pad_char string
+---@field text string
+---@field text_hl? string
+
+
+---@class typst.math_spans
+---
+---@field corner_left? string
+---@field corner_left_hl? string
+---@field corner_right? string
+---@field corner_right_hl? string
+---@field enable boolean
+---@field hl? string
+---@field padding_left? string
+---@field padding_left_hl? string
+---@field padding_right? string
+---@field padding_right_hl? string
+
+
+---@class typst.raw_blocks
+---
+---@field hl? string
+---@field icons "devicons" | "mini" | "internal" | nil
+---@field info_hl? string
+---@field language_direction "left" | "right"
+---@field language_hl? string
+---@field language_names? { [string]: string }
+---@field min_width integer
+---@field pad_amount integer
+---@field pad_char string
+---@field sign? boolean
+---@field sign_hl? string
+---@field style "simple" | "block"
+
+
+---@class typst.raw_spans
+---
+---@field corner_left? string
+---@field corner_left_hl? string
+---@field corner_right? string
+---@field corner_right_hl? string
+---@field enable boolean
+---@field hl? string
+---@field icon? string
+---@field icon_hl? string
+---@field padding_left? string
+---@field padding_left_hl? string
+---@field padding_right? string
+---@field padding_right_hl? string
+
+
+---@class typst.term
+---
+---@field enable boolean
+---@field hl? string
+---@field text string
+
+
+-- "block_maths", "codes", "escapes", "headings", "inline_maths", "labels", "list_items", "raw_blocks", "raw_spans", "reference_links", "terms", "url_links"
 --[[
+    add_padding: unknown,
+    hl: unknown,
+    text: unknown,
 
 --]]
-
 
 
 

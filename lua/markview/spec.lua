@@ -892,6 +892,8 @@ spec.default = {
 	},
 	latex = {
 		commands = {
+			enable = true,
+
 			["frac"] = {
 				condition = function (item)
 					return #item.args == 2;
@@ -1059,33 +1061,18 @@ spec.default = {
 
 				icon = "󰎴  ", hl = "MarkviewHeading6",
 				---_
-			},
-
-			setext_1 = {
-				---+ ${conf, Setext heading 1}
-				style = "decorated",
-
-				sign = "󰌕 ", sign_hl = "MarkviewHeading1Sign",
-				icon = "  ", hl = "MarkviewHeading1",
-				line = "▂"
-				---_
-			},
-			setext_2 = {
-				---+ ${conf, Setext heading 2}
-				style = "decorated",
-
-				sign = "󰌖 ", sign_hl = "MarkviewHeading2Sign",
-				icon = "  ", hl = "MarkviewHeading2",
-				line = "▁"
-				---_
 			}
 			---_
 		},
 
 		codes = {
+			enable = true,
+
 			style = "block",
 			text_direction = "right",
 			min_width = 60,
+			pad_char = " ",
+			pad_amount = 3,
 
 			text = "󰣖 Code",
 
@@ -1094,12 +1081,15 @@ spec.default = {
 		},
 
 		raw_blocks = {
+			enable = true,
+
 			style = "block",
 			icons = "internal",
 			language_direction = "right",
 
 			min_width = 60,
 			pad_amount = 3,
+			pad_char = " ",
 
 			hl = "Code"
 		},
@@ -1107,6 +1097,8 @@ spec.default = {
 		escapes = { enable = true },
 
 		labels = {
+			enable = true,
+
 			hl = "InlineCode",
 			padding_left = " ",
 			padding_right = " "
@@ -1147,7 +1139,7 @@ spec.default = {
 
 			hl = "InlineCode"
 		},
-		blocks = {
+		math_blocks = {
 			enable = true,
 			hl = "Code",
 			text = "  LaTeX ",
@@ -1155,6 +1147,12 @@ spec.default = {
 
 			pad_amount = 3,
 			pad_char = " "
+		},
+		math_spans = {
+			enable = true,
+
+			padding_left = " ",
+			padding_right = " ",
 		},
 
 		url_links = {
@@ -1166,11 +1164,15 @@ spec.default = {
 		},
 
 		reference_links = {
+			enable = true,
+
 			icon = " ",
 			hl = "Hyperlink"
 		},
 
 		terms = {
+			enable = true,
+
 			text = " ",
 		}
 	},

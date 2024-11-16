@@ -187,20 +187,24 @@ markdown.output = function (str)
 
 	for ref in str:gmatch("%[%[%#%^([^%]]+)%]%]") do
 		---+${custom, Handle embed files & block references}
-		local _blref = markdown.custom_config(blref, ref);
+		if not blref then goto continue; end
 
-		str = str:gsub(concat({
-			"[[#^",
-			ref,
-			"]]"
-		}), concat({
-			_blref.corner_left or "",
-			_blref.padding_left or "",
-			_blref.icon or "",
-			ref:gsub(".", "X"),
-			_blref.padding_right or "",
-			_blref.corner_right or ""
-		}));
+			local _blref = markdown.custom_config(blref, ref);
+
+			str = str:gsub(concat({
+				"[[#^",
+				ref,
+				"]]"
+			}), concat({
+				_blref.corner_left or "",
+				_blref.padding_left or "",
+				_blref.icon or "",
+				ref:gsub(".", "X"),
+				_blref.padding_right or "",
+				_blref.corner_right or ""
+			}));
+
+		::continue::
 		---_
 	end
 
@@ -432,20 +436,24 @@ markdown.output = function (str)
 
 	for highlight in str:gmatch("%=%=%=(.-)%=%=%=") do
 		---+${custom, Handle strike-through text}
-		local _hls = markdown.custom_config(hls, highlight) or {};
+		if not hls then goto continue; end
 
-		str = str:gsub(concat({
-			"===",
-			highlight,
-			"==="
-		}), concat({
-			_hls.corner_left or "",
-			_hls.padding_left or "",
-			_hls.icon or "",
-			utils.escape_string(highlight):gsub(".", "X"),
-			_hls.padding_right or "",
-			_hls.corner_left or ""
-		}));
+			local _hls = markdown.custom_config(hls, highlight) or {};
+
+			str = str:gsub(concat({
+				"===",
+				highlight,
+				"==="
+			}), concat({
+				_hls.corner_left or "",
+				_hls.padding_left or "",
+				_hls.icon or "",
+				utils.escape_string(highlight):gsub(".", "X"),
+				_hls.padding_right or "",
+				_hls.corner_left or ""
+			}));
+
+		::continue::
 		---_
 	end
 
