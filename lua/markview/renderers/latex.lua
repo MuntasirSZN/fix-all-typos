@@ -70,42 +70,146 @@ latex.custom_config = function (config, value)
 	return config;
 end
 
-latex.bracket = function (buffer, item)
+---@param buffer integer
+---@param item __latex.block
+latex.block = function (buffer, item)
 	---+${func}
-	local config = get_config("parenthesis");
-
-	if not config then
-		return;
-	end
-
 	local range = item.range;
 
-	--- Left parenthesis
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 1,
-		conceal = ""
-	});
+	if item.inline then
+		local config = get_config("inlines");
+		if not config then return; end
 
-	--- Right parenthesis
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_end, range.col_end - 1, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		conceal = ""
-	});
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + 2,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+			},
+
+			hl_mode = "combine"
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+			}
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end,
+			end_col = range.col_end,
+
+			hl_group = utils.set_hl(config.hl),
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, range.col_end - (item.closed and 2 or 0), {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_end,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
+			},
+
+			hl_mode = "combine"
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, 0, {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+			}
+		});
+
+		for l = 1, #item.text - 2 do
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], 0), {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				}
+			});
+
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, #item.text[l + 1], {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+				}
+			});
+		end
+	else
+		---@type latex.blocks?
+		local config = get_config("blocks");
+		if not config then return; end
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + 2,
+			conceal = "",
+
+			virt_text_pos = "right_align",
+			virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
+
+			hl_mode = "combine",
+			line_hl_group = utils.set_hl(config.hl)
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, math.max(0, range.col_end - 2), {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_end,
+			conceal = "",
+
+			line_hl_group = utils.set_hl(config.hl)
+		});
+
+		for l = 1, #item.text - 2 do
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
+				},
+
+				line_hl_group = utils.set_hl(config.hl)
+			});
+		end
+	end
 	---_
 end
 
+---@param buffer integer
+---@param item __latex.command
 latex.command = function (buffer, item)
-	local config = get_config("commands");
+	--+${func}
 
-	if not config then
+	---@type latex.commands?
+	local main_config = get_config("commands");
+
+	if not main_config then
 		return;
-	elseif not config[item.command.name] then
+	elseif not main_config[item.command.name] then
 		return;
 	end
 
-	config = config[item.command.name];
+	---@type command.opts
+	local config = main_config[item.command.name];
 
 	if
 		config.condition and
@@ -155,6 +259,7 @@ latex.command = function (buffer, item)
 			goto continue;
 		end
 
+		---@type command.arg_opts
 		local arg_conf = config.on_args[a];
 
 		if arg_conf.before then
@@ -194,10 +299,15 @@ latex.command = function (buffer, item)
 
 	    ::continue::
 	end
+	---_
 end
 
+---@param buffer integer
+---@param item __latex.escaped
 latex.escaped = function (buffer, item)
 	---+${func}
+
+	---@type latex.escapes?
 	local config = get_config("escapes");
 
 	if not config then
@@ -226,62 +336,12 @@ latex.escaped = function (buffer, item)
 	---_
 end
 
-latex.symbol = function (buffer, item)
-	---+${func}
-	local config = get_config("symbols");
-
-	if not config then
-		return;
-	elseif not item.name or not symbols.entries[item.name] then
-		return;
-	end
-
-	local range = item.range;
-	local within_font, font;
-
-	for _, region in ipairs(latex.cache.font_regions) do
-		if utils.within_range(region, range) then
-			within_font = true;
-			font = region.name;
-			break;
-		end
-	end
-
-	local _o, _h = "", nil;
-
-	if
-		item.style and get_config(item.style)
-	then
-		_o = symbols[item.style][item.name] or symbols.entries[item.name];
-		_h = get_config(item.style, "hl");
-	elseif
-		get_config("fonts") and within_font == true and symbols.fonts[font] and
-		symbols.fonts[font][item.name]
-	then
-		_o = symbols.fonts[font][item.name];
-		_h = get_config("fonts", "hl");
-	elseif symbols.entries[item.name] then
-		_o = symbols.entries[item.name];
-		_h = config.hl;
-	else
-		return;
-	end
-
-
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("symbols"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = { { _o, utils.set_hl(_h) } },
-		hl_mode = "combine"
-	});
-	---_
-end
-
+---@param buffer integer
+---@param item __latex.font
 latex.font = function (buffer, item)
 	---+${func}
+
+	---@type latex.fonts?
 	local config = get_config("fonts");
 
 	if not config then
@@ -307,204 +367,14 @@ latex.font = function (buffer, item)
 	---_
 end
 
-latex.word = function (buffer, item)
-	---+${func}
-	local config = get_config("fonts");
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-	local within_font, font;
-	local within_style, style;
-
-	for _, region in ipairs(latex.cache.font_regions) do
-		if utils.within_range(region, range) then
-			within_font = true;
-			font = region.name;
-			break;
-		end
-	end
-
-	for _, region in ipairs(latex.cache.style_regions.superscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "superscripts";
-			break;
-		end
-	end
-
-	for _, region in ipairs(latex.cache.style_regions.subscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "subscripts";
-			break;
-		end
-	end
-
-	local _o, _h = "", nil;
-
-	if get_config(style) and within_style == true then
-		for letter in item.text[1]:gmatch(".") do
-			if symbols[style][letter] then
-				_o = _o .. symbols[style][letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = get_config(style, "hl");
-	elseif within_font == true and symbols.fonts[font] then
-		for letter in item.text[1]:gmatch(".") do
-			if symbols.fonts[font][letter] then
-				_o = _o .. symbols.fonts[font][letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = get_config("fonts", "hl");
-	else
-		for letter in item.text[1]:gmatch(".") do
-			if symbols.fonts.default[letter] then
-				_o = _o .. symbols.fonts.default[letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = get_config("fonts", "hl")
-	end
-
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_row = range.row_end,
-		end_col = range.col_end,
-
-		virt_text_pos = "overlay",
-		virt_text = { { _o, utils.set_hl(_h) } },
-		hl_mode = "combine"
-	});
-	---_
-end
-
-latex.subscript = function (buffer, item)
-	---+${func}
-	local config = get_config("subscripts");
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + (item.parenthasis and 2 or 1),
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = item.preview == false and { { "↓(", utils.set_hl(config.hl) } } or nil,
-
-		hl_mode = "combine"
-	});
-
-	if item.parenthasis then
-		if item.preview then
-			table.insert(latex.cache.style_regions.subscripts, item.range);
-		else
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_row = range.row_end,
-				end_col = range.col_end,
-
-				hl_group = utils.set_hl(config.hl)
-			});
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
-
-			hl_mode = "combine"
-		});
-	elseif symbols.superscripts[item.text[1]:sub(2)] then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
-			undo_restore = false, invalidate = true,
-			virt_text_pos = "overlay",
-			virt_text = { { symbols.subscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
-
-			hl_mode = "combine"
-		});
-	end
-	---_
-end
-
-latex.superscript = function (buffer, item)
-	---+${func}
-	local config = get_config("superscripts");
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + (item.parenthasis and 2 or 1),
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = item.preview == false and { { "↑(", utils.set_hl(config.hl) } } or nil,
-
-		hl_mode = "combine"
-	});
-
-	if item.parenthasis then
-		if item.preview then
-			table.insert(latex.cache.style_regions.superscripts, item.range);
-		else
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_row = range.row_end,
-				end_col = range.col_end,
-
-				hl_group = utils.set_hl(config.hl)
-			});
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
-
-			hl_mode = "combine"
-		});
-	elseif symbols.superscripts[item.text[1]:sub(2)] then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
-			undo_restore = false, invalidate = true,
-			virt_text_pos = "overlay",
-			virt_text = { { symbols.superscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
-
-			hl_mode = "combine"
-		});
-	end
-	---_
-end
-
+---@param buffer integer
+---@param item __latex.inline
 latex.inline = function (buffer, item)
 	---+${func}
-	local range = item.range;
+
+	---@type latex.inlines?
 	local config = get_config("inlines");
+	local range = item.range;
 
 	if not config then
 		return;
@@ -590,128 +460,220 @@ latex.inline = function (buffer, item)
 	---_
 end
 
-latex.block = function (buffer, item)
+---@param buffer integer
+---@param item __latex.parenthesis
+latex.parenthesis = function (buffer, item)
 	---+${func}
+
+	---@type latex.parenthesis?
+	local config = get_config("parenthesis");
+
+	if not config then
+		return;
+	end
+
 	local range = item.range;
-	local config;
 
-	if get_config("inlines") and item.inline then
-		config = get_config("inlines");
+	--- Left parenthesis
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = ""
+	});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+	--- Right parenthesis
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_end, range.col_end - 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = ""
+	});
+	---_
+end
+
+---@param buffer integer
+---@param item __latex.style
+latex.subscript = function (buffer, item)
+	---+${func}
+
+	---@type latex.styles?
+	local config = get_config("subscripts");
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + (item.parenthesis and 2 or 1),
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = item.preview == false and { { "↓(", utils.set_hl(config.hl) } } or nil,
+
+		hl_mode = "combine"
+	});
+
+	if item.parenthesis then
+		if item.preview then
+			table.insert(latex.cache.style_regions.subscripts, item.range);
+		else
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+				undo_restore = false, invalidate = true,
+				end_row = range.row_end,
+				end_col = range.col_end,
+
+				hl_group = utils.set_hl(config.hl)
+			});
+		end
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 2,
+			end_col = range.col_end,
 			conceal = "",
 
 			virt_text_pos = "inline",
-			virt_text = {
-				{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-			},
+			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
 
 			hl_mode = "combine"
 		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+	elseif symbols.superscripts[item.text[1]:sub(2)] then
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
 			undo_restore = false, invalidate = true,
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-			}
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
-
-			hl_group = utils.set_hl(config.hl),
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, range.col_end - (item.closed and 2 or 0), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-			},
+			virt_text_pos = "overlay",
+			virt_text = { { symbols.subscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
 
 			hl_mode = "combine"
 		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, 0, {
-			undo_restore = false, invalidate = true,
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-			}
-		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], 0), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-				}
-			});
-
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, #item.text[l + 1], {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-				}
-			});
-		end
-	elseif get_config("blocks") then
-		config = get_config("blocks");
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 2,
-			conceal = "",
-
-			virt_text_pos = "right_align",
-			virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
-
-			hl_mode = "combine",
-			line_hl_group = utils.set_hl(config.hl)
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, math.max(0, range.col_end - 2), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			line_hl_group = utils.set_hl(config.hl)
-		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
-				},
-
-				line_hl_group = utils.set_hl(config.hl)
-			});
-		end
 	end
 	---_
 end
 
+---@param buffer integer
+---@param item __latex.style
+latex.superscript = function (buffer, item)
+	---+${func}
+
+	---@type latex.styles?
+	local config = get_config("superscripts");
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + (item.parenthesis and 2 or 1),
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = item.preview == false and { { "↑(", utils.set_hl(config.hl) } } or nil,
+
+		hl_mode = "combine"
+	});
+
+	if item.parenthesis then
+		if item.preview then
+			table.insert(latex.cache.style_regions.superscripts, item.range);
+		else
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+				undo_restore = false, invalidate = true,
+				end_row = range.row_end,
+				end_col = range.col_end,
+
+				hl_group = utils.set_hl(config.hl)
+			});
+		end
+
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_end,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
+
+			hl_mode = "combine"
+		});
+	elseif symbols.superscripts[item.text[1]:sub(2)] then
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
+			undo_restore = false, invalidate = true,
+			virt_text_pos = "overlay",
+			virt_text = { { symbols.superscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
+
+			hl_mode = "combine"
+		});
+	end
+	---_
+end
+
+---@param buffer integer
+---@param item __latex.symbol
+latex.symbol = function (buffer, item)
+	---+${func}
+
+	---@type latex.symbols?
+	local config = get_config("symbols");
+
+	if not config then
+		return;
+	elseif not item.name or not symbols.entries[item.name] then
+		return;
+	end
+
+	local range = item.range;
+	local within_font, font;
+
+	for _, region in ipairs(latex.cache.font_regions) do
+		if utils.within_range(region, range) then
+			within_font = true;
+			font = region.name;
+			break;
+		end
+	end
+
+	local _o, _h = "", nil;
+
+	if
+		item.style and get_config(item.style)
+	then
+		_o = symbols[item.style][item.name] or symbols.entries[item.name];
+		_h = get_config(item.style, "hl");
+	elseif
+		get_config("fonts") and within_font == true and symbols.fonts[font] and
+		symbols.fonts[font][item.name]
+	then
+		_o = symbols.fonts[font][item.name];
+		_h = get_config("fonts", "hl");
+	elseif symbols.entries[item.name] then
+		_o = symbols.entries[item.name];
+		_h = config.hl;
+	else
+		return;
+	end
+
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("symbols"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = { { _o, utils.set_hl(_h) } },
+		hl_mode = "combine"
+	});
+	---_
+end
+
+---@param buffer integer
+---@param item __latex.text
 latex.text = function (buffer, item)
 	---+${func}
+
+	---@type latex.texts?
 	local config = get_config("texts");
 
 	if not config then
@@ -730,6 +692,94 @@ latex.text = function (buffer, item)
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = ""
+	});
+	---_
+end
+
+---@param buffer integer
+---@param item __latex.word
+latex.word = function (buffer, item)
+	---+${func}
+
+	---@type latex.fonts?
+	local config = get_config("fonts");
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+	---@type boolean, string?
+	local within_font, font;
+	---@type boolean, string?
+	local within_style, style;
+
+	for _, region in ipairs(latex.cache.font_regions) do
+		if utils.within_range(region, range) then
+			within_font = true;
+			font = region.name;
+			break;
+		end
+	end
+
+	for _, region in ipairs(latex.cache.style_regions.superscripts) do
+		if utils.within_range(region, range) then
+			within_style = true;
+			style = "superscripts";
+			break;
+		end
+	end
+
+	for _, region in ipairs(latex.cache.style_regions.subscripts) do
+		if utils.within_range(region, range) then
+			within_style = true;
+			style = "subscripts";
+			break;
+		end
+	end
+
+	local _o, _h = "", nil;
+
+	if get_config(style) and within_style == true then
+		for letter in item.text[1]:gmatch(".") do
+			if symbols[style][letter] then
+				_o = _o .. symbols[style][letter];
+			else
+				_o = _o .. letter;
+			end
+		end
+
+		_h = get_config(style, "hl");
+	elseif within_font == true and symbols.fonts[font] then
+		for letter in item.text[1]:gmatch(".") do
+			if symbols.fonts[font][letter] then
+				_o = _o .. symbols.fonts[font][letter];
+			else
+				_o = _o .. letter;
+			end
+		end
+
+		_h = get_config("fonts", "hl");
+	else
+		for letter in item.text[1]:gmatch(".") do
+			if symbols.fonts.default[letter] then
+				_o = _o .. symbols.fonts.default[letter];
+			else
+				_o = _o .. letter;
+			end
+		end
+
+		_h = get_config("fonts", "hl")
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		virt_text_pos = "overlay",
+		virt_text = { { _o, utils.set_hl(_h) } },
+		hl_mode = "combine"
 	});
 	---_
 end

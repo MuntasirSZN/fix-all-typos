@@ -23,7 +23,10 @@ inline.cache = {
 	link_ref = {}
 }
 
-inline.checkbox = function (_, TSNode, text, range)
+--- Checkbox parser.
+---@param text string[]
+---@param range TSNode.range
+inline.checkbox = function (_, _, text, range)
 	local before = text[1]:sub(0, range.col_start);
 	local inner = text[1]:sub(range.col_start + 1, range.col_end - 1);
 
@@ -33,7 +36,6 @@ inline.checkbox = function (_, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_checkbox",
-		node = TSNode,
 
 		text = inner:gsub("[%[%]]", ""),
 
@@ -43,6 +45,10 @@ inline.checkbox = function (_, TSNode, text, range)
 	inline.cache.checkbox[range.row_start] = #inline.content;
 end
 
+--- Hyperlink parser.
+---@param buffer integer
+---@param text string[]
+---@param range __inline.link_range
 inline.inline_link = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -61,7 +67,6 @@ inline.inline_link = function (buffer, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_link_hyperlink",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start, range.col_end),
 		description = link_desc,
@@ -71,6 +76,11 @@ inline.inline_link = function (buffer, TSNode, text, range)
 	});
 end
 
+--- Reference link parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range __inline.link_range
 inline.reference_link = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -86,7 +96,6 @@ inline.reference_link = function (buffer, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_link_hyperlink",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start, range.col_end),
 		description = link_desc,
@@ -96,6 +105,9 @@ inline.reference_link = function (buffer, TSNode, text, range)
 	});
 end
 
+--- Embed file link parser.
+---@param text string[]
+---@param range __inline.link_range
 inline.embed_file = function (_, _, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -112,15 +124,20 @@ inline.embed_file = function (_, _, text, range)
 
 	inline.insert({
 		class = class,
-		-- node = TSNode,
+		has_file = class == "inline_link_block_ref",
 
-		text = text[1]:sub(3, #text[1] - 2),
+		text = text[1]:sub(4, #text[1] - 2),
 		label = label,
 
 		range = range
 	});
 end
 
+--- Shortcut link parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range __inline.link_range
 inline.shortcut_link = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -147,14 +164,18 @@ inline.shortcut_link = function (buffer, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_link_shortcut",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start, range.col_end),
+		label = text[1]:sub(range.col_start, range.col_end),
 
 		range = range
 	})
 end
 
+--- Uri autolink parser.
+---@param TSNode table
+---@param text string[]
+---@param range __inline.link_range
 inline.uri_autolink = function (_, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -172,7 +193,10 @@ inline.uri_autolink = function (_, TSNode, text, range)
 	})
 end
 
-inline.email = function (_, TSNode, text, range)
+--- Email parser.
+---@param text string[]
+---@param range __inline.link_range
+inline.email = function (_, _, text, range)
 	if range.row_start ~= range.row_end then return; end
 
 	range.label_start = range.col_start + 1;
@@ -180,7 +204,6 @@ inline.email = function (_, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_link_email",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start, range.col_end),
 		label = text[1]:sub(range.col_start + 2, range.col_end - 1),
@@ -189,6 +212,10 @@ inline.email = function (_, TSNode, text, range)
 	})
 end
 
+--- Image link parser.
+---@param TSNode table
+---@param text string[]
+---@param range __inline.link_range
 inline.image = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
 
@@ -214,7 +241,6 @@ inline.image = function (buffer, TSNode, text, range)
 
 	inline.insert({
 		class = "inline_link_image",
-		node = TSNode,
 
 		text = text[1],
 		description = link_desc,
@@ -224,48 +250,49 @@ inline.image = function (buffer, TSNode, text, range)
 	})
 end
 
----@type markview.parsers.function
-inline.code_span = function (_, TSNode, text, range)
+--- Inline code parser.
+---@param text string[]
+---@param range TSNode.range
+inline.code_span = function (_, _, text, range)
 	inline.insert({
 		class = "inline_code_span",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start + 1, range.col_end - 1),
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-inline.entity = function (_, TSNode, text, range)
+--- Uri autolink parser.
+---@param text string[]
+---@param range TSNode.range
+inline.entity = function (_, _, text, range)
 	inline.insert({
 		class = "inline_entity",
-		node = TSNode,
 
 		text = text[1]:gsub("[^%a%d]", ""),
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-inline.escaped = function (_, TSNode, text, range)
+--- Uri autolink parser.
+---@param text string[]
+inline.escaped = function (_, _, text, range)
 	inline.insert({
 		class = "inline_escaped",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start + 1, range.col_end - 1),
-
 		range = range
 	});
 end
 
+--- Footnote parser.
+---@param text string[]
+---@param range __inline.link_range
 inline.footnote = function (_, _, text, range)
 	if range.row_start ~= range.row_end then return; end
 
 	inline.insert({
 		class = "inline_footnote",
-		node = TSNode,
 
 		text = text[1]:sub(range.col_start + 1, range.col_end - 1),
 		label = text[1]:sub(range.col_start + 2, range.col_end - 1),
@@ -274,11 +301,16 @@ inline.footnote = function (_, _, text, range)
 	});
 end
 
-inline.internal_link = function (_, TSNode, text, range)
+--- Uri autolink parser.
+---@param text string[]
+---@param range __inline.link_range
+inline.internal_link = function (_, _, text, range)
 	if range.row_start ~= range.row_end then return; end
 
 	local class, alias = "inline_link_internal", nil;
 	local label = nil;
+
+	---@diagnostic disable-next-line
 	text = text[1]:gsub("[%[%]]", "");
 
 	if text:match("%#%^(.+)$") then
@@ -298,7 +330,6 @@ inline.internal_link = function (_, TSNode, text, range)
 
 	inline.insert({
 		class = class,
-		node = TSNode,
 
 		text = text,
 		alias = alias,
@@ -308,9 +339,12 @@ inline.internal_link = function (_, TSNode, text, range)
 	});
 end
 
+--- Highlight parser.
+---@param buffer integer
+---@param range TSNode.range
 inline.highlights = function (buffer, _, _, range)
 	local utils = require("markview.utils");
-	local lines = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end, false);
+	local lines = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end + (range.row_end == range.row_start and 1 or 0), false);
 
 	for l, line in ipairs(lines) do
 		local _line = line;
