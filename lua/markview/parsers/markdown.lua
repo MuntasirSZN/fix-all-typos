@@ -39,14 +39,16 @@ markdown.insert = function (data)
 end
 
 
---- ATX heading parser
----@type markview.parsers.function
+--- ATX heading parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 markdown.atx_heading = function (buffer, TSNode, text, range)
 	local marker = TSNode:named_child(0);
 
 	markdown.insert({
 		class = "markdown_atx_heading",
-		node = TSNode,
 
 		marker = vim.treesitter.get_node_text(marker, buffer):gsub("%s", ""),
 		text = text,
@@ -55,14 +57,16 @@ markdown.atx_heading = function (buffer, TSNode, text, range)
 	})
 end
 
---- Setext heading parser
----@type markview.parsers.function
+--- Setext heading parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 markdown.setext_heading = function (buffer, TSNode, text, range)
 	local marker = TSNode:named_child(1);
 
 	markdown.insert({
 		class = "markdown_setext_heading",
-		node = TSNode,
 
 		marker = vim.treesitter.get_node_text(marker, buffer),
 		text = text,
@@ -71,8 +75,10 @@ markdown.setext_heading = function (buffer, TSNode, text, range)
 	})
 end
 
----@type markview.parsers.function
-markdown.block_quote = function (_, TSNode, text, range)
+--- Block quote parser
+---@param text string[]
+---@param range block_quote.range
+markdown.block_quote = function (_, _, text, range)
 	local call_start, call_end, callout = text[1]:find("^%>%s?%[%!(.-)%]");
 	local title_start, title_end, title = text[1]:find("^%>%s?%[%!.-%](.+)$");
 
@@ -88,7 +94,6 @@ markdown.block_quote = function (_, TSNode, text, range)
 
 	markdown.insert({
 		class = "markdown_block_quote",
-		node = TSNode,
 
 		callout = callout,
 		title = title,
@@ -98,8 +103,10 @@ markdown.block_quote = function (_, TSNode, text, range)
 	})
 end
 
----@type markview.parsers.function
-markdown.code_block = function (_, TSNode, text, range)
+--- Code block parser
+---@param text string[]
+---@param range code_block.range
+markdown.code_block = function (_, _, text, range)
 	local tmp, before = text[1], nil;
 	local language, info;
 
@@ -121,7 +128,6 @@ markdown.code_block = function (_, TSNode, text, range)
 
 	markdown.insert({
 		class = "markdown_code_block",
-		node = TSNode,
 
 		language = language,
 		info_string = info,
@@ -166,8 +172,10 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 	inline.cache.link_ref[label] = #markdown.content;
 end
 
----@type markview.parsers.function
-markdown.list_item = function (buffer, TSNode, text, range)
+--- List item parser.
+---@param text string[]
+---@param range TSNode.range
+markdown.list_item = function (_, _, text, range)
 	local marker, before, indent, checkbox;
 
 	if text[1]:match("^[%>%s]*([%-%+%*])%s") then
@@ -244,7 +252,6 @@ markdown.list_item = function (buffer, TSNode, text, range)
 
 	markdown.insert({
 		class = "markdown_list_item",
-		node = TSNode,
 
 		text = text,
 		candidates = candidates,
@@ -256,11 +263,12 @@ markdown.list_item = function (buffer, TSNode, text, range)
 	})
 end
 
----@type markview.parsers.function
-markdown.hr = function (_, TSNode, text, range)
+--- Horizontal rule parser.
+---@param text string[]
+---@param range TSNode.range
+markdown.hr = function (_, _, text, range)
 	markdown.insert({
 		class = "markdown_hr",
-		node = TSNode,
 
 		text = text,
 		range = range
@@ -285,8 +293,10 @@ local function overlap (row_start)
 	return top_border, border_overlap;
 end
 
----@type markview.parsers.function
-markdown.table = function (_, TSNode, text, range)
+--- Table parser.
+---@param text string[]
+---@param range TSNode.range
+markdown.table = function (_, _, text, range)
 	local header, separator, rows = {}, {}, {};
 	local aligns = {};
 
@@ -380,7 +390,6 @@ markdown.table = function (_, TSNode, text, range)
 
 	markdown.insert({
 		class = "markdown_table",
-		node = TSNode,
 
 		top_border = top_border,
 		bottom_border = true,
@@ -398,18 +407,21 @@ markdown.table = function (_, TSNode, text, range)
 	table.insert(markdown.cache.table_ends, range.row_end);
 end
 
----@type markview.parsers.function
-markdown.metadata_minus = function (_, TSNode, text, range)
+--- Minus metadata parser.
+---@param text string[]
+---@param range TSNode.range
+markdown.metadata_minus = function (_, _, text, range)
 	table.insert(markdown.content, {
 		class = "markdown_metadata_minus",
-		node = TSNode,
 
 		text = text,
 		range = range
 	})
 end
 
----@type markview.parsers.function
+--- Plus metadata parser.
+---@param text string[]
+---@param range TSNode.range
 markdown.metadata_plus = function (_, TSNode, text, range)
 	table.insert(markdown.content, {
 		class = "markdown_metadata_plus",
@@ -454,7 +466,6 @@ markdown.parse = function (buffer, TSTree, from, to)
 		((pipe_table) @markdown.table)
 
 		((link_reference_definition) @markdown.link_ref)
-
 	]]);
 
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do

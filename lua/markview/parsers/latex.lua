@@ -43,69 +43,43 @@ latex.insert = function (data)
 	table.insert(latex.sorted[data.class], data);
 end
 
----@type markview.parsers.function
-latex.parenthasis = function (buffer, TSNode, text, range)
-	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1];
-	local before = line:sub(0, range.col_start);
+--- LaTeX block parser.
+---@param buffer integer
+---@param text string[]
+---@param range TSNode.range
+latex.block = function (buffer, _, text, range)
+	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
+	local inline, closed = false, true;
 
-	if within_text_mode(TSNode) then return; end
+	if
+		not from:match("^(%s*)$") or not to:match("^(%s*)%$%$$")
+	then
+		inline = true;
+	elseif
+		not text[1]:match("%$%$$")
+	then
+		inline = true;
+	end
 
-	if before:match("%^$") or before:match("%_$") then
-		return;
-	elseif before:match("%\\(%a+)$") or before:match("%}%s*$") then
-		return;
+	if not text[#text]:match("%$%$$") then
+		closed = false;
 	end
 
 	latex.insert({
-		class = "latex_bracket",
+		class = "latex_block",
+		inline = inline,
+		closed = closed,
 
 		text = text,
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-latex.escaped = function (_, TSNode, text, range)
-	if within_text_mode(TSNode) then return; end
-
-	latex.insert({
-		class = "latex_escaped",
-
-		text = text,
-
-		range = range
-	})
-end
-
----@type markview.parsers.function
-latex.symbol = function (_, TSNode, text, range)
-	local node = TSNode;
-	local style;
-
-	while node do
-		if node:type() == "text_mode" then
-			return;
-		elseif vim.list_contains({ "subscript", "superscript" }, node:type()) then
-			style = node:type() .. "s";
-			break;
-		end
-
-		node = node:parent();
-	end
-
-	latex.insert({
-		class = "latex_symbol",
-		name = text[1]:sub(2),
-		style = style,
-
-		text = text,
-
-		range = range
-	})
-end
-
----@type markview.parsers.function
+--- LaTeX command parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 latex.command = function (buffer, TSNode, text, range)
 	local args = {};
 	local nodes = TSNode:field("arg");
@@ -143,29 +117,38 @@ latex.command = function (buffer, TSNode, text, range)
 	});
 end
 
----@type markview.parsers.function
-latex.block = function (buffer, _, text, range)
-	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
-	local inline, closed = false, true;
-
-	if
-		not from:match("^(%s*)$") or not to:match("^(%s*)%$%$$")
-	then
-		inline = true;
-	elseif
-		not text[1]:match("%$%$$")
-	then
-		inline = true;
-	end
-
-	if not text[#text]:match("%$%$$") then
-		closed = false;
-	end
+--- LaTeX escaped character parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
+latex.escaped = function (_, TSNode, text, range)
+	if within_text_mode(TSNode) then return; end
 
 	latex.insert({
-		class = "latex_block",
-		inline = inline,
-		closed = closed,
+		class = "latex_escaped",
+
+		text = text,
+		range = range
+	})
+end
+
+--- LaTeX font parser.
+---@param TSNode table
+---@param text string[]
+---@param range font.range
+latex.font = function (buffer, TSNode, text, range)
+	local cmd = TSNode:field("command")[1];
+	if within_text_mode(TSNode) then return; end
+
+	if not cmd then
+		return;
+	end
+
+	_, range.font_start, _, range.font_end = cmd:range();
+
+	latex.insert({
+		class = "latex_font",
+		name = vim.treesitter.get_node_text(cmd, buffer):gsub("\\", ""),
 
 		text = text,
 
@@ -173,7 +156,9 @@ latex.block = function (buffer, _, text, range)
 	})
 end
 
----@type markview.parsers.function
+--- Inline LaTeX parser.
+---@param text string[]
+---@param range TSNode.range
 latex.inline = function (_, _, text, range)
 	local closed = true;
 
@@ -191,7 +176,80 @@ latex.inline = function (_, _, text, range)
 	})
 end
 
----@type markview.parsers.function
+--- {} parser.
+---@param buffer integer
+---@param text string[]
+---@param range TSNode.range
+latex.parenthesis = function (buffer, TSNode, text, range)
+	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1];
+	local before = line:sub(0, range.col_start);
+
+	if within_text_mode(TSNode) then return; end
+
+	if before:match("%^$") or before:match("%_$") then
+		return;
+	elseif before:match("%\\(%a+)$") or before:match("%}%s*$") then
+		return;
+	end
+
+	latex.insert({
+		class = "latex_parenthesis",
+
+		text = text,
+		range = range
+	})
+end
+
+--- Subscript parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
+latex.subscript = function (_, TSNode, text, range)
+	local node = TSNode;
+	local level, preview = 0, true;
+
+	local supported_symbols = {
+		"\\beta",
+		"\\gamma",
+		"\\rho",
+		"\\epsilon",
+		"\\chi"
+	}
+
+	for _, line in ipairs(text) do
+		if bulk_gsub(line, supported_symbols):match("%\\") then
+			preview = false;
+			break;
+		end
+	end
+
+	while node do
+		if node:type() == "text_mode" then
+			return;
+		elseif node:type() == "subscript" then
+			level = level + 1;
+		end
+
+		node = node:parent();
+	end
+
+	latex.insert({
+		class = "latex_subscript",
+		parenthesis = text[1]:match("^%_%{") ~= nil,
+
+		preview = preview,
+		level = level,
+
+		text = text,
+
+		range = range
+	})
+end
+
+--- Superscript parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 latex.superscript = function (_, TSNode, text, range)
 	local node = TSNode;
 	local level, preview = 0, true;
@@ -228,93 +286,61 @@ latex.superscript = function (_, TSNode, text, range)
 
 	latex.insert({
 		class = "latex_superscript",
-		parenthasis = text[1]:match("^%^%{") ~= nil,
+		parenthesis = text[1]:match("^%^%{") ~= nil,
 
 		preview = preview,
 		level = level,
 
 		text = text,
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-latex.subscript = function (_, TSNode, text, range)
+--- Symbol parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
+latex.symbol = function (_, TSNode, text, range)
 	local node = TSNode;
-	local level, preview = 0, true;
-
-	local supported_symbols = {
-		"\\beta",
-		"\\gamma",
-		"\\rho",
-		"\\epsilon",
-		"\\chi"
-	}
-
-	for _, line in ipairs(text) do
-		if bulk_gsub(line, supported_symbols):match("%\\") then
-			preview = false;
-			break;
-		end
-	end
+	local style;
 
 	while node do
 		if node:type() == "text_mode" then
 			return;
-		elseif node:type() == "subscript" then
-			level = level + 1;
+		elseif vim.list_contains({ "subscript", "superscript" }, node:type()) then
+			style = node:type() .. "s";
+			break;
 		end
 
 		node = node:parent();
 	end
 
 	latex.insert({
-		class = "latex_subscript",
-		parenthasis = text[1]:match("^%_%{") ~= nil,
-
-		preview = preview,
-		level = level,
+		class = "latex_symbol",
+		name = text[1]:sub(2),
+		style = style,
 
 		text = text,
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-latex.text = function (buffer, TSNode, text, range)
+--- Text mode parser.
+---@param text string[]
+---@param range TSNode.range
+latex.text = function (_, _, text, range)
 	latex.insert({
 		class = "latex_text",
 
 		text = text,
-
 		range = range
 	})
 end
 
----@type markview.parsers.function
-latex.font = function (buffer, TSNode, text, range)
-	local cmd = TSNode:field("command")[1];
-	if within_text_mode(TSNode) then return; end
-
-	if not cmd then
-		return;
-	end
-
-	_, range.font_start, _, range.font_end = cmd:range();
-
-	latex.insert({
-		class = "latex_font",
-		name = vim.treesitter.get_node_text(cmd, buffer):gsub("\\", ""),
-
-		text = text,
-
-		range = range
-	})
-end
-
----@type markview.parsers.function
+--- Word parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 latex.word = function (_, TSNode, text, range)
 	if within_text_mode(TSNode) then return; end
 
@@ -331,7 +357,7 @@ latex.parse = function (buffer, TSTree, from, to)
 	latex.content = {};
 
 	local scanned_queries = vim.treesitter.query.parse("latex", [[
-		((curly_group) @latex.parenthasis)
+		((curly_group) @latex.parenthesis)
 
 		([(operator) (word)] @latex.word
 			(#match? @latex.word "^[^\\\\]+$"))

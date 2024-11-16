@@ -234,6 +234,7 @@ spec.default = {
 				border = "▋", hl = "MarkviewBlockQuoteDefault"
 			},
 
+			---+${conf}
 			["abstract"] = {
 				preview = "󱉫 Abstract",
 				hl = "MarkviewBlockQuoteNote",
@@ -469,6 +470,7 @@ spec.default = {
 
 				border = "▋"
 			}
+			---_
 		},
 
 		code_blocks = {
@@ -482,6 +484,7 @@ spec.default = {
 
 			min_width = 60,
 			pad_amount = 3,
+			pad_char = " ",
 
 			language_names = nil,
 			language_direction = "right",
@@ -507,35 +510,35 @@ spec.default = {
 				---+ ${conf, Heading 2}
 				style = "icon",
 				sign = "󰌖 ", sign_hl = "MarkviewHeading2Sign",
-	
+
 				icon = "󰎨  ", hl = "MarkviewHeading2",
 				---_
 			},
 			heading_3 = {
 				---+ ${conf, Heading 3}
 				style = "icon",
-	
+
 				icon = "󰼑  ", hl = "MarkviewHeading3",
 				---_
 			},
 			heading_4 = {
 				---+ ${conf, Heading 4}
 				style = "icon",
-	
+
 				icon = "󰎲  ", hl = "MarkviewHeading4",
 				---_
 			},
 			heading_5 = {
 				---+ ${conf, Heading 5}
 				style = "icon",
-	
+
 				icon = "󰼓  ", hl = "MarkviewHeading5",
 				---_
 			},
 			heading_6 = {
 				---+ ${conf, Heading 6}
 				style = "icon",
-	
+
 				icon = "󰎴  ", hl = "MarkviewHeading6",
 				---_
 			},
@@ -674,6 +677,8 @@ spec.default = {
 		},
 
 		metadata_minus = {
+			enable = true,
+
 			hl = "Code",
 			border_hl = "CodeFg",
 
@@ -682,6 +687,8 @@ spec.default = {
 		},
 
 		metadata_plus = {
+			enable = true,
+
 			hl = "Code",
 			border_hl = "CodeFg",
 
@@ -745,6 +752,8 @@ spec.default = {
 		},
 
 		highlights = {
+			enable = true,
+
 			default = {
 				hl = "MarkviewHeading1"
 			}
@@ -1019,35 +1028,35 @@ spec.default = {
 				---+ ${conf, Heading 2}
 				style = "icon",
 				sign = "󰌖 ", sign_hl = "MarkviewHeading2Sign",
-	
+
 				icon = "󰎨  ", hl = "MarkviewHeading2",
 				---_
 			},
 			heading_3 = {
 				---+ ${conf, Heading 3}
 				style = "icon",
-	
+
 				icon = "󰼑  ", hl = "MarkviewHeading3",
 				---_
 			},
 			heading_4 = {
 				---+ ${conf, Heading 4}
 				style = "icon",
-	
+
 				icon = "󰎲  ", hl = "MarkviewHeading4",
 				---_
 			},
 			heading_5 = {
 				---+ ${conf, Heading 5}
 				style = "icon",
-	
+
 				icon = "󰼓  ", hl = "MarkviewHeading5",
 				---_
 			},
 			heading_6 = {
 				---+ ${conf, Heading 6}
 				style = "icon",
-	
+
 				icon = "󰎴  ", hl = "MarkviewHeading6",
 				---_
 			},
@@ -1055,7 +1064,7 @@ spec.default = {
 			setext_1 = {
 				---+ ${conf, Setext heading 1}
 				style = "decorated",
-	
+
 				sign = "󰌕 ", sign_hl = "MarkviewHeading1Sign",
 				icon = "  ", hl = "MarkviewHeading1",
 				line = "▂"
@@ -1663,6 +1672,7 @@ spec.get = function (opts, func, ...)
 
 	for _, key in ipairs(opts or {}) do
 		if _o[key] then
+			---@diagnostic disable-next-line
 			if _o.enable == false then
 				return;
 			end

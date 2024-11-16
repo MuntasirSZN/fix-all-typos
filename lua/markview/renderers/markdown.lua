@@ -9,6 +9,9 @@ local entities = require("markview.entities");
 local devicons_loaded, devicons = pcall(require, "nvim-web-devicons");
 local mini_loaded, MiniIcons = pcall(require, "mini.icons");
 
+---@param value table
+---@param index integer
+---@return any
 local function tbl_clamp(value, index)
 	if vim.islist(value) == false then
 		return value;
@@ -23,20 +26,27 @@ local get_config = function (...)
 	return spec.get({ "markdown", ... });
 end
 
+---@param config table
+---@param value string
+---@return table
 markdown.custom_config = function (config, value)
-	if not config.custom or not value then
-		return config;
+	if not config.patterns or not value then
+		return config.default;
 	end
 
-	for _, custom in ipairs(config.custom) do
-		if custom.match_string and value:match(custom.match_string) then
-			return vim.tbl_deep_extend("force", config, custom);
+	for _, pattern in ipairs(config.patterns) do
+		if pattern.match_string and value:match(pattern.match_string) then
+			return vim.tbl_deep_extend("force", config.default, pattern);
 		end
 	end
 
-	return config;
+	return config.default;
 end
 
+---@param icons string
+---@param ft string
+---@return string
+---@return string
 markdown.get_icon = function (icons, ft)
 	if type(icons) ~= "string" or icons == "" then
 		return "", "Normal";
@@ -47,12 +57,15 @@ markdown.get_icon = function (icons, ft)
 	elseif icons == "mini" and mini_loaded then
 		return MiniIcons.get("extension", ft);
 	elseif icons == "internal" then
+		---@diagnostic disable-next-line
 		return languages.get_icon(ft);
 	end
 
 	return "󰡯", "Normal";
 end
 
+---@param str string
+---@return string
 markdown.output = function (str)
 	local function config(opt)
 		local conf = spec.get({ "markdown_inline" });
@@ -66,7 +79,7 @@ markdown.output = function (str)
 		return conf[opt];
 	end
 
-	local concat = function (list, test)
+	local concat = function (list)
 		for i, item in ipairs(list) do
 			list[i] = utils.escape_string(item);
 		end
@@ -85,6 +98,7 @@ markdown.output = function (str)
 	local uri = config("uri_autolinks");
 	local esc = config("escapes");
 	local ent = config("entities");
+	local hls = config("highlights");
 
 	for escaped in str:gmatch("\\(%$)") do
 		if not esc then
@@ -168,6 +182,25 @@ markdown.output = function (str)
 				_embed.corner_right or ""
 			}));
 		end
+		---_
+	end
+
+	for ref in str:gmatch("%[%[%#%^([^%]]+)%]%]") do
+		---+${custom, Handle embed files & block references}
+		local _blref = markdown.custom_config(blref, ref);
+
+		str = str:gsub(concat({
+			"[[#^",
+			ref,
+			"]]"
+		}), concat({
+			_blref.corner_left or "",
+			_blref.padding_left or "",
+			_blref.icon or "",
+			ref:gsub(".", "X"),
+			_blref.padding_right or "",
+			_blref.corner_right or ""
+		}));
 		---_
 	end
 
@@ -397,6 +430,25 @@ markdown.output = function (str)
 		---_
 	end
 
+	for highlight in str:gmatch("%=%=%=(.-)%=%=%=") do
+		---+${custom, Handle strike-through text}
+		local _hls = markdown.custom_config(hls, highlight) or {};
+
+		str = str:gsub(concat({
+			"===",
+			highlight,
+			"==="
+		}), concat({
+			_hls.corner_left or "",
+			_hls.padding_left or "",
+			_hls.icon or "",
+			utils.escape_string(highlight):gsub(".", "X"),
+			_hls.padding_right or "",
+			_hls.corner_left or ""
+		}));
+		---_
+	end
+
 	for entity in str:gmatch("%&([%d%a%#]+);") do
 		---+${custom, Handle entities}
 		if not ent then
@@ -486,7 +538,7 @@ end
 
 --- Renders atx headings
 ---@param buffer integer
----@param item table
+---@param item __markdown.heading_atx
 markdown.atx_heading = function (buffer, item)
 	---+${func, Renders ATX headings}
 
@@ -597,7 +649,7 @@ end
 
 --- Renders block quotes, callouts & alerts.
 ---@param buffer integer
----@param item table
+---@param item __markdown.block_quote
 markdown.block_quote = function (buffer, item)
 	---+${func, Renders Block quotes & Callouts/Alerts}
 
@@ -669,7 +721,7 @@ markdown.block_quote = function (buffer, item)
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "inline",
 			virt_text = {
-				{ tbl_clamp(config.border, (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl or config.hl, (l - range.row_start) + 1)) }
+				{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) }
 			},
 
 			hl_mode = "combine",
@@ -685,7 +737,7 @@ end
 
 --- Renders fenced code blocks.
 ---@param buffer integer
----@param item table
+---@param item __markdown.code_block
 markdown.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
@@ -736,7 +788,7 @@ markdown.code_block = function (buffer, item)
 
 		if config.language_direction == nil or config.language_direction == "left" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
-				end_col = range.end_col,
+				end_col = range.col_end,
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -752,7 +804,7 @@ markdown.code_block = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl),
 			});
 		elseif config.language_direction == "right" then
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start + vim.fn.strchars(range.info_string), {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start + vim.fn.strchars(item.info_string or ""), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "right_align",
@@ -1002,7 +1054,7 @@ end
 
 --- Renders horizontal rules/line breaks.
 ---@param buffer integer
----@param item table
+---@param item __markdown.horizontal_rule
 markdown.hr = function (buffer, item)
 	---+${func, Horizontal rules}
 
@@ -1067,7 +1119,7 @@ end
 
 --- Renders list items
 ---@param buffer integer
----@param item table
+---@param item __markdown.list_item
 markdown.list_item = function (buffer, item)
 	---+${func, Renders List items}
 
@@ -1191,7 +1243,7 @@ end
 
 --- Renders - metadatas.
 ---@param buffer integer
----@param item table
+---@param item __markdown.metadata_minus
 markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
@@ -1254,7 +1306,7 @@ end
 
 --- Renders + metadatas.
 ---@param buffer integer
----@param item table
+---@param item __markdown.metadata_plus
 markdown.metadata_plus = function (buffer, item)
 	---+${func, Renders TOML metadata blocks}
 
@@ -1317,7 +1369,7 @@ end
 
 --- Renders setext headings.
 ---@param buffer integer
----@param item table
+---@param item __markdown.heading_setext
 markdown.setext_heading = function (buffer, item)
 	---+${func, Renders Setext headings}
 
@@ -1405,7 +1457,7 @@ end
 
 --- Renders tables.
 ---@param buffer integer
----@param item table
+---@param item __markdown.table
 markdown.table = function (buffer, item)
 	---+${func, Renders Tables}
 
