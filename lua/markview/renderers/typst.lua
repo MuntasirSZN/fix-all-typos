@@ -877,6 +877,8 @@ typst.raw_span = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item table
 typst.strong = function (buffer, item)
 	local range = item.range;
 
@@ -893,6 +895,8 @@ typst.strong = function (buffer, item)
 	});
 end
 
+---@param buffer integer
+---@param item __typst.style
 typst.superscript = function (buffer, item)
 	---+${func}
 
@@ -951,6 +955,8 @@ typst.superscript = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.style
 typst.subscript = function (buffer, item)
 	---+${func}
 
@@ -1009,6 +1015,8 @@ typst.subscript = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.symbol
 typst.symbol = function (buffer, item)
 	---+${func}
 
@@ -1076,6 +1084,8 @@ typst.term = function (buffer, item)
 	---_
 end
 
+---@param buffer integer
+---@param item __typst.text
 typst.text = function (buffer, item)
 	---+${func}
 

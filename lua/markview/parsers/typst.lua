@@ -298,7 +298,12 @@ typst.term = function (buffer, TSNode, text, range)
 end
 
 
+--- Typst single word symbol parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.idet = function (_, TSNode, text, range)
+	---+${funx}
 	local symbols = require("markview.symbols");
 	if not symbols.typst_entries[text[1]] then return; end
 
@@ -318,11 +323,17 @@ typst.idet = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 
+--- Typst subscript parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.subscript = function (_, TSNode, text, range)
+	---+${func}
 	local par = TSNode:type() == "group";
 	local lvl = 0;
 	local pre = true;
@@ -348,11 +359,17 @@ typst.subscript = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 
+--- Typst superscript parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.superscript = function (_, TSNode, text, range)
+	---+${func}
 	local par = TSNode:type() == "group";
 	local lvl = 0;
 	local pre = true;
@@ -378,11 +395,17 @@ typst.superscript = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 
+--- Typst symbol parser.
+---@param TSNode table
+---@param text string[]
+---@param range TSNode.range
 typst.symbol = function (_, TSNode, text, range)
+	---+${func}
 	for _, line in ipairs(text) do
 		if not line:match("^[%a%.]+$") then
 			return;
@@ -405,9 +428,13 @@ typst.symbol = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
+--- Typst regular text parser.
+---@param text string[]
+---@param range TSNode.range
 typst.text = function (_, _, text, range)
 	typst.insert({
 		class = "typst_text",

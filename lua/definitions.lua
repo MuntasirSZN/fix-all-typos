@@ -803,6 +803,9 @@
 ---@field raw_blocks typst.raw_blocks
 ---@field raw_spans typst.raw_spans
 ---@field reference_links typst.links
+---@field subscripts typst.styles
+---@field superscripts typst.styles
+---@field symbols typst.symbols
 ---@field terms typst.term
 ---@field url_links typst.links
 
@@ -949,6 +952,18 @@
 ---@field padding_right_hl? string
 
 
+---@class typst.styles
+---
+---@field enable boolean
+---@field hl? string
+
+
+---@class typst.symbols
+---
+---@field enable boolean
+---@field hl? string
+
+
 ---@class typst.term
 ---
 ---@field enable boolean
@@ -1031,9 +1046,29 @@
 ---@field range TSNode.range
 
 
+---@class __typst.style
+---
+---@field class "typst_subscript" | "typst_superscript"
+---@field level integer
+---@field parenthesis boolean
+---@field preview boolean
+---@field range TSNode.range
+---@field text string[]
+
+
+---@class __typst.symbol
+---
+---@field class "typst_symbol"
+---@field name string
+---@field style string?
+---@field range TSNode.range
+---@field text string[]
+
+
 ---@class __typst.url_link
 ---
 ---@field class "typst_link_url"
+---@field label string
 ---@field text string[]
 ---@field range TSNode.range
 
@@ -1044,6 +1079,13 @@
 ---@field term string
 ---@field text string[]
 ---@field range TSNode.range
+
+---@class __typst.text
+---
+---@field class "typst_text"
+---@field range TSNode.range
+---@field text string[]
+
 
 
 
