@@ -297,6 +297,127 @@ typst.term = function (buffer, TSNode, text, range)
 	});
 end
 
+
+typst.idet = function (_, TSNode, text, range)
+	local symbols = require("markview.symbols");
+	if not symbols.typst_entries[text[1]] then return; end
+
+	local _n = TSNode:parent();
+
+	while _n do
+		if vim.list_contains({ "raw_span", "raw_blck", "code", "field" }, _n:type()) then
+			return;
+		end
+
+		_n = _n:parent();
+	end
+
+	typst.insert({
+		class = "typst_symbol",
+		name = text[1],
+
+		text = text,
+		range = range
+	})
+end
+
+
+typst.subscript = function (_, TSNode, text, range)
+	local par = TSNode:type() == "group";
+	local lvl = 0;
+	local pre = true;
+
+	local _n = TSNode;
+
+	while _n do
+		if _n:field("sub")[1] then
+			lvl = lvl + 1;
+		end
+
+		_n = _n:parent();
+	end
+
+	range.col_start = range.col_start - 1;
+
+	typst.insert({
+		class = "typst_subscript",
+		parenthesis = par,
+
+		preview = pre,
+		level = lvl,
+
+		text = text,
+		range = range
+	})
+end
+
+
+typst.superscript = function (_, TSNode, text, range)
+	local par = TSNode:type() == "group";
+	local lvl = 0;
+	local pre = true;
+
+	local _n = TSNode;
+
+	while _n do
+		if _n:field("sup")[1] then
+			lvl = lvl + 1;
+		end
+
+		_n = _n:parent();
+	end
+
+	range.col_start = range.col_start - 1;
+
+	typst.insert({
+		class = "typst_superscript",
+		parenthesis = par,
+
+		preview = pre,
+		level = lvl,
+
+		text = text,
+		range = range
+	})
+end
+
+
+typst.symbol = function (_, TSNode, text, range)
+	for _, line in ipairs(text) do
+		if not line:match("^[%a%.]+$") then
+			return;
+		end
+	end
+
+	local _n = TSNode:parent();
+
+	while _n do
+		if vim.list_contains({ "raw_span", "raw_blck", "code", "field" }, _n:type()) then
+			return;
+		end
+
+		_n = _n:parent();
+	end
+
+	typst.insert({
+		class = "typst_symbol",
+		name = text[1],
+
+		text = text,
+		range = range
+	})
+end
+
+typst.text = function (_, _, text, range)
+	typst.insert({
+		class = "typst_text",
+
+		text = text,
+		range = range
+	})
+end
+
+
 typst.parse = function (buffer, TSTree, from, to)
 	typst.cache = {
 		list_item_number = 0
@@ -307,6 +428,22 @@ typst.parse = function (buffer, TSTree, from, to)
 	typst.content = {};
 
 	local scanned_queries = vim.treesitter.query.parse("typst", [[
+		((attach
+			sub: (_) @typst.subscript))
+
+		((attach
+			sup: (_) @typst.superscript))
+
+		((field) @typst.symbol)
+
+		([
+			(number)
+			(symbol)
+			(letter)
+			] @typst.text)
+
+		((ident) @typst.idet)
+
 		((heading) @typst.heading)
 		((escape) @typst.escaped)
 		((item) @typst.list_item)

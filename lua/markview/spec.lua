@@ -1153,6 +1153,8 @@ spec.default = {
 
 			padding_left = " ",
 			padding_right = " ",
+
+			hl = "InlineCode"
 		},
 
 		url_links = {
@@ -1169,6 +1171,10 @@ spec.default = {
 			icon = " ",
 			hl = "Hyperlink"
 		},
+
+		subscripts = { enable = true, hl = "LatexSubscript" },
+		superscripts = { enable = true, hl = "LatexSuperscript" },
+		symbols = { enable = true, hl = "InlineCode" },
 
 		terms = {
 			enable = true,

@@ -538,7 +538,7 @@ latex.subscript = function (buffer, item)
 
 			hl_mode = "combine"
 		});
-	elseif symbols.superscripts[item.text[1]:sub(2)] then
+	elseif symbols.subscripts[item.text[1]:sub(2)] then
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "overlay",
@@ -794,8 +794,8 @@ latex.render = function (buffer, content)
 	};
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
-		latex[item.class:gsub("^latex_", "")](buffer, item);
+		pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+		-- latex[item.class:gsub("^latex_", "")](buffer, item);
 	end
 end
 
