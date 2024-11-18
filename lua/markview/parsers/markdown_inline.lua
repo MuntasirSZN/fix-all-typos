@@ -24,11 +24,13 @@ inline.cache = {
 }
 
 --- Checkbox parser.
----@param text string[]
+---@param buffer integer
 ---@param range TSNode.range
-inline.checkbox = function (_, _, text, range)
-	local before = text[1]:sub(0, range.col_start);
-	local inner = text[1]:sub(range.col_start + 1, range.col_end - 1);
+inline.checkbox = function (buffer, _, _, range)
+	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1];
+
+	local before = line:sub(0, range.col_start);
+	local inner = line:sub(range.col_start + 1, range.col_end - 1);
 
 	if not (before:match("^[%s%>]*[%-%+%*]%s$") or before:match("^[%s%>]*%d+[%.%)]%s$")) then
 		return;
@@ -97,7 +99,7 @@ inline.reference_link = function (buffer, TSNode, text, range)
 	inline.insert({
 		class = "inline_link_hyperlink",
 
-		text = text[1]:sub(range.col_start, range.col_end),
+		text = text[1],
 		description = link_desc,
 		label = link_label and inline.cache.link_ref[link_label:gsub("[%[%]]", "")] or nil,
 
@@ -140,10 +142,11 @@ end
 ---@param range __inline.link_range
 inline.shortcut_link = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
+	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1];
 
-	local before = text[1]:sub(0, range.col_start) or "";
-	local inner = text[1]:sub(range.col_start + 1, range.col_end);
-	local after = text[1]:sub(range.col_end + 1, #text[1]);
+	local before = line:sub(0, range.col_start) or "";
+	local inner = line:sub(range.col_start + 1, range.col_end);
+	local after = line:sub(range.col_end + 1, #line);
 
 	if before:match("^[%s%>]*$") and before:match("%>%s?$") and inner:match("^%[!") then
 		return;
@@ -218,8 +221,6 @@ end
 ---@param range __inline.link_range
 inline.image = function (buffer, TSNode, text, range)
 	if range.row_start ~= range.row_end then return; end
-
-	text[1] = text[1]:sub(range.col_start + 1, range.col_end);
 
 	if text[1]:match("^%!%[%[") and text[1]:match("%]%]$") then
 		inline.embed_file(buffer, TSNode, text, range);
@@ -439,15 +440,23 @@ inline.parse = function (buffer, TSTree, from, to)
 
 		local r_start, c_start, r_end, c_end = capture_node:range();
 
-		local capture_text;
+		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
 
-		capture_text = vim.api.nvim_buf_get_lines(buffer, r_start, r_start == r_end and r_end + 1 or r_end, false);
+		if not capture_text:match("\n$") then
+			capture_text = capture_text .. "\n";
+		end
+
+		local lines = {};
+
+		for line in capture_text:gmatch("(.-)\n") do
+			table.insert(lines, line);
+		end
 
 		pcall(
 			inline[capture_name:gsub("^markdown_inline%.", "")],
 			buffer,
 			capture_node,
-			capture_text,
+			lines,
 
 			{
 				row_start = r_start,
