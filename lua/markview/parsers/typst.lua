@@ -136,6 +136,24 @@ typst.list_item = function (buffer, TSNode, text, range)
 		number = typst.cache.list_item_number;
 	end
 
+	local row_end = range.row_start - 1;
+
+	for l, ln in ipairs(text) do
+		if
+			l ~= 1 and
+			(
+				ln:match("^%s*([%+%-])") or
+				ln:match("^%s*(%d)%.")
+			)
+		then
+			break
+		end
+
+		row_end = row_end + 1;
+	end
+
+	range.row_end = row_end;
+
 	typst.insert({
 		class = "typst_list_item",
 		indent = line:match("(%s*)$"):len(),
@@ -238,9 +256,20 @@ typst.raw_block = function (buffer, TSNode, text, range)
 end
 
 --- Typst strong text parser.
+---@param TSNode table
 ---@param text string[]
 ---@param range TSNode.range
-typst.strong = function (_, _, text, range)
+typst.strong = function (_, TSNode, text, range)
+	local _n = TSNode:parent();
+
+	while _n do
+		if vim.list_contains({ "raw_span", "raw_blck", "code", "field" }, _n:type()) then
+			return;
+		end
+
+		_n = _n:parent();
+	end
+
 	typst.insert({
 		class = "typst_strong",
 
@@ -250,9 +279,20 @@ typst.strong = function (_, _, text, range)
 end
 
 --- Typst emphasized text parser.
+---@param TSNode table
 ---@param text string[]
 ---@param range TSNode.range
-typst.emphasis = function (_, _, text, range)
+typst.emphasis = function (_, TSNode, text, range)
+	local _n = TSNode:parent();
+
+	while _n do
+		if vim.list_contains({ "raw_span", "raw_blck", "code", "field" }, _n:type()) then
+			return;
+		end
+
+		_n = _n:parent();
+	end
+
 	typst.insert({
 		class = "typst_emphasis",
 

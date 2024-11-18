@@ -150,7 +150,7 @@ markdown.checkbox = function (_, TSNode, text, range)
 end
 
 ---@type markview.parsers.function
-markdown.link_ref = function (buffer, TSNode, text, range)
+markdown.link_ref = function (_, TSNode, text, range)
 	local label = text[1]:match("^%[(.-)%]%:");
 	local desc = text[1]:match("^%[.-%]%:%s*(.+)$");
 
@@ -159,7 +159,7 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 	end
 
 	markdown.insert({
-		class = "inline_link_ref",
+		class = "markdown_link_ref_definition",
 		node = TSNode,
 
 		text = text[1]:sub(range.col_start, range.col_end),
@@ -169,7 +169,7 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 		range = range
 	});
 
-	inline.cache.link_ref[label] = #markdown.content;
+	inline.cache.link_ref[label] = desc;
 end
 
 --- List item parser.
