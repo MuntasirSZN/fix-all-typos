@@ -1,6 +1,7 @@
 local symbols = {};
 
 symbols.superscripts = {
+	---+${class}
 	["0"] = "⁰",
 	["1"] = "¹",
 	["2"] = "²",
@@ -82,9 +83,11 @@ symbols.superscripts = {
 	["Phi"] = "ᶲ",
 	["varphi"] = "ᵠ",
 	["chi"] = "ᵡ",
+	---_
 };
 
 symbols.subscripts = {
+	---+${class}
 	["0"] = "₀",
 	["1"] = "₁",
 	["2"] = "₂",
@@ -160,7 +163,8 @@ symbols.subscripts = {
 	["gamma"] = "ᵧ",
 	["rho"] = "ᵨ",
 	["epsilon"] = "ᵩ",
-	["chi"] = "ᵪ"
+	["chi"] = "ᵪ",
+	---_
 };
 
 --- Uses \ding{val}
@@ -3300,6 +3304,7 @@ symbols.typst_entries = {
 --]]
 
 symbols.fonts = {
+	---+${clqss}
 	default = {
 		["A"] = "𝐴",
 		["B"] = "𝐵",
@@ -4268,6 +4273,7 @@ symbols.fonts = {
 		["8"] = "𝟾",
 		["9"] = "𝟿",
 	}
+	---_
 }
 
 symbols.tostring = function (font, text)
