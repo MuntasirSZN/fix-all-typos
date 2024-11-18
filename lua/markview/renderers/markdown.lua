@@ -340,17 +340,19 @@ markdown.output = function (str)
 				"]",
 			}), concat({ link }))
 		else
+			local _hyper = markdown.custom_config(hyper, link);
+
 			str = str:gsub(concat({
 				"[",
 				link,
 				"]",
 			}), concat({
-				hyper.corner_left or "",
-				hyper.padding_left or "",
-				hyper.icon or "",
+				_hyper.corner_left or "",
+				_hyper.padding_left or "",
+				_hyper.icon or "",
 				utils.escape_string(link):gsub("[^%[%]]", "X"),
-				hyper.padding_right or "",
-				hyper.corner_right or ""
+				_hyper.padding_right or "",
+				_hyper.corner_right or ""
 			}));
 		end
 		---_
@@ -723,8 +725,10 @@ markdown.block_quote = function (buffer, item)
 	end
 
 	for l = range.row_start, range.row_end - 1, 1  do
+		local line_len = #item.text[(l + 1) - range.row_start];
+
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, range.col_start, {
-			end_col = math.min(range.col_start + 1, #item.text[(l - range.row_start) + 1]),
+			end_col = range.col_start + math.min(1, line_len),
 			conceal = "",
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "inline",
@@ -1122,6 +1126,63 @@ markdown.hr = function (buffer, item)
 
 		hl_mode = "combine"
 	});
+	---_
+end
+
+--- Renders reference link definitions.
+---@param buffer integer
+---@param item __markdown.horizontal_rule
+markdown.link_ref_definition = function (buffer, item)
+	---+${func, Render normal links}
+
+	---@type inline.item?
+	local main_config = get_config("reference_definitions");
+	local range = item.range;
+
+	if not main_config then
+		return;
+	end
+
+	---@type inline.item_config
+	local config = inline.custom_config(main_config, item.label);
+
+	---+${class}
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.desc_start or (range.col_start + 1),
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+
+			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start + 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1 + #item.label,
+		hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start + #item.label + 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + #item.label + 2,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+	--_
 	---_
 end
 

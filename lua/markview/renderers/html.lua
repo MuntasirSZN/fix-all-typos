@@ -11,6 +11,28 @@ local get_config = function (...)
 	return _c;
 end
 
+--- Gets sub-option values.
+---@param source table
+---@param opts { key: string, args: any[], fallback: any?, operator: function? }
+---@return unknown
+local get_opt = function (source, opts)
+	if not opts then opts = {}; end
+
+	local _o = source[opts.key] or opts.fallback;
+
+	---@diagnostic disable
+	if pcall(_o, unpack(opts.args or {})) then
+		_o = _o(unpack(opts.args or {}));
+	end
+	---@diagnostic enable
+
+	if opts.operator then
+		return opts.operator(_o);
+	else
+		return _o;
+	end
+end
+
 html.__ns = {
 	__call = function (self, key)
 		return self[key] or self.default;
@@ -47,16 +69,16 @@ end
 ---@param item __html.heading_item
 html.heading = function (buffer, item)
 	---+${func}
-	local config = get_config("headings");
+	local main_config = get_config("headings");
 
-	if not config then
+	if not main_config then
 		return;
-	elseif not config["heading_" .. item.level] then
+	elseif not get_opt(main_config, { key = "heading_" .. item.level, args = { buffer, item } }) then
 		return;
 	end
 
 	local range = item.range;
-	config = config["heading_" .. item.level];
+	local config = get_opt(main_config, { key = "heading_" .. item.level, args = { buffer, item } });
 
 	vim.api.nvim_buf_set_extmark(
 		buffer,
