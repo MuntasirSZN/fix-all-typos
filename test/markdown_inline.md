@@ -56,7 +56,7 @@ Work in progress. [^1]
 
 ; Highlights
 
-Some ===Special text===.
+Some ==Special text==.
 
 ; Hyperlinks
 

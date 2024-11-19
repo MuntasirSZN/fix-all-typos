@@ -1039,6 +1039,9 @@ typst.symbol = function (buffer, item)
 	then
 		_o = symbols[item.style][item.name] or symbols.typst_entries[item.name];
 		_h = get_config(item.style, "hl");
+	elseif symbols.typst_shorthands[item.name] then
+		_o = symbols.typst_shorthands[item.name];
+		_h = config.hl;
 	elseif symbols.typst_entries[item.name] then
 		_o = symbols.typst_entries[item.name];
 		_h = config.hl;

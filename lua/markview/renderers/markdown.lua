@@ -436,16 +436,16 @@ markdown.output = function (str)
 		---_
 	end
 
-	for highlight in str:gmatch("%=%=%=(.-)%=%=%=") do
+	for highlight in str:gmatch("%=%=(.-)%=%=") do
 		---+${custom, Handle strike-through text}
 		if not hls then goto continue; end
 
 			local _hls = markdown.custom_config(hls, highlight) or {};
 
 			str = str:gsub(concat({
-				"===",
+				"==",
 				highlight,
-				"==="
+				"=="
 			}), concat({
 				_hls.corner_left or "",
 				_hls.padding_left or "",
@@ -2186,8 +2186,8 @@ markdown.render = function (buffer, content)
 	markdown.set_ns()
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
-		markdown[item.class:gsub("^markdown_", "")](buffer, item);
+		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		-- markdown[item.class:gsub("^markdown_", "")](buffer, item);
 	end
 end
 

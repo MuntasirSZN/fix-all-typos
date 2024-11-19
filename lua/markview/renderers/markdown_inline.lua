@@ -227,7 +227,7 @@ inline.highlight = function (buffer, item)
 	---+${custom, Draw the parts for the email}
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 3,
+		end_col = range.col_start + 2,
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -241,13 +241,13 @@ inline.highlight = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start + 3, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start + 2, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_end - 3,
+		end_col = range.col_end - 2,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 3, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 2, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -763,8 +763,8 @@ inline.render = function (buffer, content)
 	inline.set_ns();
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
-		inline[item.class:gsub("^inline_", "")](buffer, item);
+		pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
+		-- inline[item.class:gsub("^inline_", "")](buffer, item);
 	end
 end
 

@@ -102,5 +102,6 @@ $
 
 $
 paren.l.double bracket.t shell.b fence.l
+arrow.l.r.long
 $
 

@@ -350,8 +350,8 @@ inline.highlights = function (buffer, _, _, range)
 	for l, line in ipairs(lines) do
 		local _line = line;
 
-		for highlight in line:gmatch("%=%=%=([^=]+)%=%=%=") do
-			local c_s, c_e = _line:find("%=%=%=" .. utils.escape_string(highlight) .. "%=%=%=")
+		for highlight in line:gmatch("%=%=([^=]+)%=%=") do
+			local c_s, c_e = _line:find("%=%=" .. utils.escape_string(highlight) .. "%=%=")
 
 			inline.insert({
 				class = "inline_highlight",
@@ -366,7 +366,7 @@ inline.highlights = function (buffer, _, _, range)
 				}
 			});
 
-			_line = _line:gsub("%=%=%=" .. utils.escape_string(highlight) .. "%=%=%=", function (s)
+			_line = _line:gsub("%=%=" .. utils.escape_string(highlight) .. "%=%=", function (s)
 				return string.rep("X", vim.fn.strchars(s))
 			end, 1)
 		end
@@ -400,7 +400,7 @@ inline.parse = function (buffer, TSTree, from, to)
 
 	local scanned_queries = vim.treesitter.query.parse("markdown_inline", [[
 		((inline) @markdown_inline.highlights
-			(#match? @markdown_inline.highlights "\\=\\=\\=.+\\=\\=\\="))
+			(#match? @markdown_inline.highlights "\\=\\=.+\\=\\="))
 
 		((email_autolink) @markdown_inline.email)
 
