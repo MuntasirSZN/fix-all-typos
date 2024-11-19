@@ -91,16 +91,15 @@ spec.notify = function (chunks, opts)
 		true,
 		{}
 	);
-	table.insert(spec.warnings, opts);
+
+	if opts.silent ~= true then
+		table.insert(spec.warnings, opts);
+	end
 end
 
 ---@type markview.configuration
 spec.default = {
 	---+${conf}
-	highlight_groups = {},
-
-	renderers = {},
-
 	experimental = {
 		---+${conf}
 		file_byte_read = 1000,
@@ -108,6 +107,8 @@ spec.default = {
 		list_empty_line_tolerance = 3
 		---_
 	};
+
+	highlight_groups = {},
 
 	preview = {
 		---+${conf}
@@ -134,6 +135,33 @@ spec.default = {
 				end
 			end,
 			on_detach = function (_, wins)
+				for _, win in ipairs(wins) do
+					vim.wo[win].conceallevel = 0;
+					vim.wo[win].concealcursor = "";
+				end
+			end,
+
+			on_enable = function (_, wins)
+				local preview_modes = spec.get({ "preview", "modes" }) or {};
+				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }) or {};
+
+				local concealcursor = "";
+
+				for _, mde in ipairs(preview_modes) do
+					if
+						vim.list_contains(hybrid_modes, mde) == false and
+						vim.list_contains({ "n", "v", "i", "c" }, mde)
+					then
+						concealcursor = concealcursor .. mde;
+					end
+				end
+
+				for _, win in ipairs(wins) do
+					vim.wo[win].conceallevel = 3;
+					vim.wo[win].concealcursor = concealcursor;
+				end
+			end,
+			on_disable = function (_, wins)
 				for _, win in ipairs(wins) do
 					vim.wo[win].conceallevel = 0;
 					vim.wo[win].concealcursor = "";
@@ -184,49 +212,15 @@ spec.default = {
 		max_file_length = 1000,
 		modes = { "n", "no", "c" },
 		render_distance = vim.o.lines,
-		splitview_winopts = {}
+		splitview_winopts = {
+			split = "right"
+		}
 		---_
 	},
 
+	renderers = {},
+
 	markdown = {
-		tables = {
-			---+ ${class, Tables}
-			enable = true,
-
-			parts = {
-				top = { "╭", "─", "╮", "┬" },
-				header = { "│", "│", "│" },
-				separator = { "├", "─", "┤", "┼" },
-				row = { "│", "│", "│" },
-				bottom = { "╰", "─", "╯", "┴" },
-
-				overlap = { "┝", "━", "┥", "┿" },
-
-				align_left = "╼",
-				align_right = "╾",
-				align_center = { "╴", "╶" }
-			},
-
-			hl = {
-				top = { "TableHeader", "TableHeader", "TableHeader", "TableHeader" },
-				header = { "TableHeader", "TableHeader", "TableHeader" },
-				separator = { "TableHeader", "TableHeader", "TableHeader", "TableHeader" },
-				row = { "TableBorder", "TableBorder", "TableBorder" },
-				bottom = { "TableBorder", "TableBorder", "TableBorder", "TableBorder" },
-
-				overlap = { "TableBorder", "TableBorder", "TableBorder", "TableBorder" },
-
-				align_left = "TableAlignLeft",
-				align_right = "TableAlignRight",
-				align_center = { "TableAlignCenter", "TableAlignCenter" }
-			},
-
-			col_min_width = 10,
-			block_decorator = true,
-			use_virt_lines = false
-			---_
-		},
-
 		block_quotes = {
 			enable = true,
 
@@ -235,7 +229,7 @@ spec.default = {
 			},
 
 			---+${conf}
-			["abstract"] = {
+			["ABSTRACT"] = {
 				preview = "󱉫 Abstract",
 				hl = "MarkviewBlockQuoteNote",
 
@@ -695,6 +689,53 @@ spec.default = {
 			border_top = "▄",
 			border_bottom = "▀"
 		},
+
+		reference_definitions = {
+			enable = true,
+
+			default = {
+				icon = " ",
+				hl = "Icon4Fg"
+			}
+		},
+
+		tables = {
+			---+ ${class, Tables}
+			enable = true,
+
+			parts = {
+				top = { "╭", "─", "╮", "┬" },
+				header = { "│", "│", "│" },
+				separator = { "├", "─", "┤", "┼" },
+				row = { "│", "│", "│" },
+				bottom = { "╰", "─", "╯", "┴" },
+
+				overlap = { "┝", "━", "┥", "┿" },
+
+				align_left = "╼",
+				align_right = "╾",
+				align_center = { "╴", "╶" }
+			},
+
+			hl = {
+				top = { "TableHeader", "TableHeader", "TableHeader", "TableHeader" },
+				header = { "TableHeader", "TableHeader", "TableHeader" },
+				separator = { "TableHeader", "TableHeader", "TableHeader", "TableHeader" },
+				row = { "TableBorder", "TableBorder", "TableBorder" },
+				bottom = { "TableBorder", "TableBorder", "TableBorder", "TableBorder" },
+
+				overlap = { "TableBorder", "TableBorder", "TableBorder", "TableBorder" },
+
+				align_left = "TableAlignLeft",
+				align_right = "TableAlignRight",
+				align_center = { "TableAlignCenter", "TableAlignCenter" }
+			},
+
+			col_min_width = 10,
+			block_decorator = true,
+			use_virt_lines = false
+			---_
+		},
 	},
 	markdown_inline = {
 		block_references = {
@@ -721,7 +762,7 @@ spec.default = {
 			["?"] = { text = "󰋗", hl = "MarkviewCheckboxPending" },
 			["!"] = { text = "󰀦", hl = "MarkviewCheckboxUnchecked" },
 			["*"] = { text = "󰓎", hl = "MarkviewCheckboxPending" },
-			["'"] = { text = "󰸥", hl = "MarkviewCheckboxCancelled" },
+			['"'] = { text = "󰸥", hl = "MarkviewCheckboxCancelled" },
 			["l"] = { text = "󰆋", hl = "MarkviewCheckboxProgress" },
 			["b"] = { text = "󰃀", hl = "MarkviewCheckboxProgress" },
 			["i"] = { text = "󰰄", hl = "MarkviewCheckboxChecked" },
@@ -912,7 +953,9 @@ spec.default = {
 								virt_text_pos = "inline",
 								virt_text = {
 									{ "(" }
-								}
+								},
+
+								hl_mode = "combine"
 							}
 						end,
 
@@ -928,10 +971,44 @@ spec.default = {
 								virt_text = {
 									{ ")" },
 									{ " ÷ " }
-								}
+								},
+
+								hl_mode = "combine"
 							}
 						end
-					}
+					},
+					{
+						before = function (item)
+							return {
+								end_col = item.range[2] + 1,
+								conceal = "",
+
+								virt_text_pos = "inline",
+								virt_text = {
+									{ "(" }
+								},
+
+								hl_mode = "combine"
+							}
+						end,
+
+						after_offset = function (range)
+							return { range[1], range[2], range[3], range[4] - 1 };
+						end,
+						after = function (item)
+							return {
+								end_col = item.range[4],
+								conceal = "",
+
+								virt_text_pos = "inline",
+								virt_text = {
+									{ ")" },
+								},
+
+								hl_mode = "combine"
+							}
+						end
+					},
 				}
 			},
 
@@ -1100,7 +1177,7 @@ spec.default = {
 			enable = true,
 
 			hl = "InlineCode",
-			padding_left = " ",
+			padding_left = "  ",
 			padding_right = " "
 		},
 
@@ -1174,7 +1251,10 @@ spec.default = {
 
 		subscripts = { enable = true, hl = "LatexSubscript" },
 		superscripts = { enable = true, hl = "LatexSuperscript" },
-		symbols = { enable = true, hl = "InlineCode" },
+		symbols = {
+			enable = true,
+			hl = "Special"
+		},
 
 		terms = {
 			enable = true,
@@ -1692,7 +1772,7 @@ spec.get = function (opts, func, ...)
 	end
 
 	if func and pcall(_o, ...) then
-		return _o(...);
+		_o = _o(...);
 	end
 
 	return _o;
