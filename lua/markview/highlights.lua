@@ -434,7 +434,7 @@ highlights.generate_heading = function (opts)
 	));
 
 	local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
-	local alpha = opts.alpha or (l_bg > 0.5 and 0.25 or 0.5);
+	local alpha = opts.alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 	local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
@@ -1212,5 +1212,15 @@ highlights.dynamic = {
 	end,
 	---_
 };
+
+highlights.groups = highlights.dynamic;
+
+highlights.setup = function (opt)
+	if vim.islist(opt) then
+		highlights.groups = vim.tbl_extend("force", highlights.groups, opt);
+	end
+
+	highlights.create(highlights.groups);
+end
 
 return highlights;
