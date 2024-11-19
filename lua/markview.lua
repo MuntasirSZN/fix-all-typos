@@ -210,7 +210,13 @@ markview.draw = function (buffer)
 		end
 	end
 
-	if not vim.list_contains(hybrid_modes, mode) then return; end
+	if not vim.list_contains(hybrid_modes, mode) then
+		return;
+	elseif markview.state.hybrid_mode == false then
+		return;
+	elseif markview.state.hybrid_states[buffer] == false then
+		return;
+	end
 
 	for _, window in ipairs(vim.fn.win_findbuf(buffer)) do
 		local cursor = vim.api.nvim_win_get_cursor(window);
@@ -335,7 +341,7 @@ markview.commands = {
 		---_
 	end,
 
-	["toggleAll"] = function ()
+	["Toggle"] = function ()
 		---+${class}
 		if markview.state.enable == false then
 			markview.commands.enableAll()
@@ -344,7 +350,7 @@ markview.commands = {
 		end
 		---_
 	end,
-	["enableAll"] = function ()
+	["Enable"] = function ()
 		---+${class}
 		markview.state.enable = true;
 
@@ -367,7 +373,7 @@ markview.commands = {
 		end
 		---_
 	end,
-	["disableAll"] = function ()
+	["Disable"] = function ()
 		---+${class}
 		markview.state.enable = false;
 
@@ -389,6 +395,34 @@ markview.commands = {
 			call(vim.tbl_keys(markview.state.buffer_states), markview.state.enable);
 		end
 		---_
+	end,
+
+	["toggleAll"] = function ()
+		spec.notify({
+			{ " toggleAll ", "DiagnosticVirtualTextError" },
+			{ " is deprecated! Use " },
+			{ " Toggle ", "DiagnosticVirtualTextHint" },
+			{ " instead." },
+		}, { deprecated = true });
+		markview.commands.Toggle();
+	end,
+	["enableAll"] = function ()
+		spec.notify({
+			{ " enableAll ", "DiagnosticVirtualTextError" },
+			{ " is deprecated! Use " },
+			{ " Enable ", "DiagnosticVirtualTextHint" },
+			{ " instead." },
+		}, { deprecated = true });
+		markview.commands.Enable();
+	end,
+	["disableAll"] = function ()
+		spec.notify({
+			{ " disableAll ", "DiagnosticVirtualTextError" },
+			{ " is deprecated! Use " },
+			{ " Disable ", "DiagnosticVirtualTextHint" },
+			{ " instead." },
+		}, { deprecated = true });
+		markview.commands.Disable();
 	end,
 
 	["toggle"] = function (buffer)
@@ -512,12 +546,16 @@ markview.commands = {
 		markview.state.buffer_states[markview.state.splitview_source] = false;
 		markview.clear(markview.state.splitview_source)
 
+		local s_call = get_config({ "callbacks", "on_disable" }, false)
+		if s_call and pcall(s_call, buffer, vim.fn.win_findbuf(buffer)) then s_call(buffer, vim.fn.win_findbuf(buffer)); end
+
 		local ft = vim.bo[buffer].filetype;
 
 		if buf_is_safe(markview.state.splitview_buffer) == false then
 			markview.state.splitview_buffer = vim.api.nvim_create_buf(false, true);
 		end
 
+		markview.state.hybrid_states[markview.state.splitview_buffer] = false;
 		vim.bo[markview.state.splitview_buffer].filetype = ft;
 
 		vim.api.nvim_buf_set_lines(
@@ -586,6 +624,9 @@ markview.commands = {
 
 		markview.state.buffer_states[markview.state.splitview_source] = true;
 		markview.draw(markview.state.splitview_source);
+
+		local s_call = get_config({ "callbacks", "on_enable" }, false)
+		if s_call and pcall(s_call, markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)) then s_call(markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)); end
 
 		markview.state.splitview_source = nil;
 
@@ -675,8 +716,7 @@ markview.setup = function (config)
 	local highlights = require("markview.highlights");
 
 	spec.setup(config);
-	---@diagnostic disable-next-line
-	highlights.create(highlights.dynamic);
+	highlights.setup(spec.get({ "highlight_groups" }));
 end
 
 return markview;

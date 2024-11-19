@@ -1,9 +1,8 @@
-# ☄️ Markview.nvim
+<h1 align="center">☄️ Markview.nvim</h1>
 
 <p align="center">
     A powerful Markdown, HTML, LaTeX & Typst previewer for Neovim.
 </p>
-<p align="center">Along with extra modules!</p>
 
 
 <!-- Image here -->
@@ -71,6 +70,19 @@ Markview provides a large set of features,
 - `editor.lua`, create & edit code blocks without losing LSP features.
 - `headings.lua`, change *multiple* heading levels with a single helper function.
 
+## 📐 Requirements
+
+- Neovim version, `0.10.1` or higher.
+- Tree-sitter parsers,
+  - markdown
+  - markdown_inline
+  - html, *optional*.
+  - latex, *optional*.
+  - typst, *optional*.
+  - yaml, *optional*.
+- Nerd font, *optional*.
+- Tree-sitter supported colorscheme, *optional*.
+
 ## 📦 Installation
 
 ### 💤 Lazy.nvim 
@@ -119,8 +131,43 @@ MiniDeps.add({
 ### 📦 Vim plug
 
 ```vim
+Plug "nvim-treesitter/nvim-treesitter"
 Plug "OXY2DEV/markview.nvim"
 ```
+
+## 🪷 Commands
+
+Markview provides a single command `:Markview`. It supports the following sub commands,
+
+| Sub-command | Accepts argument? | Default argument | Description |
+|:------------|:-:|:-:|:----------|
+| `attach` | true | 0 | Attaches the plugin to a buffer. |
+| `detach` | true | 0 | Detaches from an attached buffer. |
+| | | | •--•--•--•--•--•--•--•--• |
+| `toggle` | true | 0 | Toggles *preview* on the specified buffer. |
+| `enable` | true | 0 | Enables *preview* on the specified buffer. |
+| `disable` | true | 0 | Disables *preview* on the specified buffer. |
+| | | | •--•--•--•--•--•--•--•--• |
+| `Toggle` | false | nil | Toggles plugin state. |
+| `Enable` | false | nil | Enables the plugin. |
+| `Disable` | false | nil | Disables the plugin. |
+| | | | •--•--•--•--•--•--•--•--• |
+| `splitToggle` | true | 0 | Toggles *splitview*. |
+| `splitEnable` | true | 0 | Opens *splitview* for the current buffer. |
+| `splitDisable` | false | nil | Closes *splitview* window. |
+| `splitRedraw` | false | nil | Redraws the *splitview* window. |
+| | | | •--•--•--•--•--•--•--•--• |
+| `toggleAll` | false | nil | **Deprecated!** Same as `Toggle`. |
+| `enableAll` | false | nil | **Deprecated!** Same as `Enable`. |
+| `disableAll` | false | nil | **Deprecated!** Same as `Disable`. |
+
+Sub-commands that support an *argument* can take a buffer ID as the argument for it.
+
+>[!TIP]
+> Completion for buffer IDs are provided by this plugin too!
+
+>[!NOTE]
+> When `:Markview` is called without any argument(s), it runs `:Markview Toggle`.
 
 ## 💮 Configuration
 
