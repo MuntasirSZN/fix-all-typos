@@ -130,6 +130,8 @@ links.shortcut_link = function (node, buffer)
 	local address = vim.treesitter.get_node_text(to, buffer);
 	if address:match("|") then
 		address = address:match("^([^%|]+)%|");
+	elseif address:match("%#%^") then
+		address = address:match("^(.+)%#%^");
 	end
 
 	links.__open(address)
