@@ -344,9 +344,9 @@ markview.commands = {
 	["Toggle"] = function ()
 		---+${class}
 		if markview.state.enable == false then
-			markview.commands.enableAll()
+			markview.commands.Enable()
 		else
-			markview.commands.disableAll()
+			markview.commands.Disable()
 		end
 		---_
 	end,

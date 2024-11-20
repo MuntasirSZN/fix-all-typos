@@ -3296,12 +3296,50 @@ symbols.typst_entries = {
 	---_
 };
 
---[[
-0221B ∛ √3 x \sqrt[3] mathradical CUBE ROOT
-0221C ∜ √4 x \sqrt[4] mathradical FOURTH ROOT
-
-
---]]
+symbols.typst_shorthands = {
+	---+${class}
+	["bracket.l.double"] = "[|",
+	["bracket.r.double"] = "|]",
+	["bar.v.double"] = "||",
+	["ast.op"] = "*",
+	["colon.eq"] = ":=",
+	["colon.double.eq"] = "::=",
+	["dots.h"] = "...",
+	["tilde.op"] = "~",
+	["prime"] = "'",
+	["minus"] = "-",
+	["eq.colon"] = "=:",
+	["eq.not"] = "!=",
+	["gt.double"] = ">>",
+	["gt.eq"] = ">=",
+	["gt.triple"] = ">>>",
+	["lt.double"] = "<<",
+	["lt.eq"] = "<=",
+	["lt.triple"] = "<<<",
+	["convolve"] = "*",
+	["arrow.r"] = "->",
+	["arrow.r.bar"] = "|->",
+	["arrow.r.double"] = "=>",
+	["arrow.r.double.bar"] = "|=>",
+	["arrow.r.double.long"] = "==>",
+	["arrow.r.long"] = "-->",
+	["arrow.r.long.squiggly"] = "~~>",
+	["arrow.r.squiggly"] = "~>",
+	["arrow.r.tail"] = ">->",
+	["arrow.r.twohead"] = "->>",
+	["arrow.l"] = "<-",
+	["arrow.l.double.long"] = "<==",
+	["arrow.l.long"] = "<--",
+	["arrow.l.long.squiggly"] = "<~~",
+	["arrow.l.squiggly"] = "<~",
+	["arrow.l.tail"] = "<-<",
+	["arrow.l.twohead"] = "<<-",
+	["arrow.l.r"] = "<->",
+	["arrow.l.r.double"] = "<=>",
+	["arrow.l.r.double.long"] = "<==>",
+	["arrow.l.r.long"] = "<->",
+	---_
+}
 
 symbols.fonts = {
 	---+${clqss}
@@ -4282,6 +4320,8 @@ symbols.tostring = function (font, text)
 	for letter in string.gmatch(text, ".") do
 		if symbols.fonts and symbols.fonts[font] and symbols.fonts[font][letter] then
 			_o = _o .. symbols.fonts[font][letter];
+		elseif type(symbols[font]) == "table" and symbols[font][letter] then
+			_o = _o .. symbols[font][letter];
 		else
 			_o = _o .. letter;
 		end
