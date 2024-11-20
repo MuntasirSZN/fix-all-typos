@@ -1432,8 +1432,7 @@ spec.__markdown = function (config)
 				class = "markview_opt_deprecated",
 				deprecated = true,
 
-				old = "preview.buf_ignore",
-				new = "preview.ignore_buftypes"
+				name = "markdown.block_quotes.callouts"
 			});
 
 			local _n = {};
@@ -1459,11 +1458,11 @@ spec.__markdown = function (config)
 		elseif
 			opt == "tables" and
 			(
-				vim.islist(val.parts) or
-				vim.islist(val.hls)
+				vim.islist(val.text) or
+				vim.islist(val.hl)
 			)
 		then
-			local _p, _h = val.parts, val.hls;
+			local _p, _h = val.text, val.hl;
 			local np, nh = {
 				top = {},
 				header = {},
@@ -1474,7 +1473,7 @@ spec.__markdown = function (config)
 				align_left = nil,
 				align_right = nil,
 				align_center = {}
-			}, val.hl or {
+			}, vim.islist(val.hl) == false and val.hl or {
 				top = {},
 				header = {},
 				separator = {},
@@ -1496,6 +1495,7 @@ spec.__markdown = function (config)
 					{ ". "},
 				}, {
 					class = "markview_opt_invalid_type",
+					name = "markdown.tables.parts",
 
 					should_be = "table",
 					is = "list"
@@ -1557,6 +1557,7 @@ spec.__markdown = function (config)
 					{ ". "},
 				}, {
 					class = "markview_opt_invalid_type",
+					name = "markdown.tables.hl",
 
 					should_be = "table",
 					is = "list"
@@ -1643,36 +1644,57 @@ spec.__markdown_inline = function (config)
 				checked = val.checked,
 				unchecked = val.unchecked,
 			}, _n);
-		elseif
-			vim.list_contains({ "footnotes", "emails", "uri_autolinks", "images", "embed_files", "internal_links", "hyperlinks" }, opt) and
-			(val.text or val.hl)
-		then
-			if val.text then
+		elseif opt == "links" then
+			for k, v in pairs(val) do
+				if vim.list_contains({ "emails", "hyperlinks", "images", "internal_links" }, k) == false then
+					goto continue;
+				end
+
 				spec.notify({
-					{ " markdown_inline." .. opt .. ".text ", "DiagnosticVirtualTextError" },
+					{ " links." .. k .. " ", "DiagnosticVirtualTextError" },
 					{ " is deprecated! Use" },
-					{ " markdown_inline." .. opt .. ".default.text ", "DiagnosticVirtualTextHint" },
+					{ " markdown_inline." .. opt .. "." .. k .. " ", "DiagnosticVirtualTextHint" },
 					{ "instead." },
 				}, {
 					class = "markview_opt_deprecated",
-
-					old = "preview.buf_ignore",
-					new = "preview.ignore_buftypes"
+					name = "links." .. k,
+					deprecated = true
 				});
+
+				config[k] = v;
+				::continue::
 			end
 
-			if val.hl then
-				spec.notify({
-					{ " markdown_inline." .. opt .. ".hl ", "DiagnosticVirtualTextError" },
-					{ " is deprecated! Use" },
-					{ " markdown_inline." .. opt .. ".default.hl ", "DiagnosticVirtualTextHint" },
-					{ "instead." },
-				}, {
-					class = "markview_opt_deprecated",
+			config[opt] = nil;
+			config = spec.__markdown_inline(config);
+		elseif
+			vim.list_contains({ "footnotes", "emails", "uri_autolinks", "images", "embed_files", "internal_links", "hyperlinks" }, opt)
+		then
+			if not val.default then val.default = {}; end
 
-					old = "preview.buf_ignore",
-					new = "preview.ignore_buftypes"
-				});
+			for k, v in pairs(val) do
+				if
+					vim.list_contains({
+						"corner_left", "corner_right",
+						"padding_left", "padding_right",
+						"icon", "icon_hl",
+						"padding_left_hl", "padding_right_hl",
+						"corner_left_hl", "corner_right_hl",
+					}, k)
+				then
+					spec.notify({
+						{ string.format(" markdown_inline.%s.%s ", opt, k), "DiagnosticVirtualTextError" },
+						{ " is deprecated! Use" },
+						{ string.format(" markdown_inline.%s.default.%s ", opt, k), "DiagnosticVirtualTextHint" },
+						{ "instead." },
+					}, {
+						class = "markview_opt_deprecated",
+						name = string.format("markdown_inline.%s.%s", opt, k),
+						deprecated = true
+					});
+
+					val.default[k] = v;
+				end
 			end
 
 			if val.custom then
@@ -1682,10 +1704,10 @@ spec.__markdown_inline = function (config)
 					{ " markdown_inline." .. opt .. ".patterns ", "DiagnosticVirtualTextHint" },
 					{ "instead." },
 				}, {
-					class = "markview_opt_deprecated",
+					class = "markview_opt_name_change",
 
-					old = "preview.buf_ignore",
-					new = "preview.ignore_buftypes"
+					old = "markdown_inline." .. opt .. ".custom",
+					new = "markdown_inline." .. opt .. ".patterns",
 				});
 			end
 
