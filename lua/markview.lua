@@ -155,16 +155,9 @@ end
 
 --- Draws preview on a buffer
 ---@param buffer integer
-markview.draw = function (buffer)
+---@param ignore_modes? boolean
+markview.draw = function (buffer, ignore_modes)
 	---+${func}
-	if can_draw(buffer) == false then
-		if buffer == markview.state.splitview_source then
-			markview.commands.splitRedraw();
-		end
-
-		return;
-	end
-
 	local line_limit = get_config({ "max_file_length" }) or 0;
 	local draw_range = get_config({ "render_distance" }) or 0;
 	local edit_range = get_config({ "edit_distance" }) or 0;
@@ -176,7 +169,12 @@ markview.draw = function (buffer)
 
 	local mode = vim.api.nvim_get_mode().mode;
 
-	if not vim.list_contains(preview_modes, mode) then return; end
+	if
+		ignore_modes ~= true and
+		not vim.list_contains(preview_modes, mode)
+	then
+		return;
+	end
 
 	local parser = require("markview.parser");
 	local renderer = require("markview.renderer");
@@ -529,7 +527,7 @@ markview.commands = {
 			)
 		);
 
-		markview.draw(markview.state.splitview_buffer)
+		markview.draw(markview.state.splitview_buffer, true)
 		---_
 	end,
 
@@ -616,6 +614,35 @@ markview.commands = {
 			);
 		end
 
+		pcall(vim.api.nvim_del_autocmd, markview.state.autocmds[markview.state.splitview_source].redraw)
+
+		local debounce_delay = get_config({ "debounce" }) or 50;
+		local debounce = vim.uv.new_timer();
+
+		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+			local _call = get_config({ "callbacks", "on_detach" }, false);
+
+			markview.clear(markview.state.splitview_source);
+			if _call and pcall(_call, markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)) then _call(markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)); end
+		end));
+
+		markview.state.autocmds[markview.state.splitview_source].redraw = vim.api.nvim_create_autocmd({
+			"CursorMoved", "TextChanged",
+			"CursorMovedI", "TextChangedI",
+		}, {
+			group = markview.augroup,
+			buffer = markview.state.splitview_source,
+			desc = "Buffer specific preview updater for `markview.nvim`.",
+
+			callback = function ()
+				debounce:stop();
+				debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+					--- Drawer function
+					markview.commands.splitRedraw()
+				end));
+			end
+		});
+
 		markview.commands.splitRedraw()
 		---_
 	end,
@@ -624,20 +651,76 @@ markview.commands = {
 		---+${class}
 		if not markview.state.splitview_source then return; end
 
+		---@type integer
+		local buffer = markview.state.splitview_source;
+		markview.state.splitview_source = nil;
+
+		--- Close the preview window
 		if vim.api.nvim_win_is_valid(markview.state.splitview_window) then
 			vim.api.nvim_win_close(markview.state.splitview_window, true);
 		end
 
-		markview.state.buffer_states[markview.state.splitview_source] = true;
-		markview.draw(markview.state.splitview_source);
-
-		local s_call = get_config({ "callbacks", "on_enable" }, false)
-		if s_call and pcall(s_call, markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)) then s_call(markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)); end
-
-		markview.state.splitview_source = nil;
-
+		--- Run the callback.
 		local call = get_config({ "callbacks", "splitview_disable" });
 		if call and pcall(call) then call(); end
+
+		--- Delete the splitview updating autocmd.
+		vim.api.nvim_del_autocmd(markview.state.autocmds[buffer].redraw)
+
+		local events = get_config({ "redraw_events" }) or {};
+		local preview_modes = get_config({ "modes" }) or {};
+
+		if
+			vim.list_contains(preview_modes, "n") or
+			vim.list_contains(preview_modes, "v")
+		then
+			table.insert(events, "CursorMoved");
+			table.insert(events, "TextChanged");
+		end
+
+		if vim.list_contains(preview_modes, "i") then
+			table.insert(events, "CursorMovedI");
+			table.insert(events, "TextChangedI");
+		end
+
+		local debounce_delay = get_config({ "debounce" }) or 50;
+		local debounce = vim.uv.new_timer();
+
+		local initial_state = get_config({ "enable_preview_on_attach" }) or true;
+
+		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+			local _call;
+
+			--- Revert the state of the original buffer.
+			--- TODO, Allow reverting to the actual previous
+			--- state.
+			markview.state.buffer_states[buffer] = initial_state;
+
+			if initial_state == true then
+				markview.draw(buffer);
+				_call = get_config({ "callbacks", "on_attach" }, false)
+			else
+				markview.clear(buffer);
+				_call = get_config({ "callbacks", "on_detach" }, false)
+			end
+
+			if _call and pcall(_call, buffer, vim.fn.win_findbuf(buffer)) then _call(buffer, vim.fn.win_findbuf(buffer)); end
+		end));
+
+		--- Add the regular preview updating autocmd.
+		markview.state.autocmds[buffer].redraw = vim.api.nvim_create_autocmd(events, {
+			group = markview.augroup,
+			buffer = buffer,
+			desc = "Buffer specific preview updater for `markview.nvim`.",
+
+			callback = function ()
+				debounce:stop();
+				debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+					--- Drawer function
+					markview.draw(buffer);
+				end));
+			end
+		});
 		---_
 	end
 	---_
