@@ -382,6 +382,7 @@
 ---@class markdown.block_quotes
 ---
 ---@field enable boolean
+---@field wrap boolean
 ---@field default block_quotes.opts
 ---@field [string] block_quotes.opts
 

@@ -223,6 +223,7 @@ spec.default = {
 	markdown = {
 		block_quotes = {
 			enable = true,
+			wrap = true,
 
 			default = {
 				border = "▋", hl = "MarkviewBlockQuoteDefault"
