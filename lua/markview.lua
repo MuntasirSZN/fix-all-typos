@@ -652,7 +652,7 @@ markview.exec = function (cmd)
 	if
 		#args == 0
 	then
-		markview.commands.toggleAll()
+		markview.commands.Toggle();
 	elseif
 		vim.list_contains(
 			vim.tbl_keys(markview.commands),
