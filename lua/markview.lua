@@ -584,6 +584,12 @@ markview.commands = {
 			);
 		end
 
+		local win = utils.buf_getwin(markview.state.splitview_source);
+
+		vim.wo[markview.state.splitview_window].conceallevel = 3;
+		vim.wo[markview.state.splitview_window].concealcursor = "n";
+		vim.wo[markview.state.splitview_window].wrap = vim.wo[win].wrap;
+
 		vim.api.nvim_win_set_cursor(
 			markview.state.splitview_window,
 			vim.api.nvim_win_get_cursor(

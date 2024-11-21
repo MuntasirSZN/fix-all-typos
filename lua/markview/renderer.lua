@@ -7,12 +7,23 @@ renderer.latex = require("markview.renderers.latex");
 renderer.yaml = require("markview.renderers.yaml");
 renderer.typst = require("markview.renderers.typst");
 
+renderer.cache = {};
+
 --- Renders things
 ---@param buffer integer
 renderer.render = function (buffer, parsed_content)
+	renderer.cache = {};
+
 	for lang, content in pairs(parsed_content) do
 		if renderer[lang] then
-			renderer[lang].render(buffer, content);
+			local c = renderer[lang].render(buffer, content);
+			renderer.cache = vim.tbl_extend("force", renderer.cache, c or {});
+		end
+	end
+
+	for lang, content in pairs(renderer.cache) do
+		if renderer[lang] then
+			renderer[lang].post_render(buffer, content);
 		end
 	end
 end

@@ -26,6 +26,9 @@ local get_config = function (...)
 	return spec.get({ "markdown", ... });
 end
 
+markdown.cache = {
+};
+
 ---@param config table
 ---@param value string
 ---@return table
@@ -66,6 +69,7 @@ end
 
 ---@param str string
 ---@return string
+---@return integer
 markdown.output = function (str)
 	local function config(opt)
 		local conf = spec.get({ "markdown_inline" });
@@ -86,6 +90,8 @@ markdown.output = function (str)
 
 		return table.concat(list);
 	end
+
+	local decorations = 0;
 
 	--- Inline codes config
 	local codes = config("inline_codes");
@@ -141,7 +147,14 @@ markdown.output = function (str)
 			}), concat({
 				codes.corner_left or "",
 				codes.padding_left or "",
-				inline_code:gsub(".", " "),
+				inline_code:gsub(".", "X"),
+				codes.padding_right or "",
+				codes.corner_left or ""
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				codes.corner_left or "",
+				codes.padding_left or "",
 				codes.padding_right or "",
 				codes.corner_left or ""
 			}));
@@ -166,6 +179,14 @@ markdown.output = function (str)
 				_blref.padding_right or "",
 				_blref.corner_right or ""
 			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_blref.corner_left or "",
+				_blref.padding_left or "",
+				_blref.icon or "",
+				_blref.padding_right or "",
+				_blref.corner_right or ""
+			}));
 		elseif embed then
 			local _embed = markdown.custom_config(embed, ref);
 
@@ -178,6 +199,14 @@ markdown.output = function (str)
 				_embed.padding_left or "",
 				_embed.icon or "",
 				ref:gsub(".", "X"),
+				_embed.padding_right or "",
+				_embed.corner_right or ""
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_embed.corner_left or "",
+				_embed.padding_left or "",
+				_embed.icon or "",
 				_embed.padding_right or "",
 				_embed.corner_right or ""
 			}));
@@ -200,6 +229,14 @@ markdown.output = function (str)
 				_blref.padding_left or "",
 				_blref.icon or "",
 				ref:gsub(".", "X"),
+				_blref.padding_right or "",
+				_blref.corner_right or ""
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_blref.corner_left or "",
+				_blref.padding_left or "",
+				_blref.icon or "",
 				_blref.padding_right or "",
 				_blref.corner_right or ""
 			}));
@@ -236,6 +273,14 @@ markdown.output = function (str)
 				_int.padding_right or "",
 				_int.corner_right or ""
 			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_int.corner_left or "",
+				_int.padding_left or "",
+				_int.icon or "",
+				_int.padding_right or "",
+				_int.corner_right or ""
+			}));
 		end
 		---_
 	end
@@ -264,7 +309,15 @@ markdown.output = function (str)
 				utils.escape_string(link):gsub("[^%[%]]", "X"),
 				_image.padding_right or "",
 				_image.corner_right or ""
-			}))
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_image.corner_left or "",
+				_image.padding_left or "",
+				_image.icon or "",
+				_image.padding_right or "",
+				_image.corner_right or ""
+			}));
 		end
 		---_
 	end
@@ -297,7 +350,15 @@ markdown.output = function (str)
 				_t,
 				image.padding_right or "",
 				image.corner_right or ""
-			}))
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				image.corner_left or "",
+				image.padding_left or "",
+				image.icon or "",
+				image.padding_right or "",
+				image.corner_right or ""
+			}));
 		end
 		---_
 	end
@@ -324,6 +385,14 @@ markdown.output = function (str)
 				_hyper.padding_left or "",
 				_hyper.icon or "",
 				utils.escape_string(link):gsub("[^%[%]]", "X"),
+				_hyper.padding_right or "",
+				_hyper.corner_right or ""
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_hyper.corner_left or "",
+				_hyper.padding_left or "",
+				_hyper.icon or "",
 				_hyper.padding_right or "",
 				_hyper.corner_right or ""
 			}));
@@ -354,6 +423,14 @@ markdown.output = function (str)
 				_hyper.padding_right or "",
 				_hyper.corner_right or ""
 			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_hyper.corner_left or "",
+				_hyper.padding_left or "",
+				_hyper.icon or "",
+				_hyper.padding_right or "",
+				_hyper.corner_right or ""
+			}));
 		end
 		---_
 	end
@@ -373,6 +450,14 @@ markdown.output = function (str)
 			utils.escape_string(address):gsub(".", "X"),
 			"Y",
 			utils.escape_string(domain):gsub(".", "X"),
+			_email.padding_right or "",
+			_email.corner_left or ""
+		}));
+
+		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+			_email.corner_left or "",
+			_email.padding_left or "",
+			_email.icon or "",
 			_email.padding_right or "",
 			_email.corner_left or ""
 		}));
@@ -402,6 +487,14 @@ markdown.output = function (str)
 			_uri.corner_left or ""
 		}));
 
+		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+			_uri.corner_left or "",
+			_uri.padding_left or "",
+			_uri.icon or "",
+			_uri.padding_right or "",
+			_uri.corner_left or ""
+		}));
+
 	    ::continue::
 		---_
 	end
@@ -420,7 +513,7 @@ markdown.output = function (str)
 		content = utils.escape_string(content);
 		str_a = utils.escape_string(str_a);
 
-		str = str:gsub(str_b .. content .. str_a, content);
+		str = str:gsub(str_b .. content .. str_a, utils.escape_string(content):gsub(".", "X"))
 
 	    ::continue::
 		---_
@@ -432,12 +525,14 @@ markdown.output = function (str)
 			"~~",
 			striked,
 			"~~"
-		}), concat({ striked }));
+		}), concat({
+			utils.escape_string(striked):gsub(".", "X"),
+		}));
 		---_
 	end
 
 	for highlight in str:gmatch("%=%=(.-)%=%=") do
-		---+${custom, Handle strike-through text}
+		---+${custom, Handle highlighted text}
 		if not hls then goto continue; end
 
 			local _hls = markdown.custom_config(hls, highlight) or {};
@@ -451,6 +546,14 @@ markdown.output = function (str)
 				_hls.padding_left or "",
 				_hls.icon or "",
 				utils.escape_string(highlight):gsub(".", "X"),
+				_hls.padding_right or "",
+				_hls.corner_left or ""
+			}));
+
+			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+				_hls.corner_left or "",
+				_hls.padding_left or "",
+				_hls.icon or "",
 				_hls.padding_right or "",
 				_hls.corner_left or ""
 			}));
@@ -479,7 +582,7 @@ markdown.output = function (str)
 		---_
 	end
 
-	return str;
+	return str, decorations;
 end
 
 markdown.concealed = function (str)
@@ -724,6 +827,13 @@ markdown.block_quote = function (buffer, item)
 		end
 	end
 
+	--- TODO: Feat
+	local win = utils.buf_getwin(buffer);
+
+	if main_config.wrap == true and vim.wo[win].wrap == true then
+		table.insert(markdown.cache, item);
+	end
+
 	for l = range.row_start, range.row_end - 1, 1  do
 		local line_len = #item.text[(l + 1) - range.row_start];
 
@@ -792,7 +902,15 @@ markdown.code_block = function (buffer, item)
 
 	::nameFound::
 
-	if config.style == "simple" then
+	local win = utils.buf_getwin(buffer);
+
+	if
+		config.style == "simple" or
+		(
+			vim.o.wrap == true or
+			vim.wo[win].wrap == true
+		)
+	then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
 			end_col = range.col_start + item.text[1]:len(),
 			conceal = "",
@@ -834,6 +952,19 @@ markdown.code_block = function (buffer, item)
 			});
 		end
 
+		for l = range.row_start + 1, range.row_end - 2, 1 do
+			local pad_amount = config.pad_amount;
+
+			--- Left padding
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
+				},
+			});
+		end
 
 		--- NOTE: Don't highlight extra line after the closing ```
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start + 1, range.col_start, {
@@ -1131,7 +1262,7 @@ end
 
 --- Renders reference link definitions.
 ---@param buffer integer
----@param item __markdown.horizontal_rule
+---@param item table
 markdown.link_ref_definition = function (buffer, item)
 	---+${func, Render normal links}
 
@@ -1899,7 +2030,6 @@ markdown.table = function (buffer, item)
 				align_hl = hls.align_center or {};
 
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns("tables"), range.row_start + 1, range.col_start + sep.col_start, {
-				undo_restore = false, invalidate = true,
 					undo_restore = false, invalidate = true,
 					end_col = range.col_start + sep.col_end,
 					conceal = "",
@@ -2182,12 +2312,87 @@ markdown.table = function (buffer, item)
 	---_
 end
 
+
+--- Renders wrapped block quotes, callouts & alerts.
+---@param buffer integer
+---@param item __markdown.block_quote
+markdown.__block_quote = function (buffer, item)
+	---+${func, Post renderer for wrapped block quotes}
+
+	---@type markdown.block_quotes?
+	local main_config = get_config("block_quotes");
+	---@type string[]
+	local keys = vim.tbl_keys(main_config);
+	local range = item.range;
+
+	if
+		not main_config or
+		not main_config.default
+	then
+		return;
+	elseif
+		item.callout and
+		not vim.list_contains(keys, string.lower(item.callout)) and
+		not vim.list_contains(keys, string.upper(item.callout)) and
+		not vim.list_contains(keys, item.callout)
+	then
+		return;
+	end
+
+	---@type block_quotes.opts
+	local config = item.callout and (main_config[string.lower(item.callout)] or main_config[string.upper(item.callout)] or main_config[item.callout]) or main_config.default;
+	local win = utils.buf_getwin(buffer);
+
+	local t = vim.fn.getwininfo(win)[1].textoff;
+	local p = vim.api.nvim_win_get_position(win);
+
+	for l = range.row_start, range.row_end - 1, 1  do
+		local line = item.text[(l + 1) - range.row_start];
+		local start = false;
+
+		for c = 1, vim.fn.strdisplaywidth(line) do
+			if (vim.fn.screenpos(win, l + 1, c).col - p[2]) == t + range.col_start + 1 then
+				if start == false then
+					start = true;
+					goto continue;
+				end
+
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, c - 1, {
+					undo_restore = false, invalidate = true,
+					virt_text_pos = "inline",
+					virt_text = {
+						{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) },
+						{ " " }
+					},
+
+					hl_mode = "combine",
+				});
+			end
+
+		    ::continue::
+		end
+	end
+	---_
+end
+
+
 markdown.render = function (buffer, content)
-	markdown.set_ns()
+	markdown.cache = {};
+
+	markdown.set_ns();
 
 	for _, item in ipairs(content or {}) do
 		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
 		-- markdown[item.class:gsub("^markdown_", "")](buffer, item);
+	end
+
+	return { markdown = markdown.cache };
+end
+
+markdown.post_render = function (buffer, content)
+	for _, item in ipairs(content or {}) do
+		pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
+		-- markdown["__" .. item.class:gsub("^markdown_", "")](buffer, item);
 	end
 end
 

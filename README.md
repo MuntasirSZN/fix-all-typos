@@ -1,7 +1,7 @@
-<h1 align="center">☄️ Markview.nvim</h1>
+!<h1 align="center">☄️ Markview.nvim</h1>
 
 <p align="center">
-    A powerful Markdown, HTML, LaTeX & Typst previewer for Neovim.
+    A powerful Markdown, HTML, LaTeX, Typst & YAML previewer for Neovim.
 </p>
 
 
