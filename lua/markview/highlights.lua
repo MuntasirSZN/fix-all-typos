@@ -461,101 +461,521 @@ highlights.hl_generator = function (opts)
 end
 
 highlights.dynamic = {
+	["0P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "Comment" },
+			"#9CA0B0",
+			"#6C7086"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette0",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette0Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette0Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette0Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["1P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
+			"#F38BA8",
+			"#D20F39"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette1",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette1Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette1Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette1Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["2P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
+			"#FE640B",
+			"#FAB387"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette2",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette2Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette2Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette2Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["3P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
+			"#F9E2AF",
+			"#DF8E1D"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette3",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette3Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette3Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette3Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["4P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
+			"#A6E3A1",
+			"#40A02B"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette4",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette4Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette4Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette4Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["5P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
+			"#74C7EC",
+			"#209FB5"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette5",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette5Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette5Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette5Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+	["6P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb2lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#1E1E2E",
+			"#EFF1F5"
+		));
+		local h_fg = highlights.rgb2lab(highlights.get_property(
+			"fg",
+			{ "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
+			"#B4BEFE",
+			"#7287FD"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab2rgb(vim_bg);
+		h_fg = highlights.lab2rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette6",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette6Fg",
+				value = {
+					default = true,
+
+					fg = highlights.hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette6Bg",
+				value = {
+					default = true,
+
+					bg = highlights.hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette6Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
+
 	---+${hl, Block quotes}
 	["BlockQuoteDefault"] = function ()
-		return highlights.hl_generator({
-			source = { "Comment" },
-			fallback_light = "#9CA0B0",
-			fallback_dark = "#6C7086"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette0Fg"
+		};
 	end,
 
 	["BlockQuoteError"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticError" },
-			fallback_light = "#D20F39",
-			fallback_dark = "#F38BA8"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette1Fg"
+		};
 	end,
 
 	["BlockQuoteNote"] = function ()
-		local fg = highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-				   highlights.get_property("fg", { "@comment.note" }, "#1e66f5", "#89b4fa")
-		;
-
 		return {
-			fg = highlights.hex(fg),
+			default = true,
+			link = "MarkviewPalette5Fg"
 		};
 	end,
 
 	["BlockQuoteOk"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticOk" },
-			fallback_light = "#40A02B",
-			fallback_dark = "#A6E3A1"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette4Fg"
+		};
 	end,
 
 	["BlockQuoteSpecial"] = function ()
-		return highlights.hl_generator({
-			source = { "Conditional", "Keyword" },
-			fallback_light = "#8839EF",
-			fallback_dark = "#CBA6F7"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette3Fg"
+		};
 	end,
 
 	["BlockQuoteWarn"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticWarn" },
-			fallback_light = "#DF8E1D",
-			fallback_dark = "#F9E3AF"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette2Fg"
+		};
 	end,
 	---_
 	---+${hl, Checkboxes}
 	["CheckboxCancelled"] = function ()
-		return highlights.hl_generator({
-			source = { "Comment" },
-			fallback_light = "#9CA0B0",
-			fallback_dark = "#6C7086"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette0Fg"
+		};
 	end,
 	["CheckboxChecked"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticOk" },
-			fallback_light = "#40A02B",
-			fallback_dark = "#A6E3A1"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette4Fg"
+		};
 	end,
 	["CheckboxPending"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticWarn" },
-			fallback_light = "#DF8E1D",
-			fallback_dark = "#F9E3AF"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette2Fg"
+		};
 	end,
 	["CheckboxProgress"] = function ()
-		return highlights.hl_generator({
-			source = { "Conditional", "Keyword" },
-			fallback_light = "#8839EF",
-			fallback_dark = "#CBA6F7"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette6Fg"
+		};
 	end,
 	["CheckboxUnchecked"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticError" },
-			fallback_light = "#D20F39",
-			fallback_dark = "#F38BA8"
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette1Fg"
+		};
 	end,
 	["CheckboxStriked"] = function ()
-		return highlights.hl_generator({
-			source = { "Comment" },
-			fallback_light = "#9CA0B0",
-			fallback_dark = "#6C7086",
-
-			hl_opts = { strikethrough = true }
-		})
+		return {
+			default = true,
+			strikethrough = true,
+			fg = vim.api.nvim_get_hl(0, { name = "MarkviewPalette0Fg" }).fg
+		};
 	end,
 	---_
 	---+${hl, Code blocks & Inline codes/Injections}
@@ -658,157 +1078,67 @@ highlights.dynamic = {
 
 	["Icon1"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading1", "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			light_fg = "#F38BA8",
-			dark_fg = "#D20F39",
+			source = { "MarkviewPalette1" },
+			light_fg = "#FE640B",
+			dark_fg = "#FAB387",
 
 			hl_opts = {
 				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
 			}
-		});
-	end,
-	["Icon1Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon1", "MarkviewHeading1", "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			light_fg = "#F38BA8",
-			dark_fg = "#D20F39",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon1Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon1", "MarkviewHeading1", "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			light_fg = "#F38BA8",
-			dark_fg = "#D20F39"
 		});
 	end,
 
 	["Icon2"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading2", "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
+			source = { "MarkviewPalette2" },
 			light_fg = "#FE640B",
 			dark_fg = "#FAB387",
 
 			hl_opts = {
 				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
 			}
-		});
-	end,
-	["Icon2Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon2", "MarkviewHeading2", "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
-			light_fg = "#FE640B",
-			dark_fg = "#FAB387",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon2Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon2", "MarkviewHeading2", "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
-			light_fg = "#FE640B",
-			dark_fg = "#FAB387"
 		});
 	end,
 
 	["Icon3"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading3", "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
+			source = { "MarkviewPalette3" },
 			light_fg = "#F9E2AF",
 			dark_fg = "#DF8E1D",
 
 			hl_opts = {
 				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
 			}
-		});
-	end,
-	["Icon3Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon3", "MarkviewHeading3", "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
-			light_fg = "#F9E2AF",
-			dark_fg = "#DF8E1D",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon3Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon3", "MarkviewHeading3", "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
-			light_fg = "#F9E2AF",
-			dark_fg = "#DF8E1D"
 		});
 	end,
 
 	["Icon4"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading4", "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
+			source = { "MarkviewPalette4" },
 			light_fg = "#A6E3A1",
 			dark_fg = "#40A02B",
 
 			hl_opts = {
 				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
 			}
-		});
-	end,
-	["Icon4Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon4", "MarkviewHeading4", "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
-			light_fg = "#A6E3A1",
-			dark_fg = "#40A02B",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon4Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon4", "MarkviewHeading4", "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
-			light_fg = "#A6E3A1",
-			dark_fg = "#40A02B"
 		});
 	end,
 
 	["Icon5"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading5", "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
+			source = { "MarkviewPalette5" },
 			light_fg = "#74C7EC",
 			dark_fg = "#209FB5",
 
 			hl_opts = {
 				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
 			}
-		});
-	end,
-	["Icon5Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon5", "MarkviewHeading5", "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
-			light_fg = "#74C7EC",
-			dark_fg = "#209FB5",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon5Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon5", "MarkviewHeading5", "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
-			light_fg = "#74C7EC",
-			dark_fg = "#209FB5"
 		});
 	end,
 
 	["Icon6"] = function ()
 		return highlights.hl_generator({
-			source = { "MarkviewHeading6", "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
+			source = { "MarkviewPalette6" },
 			light_fg = "#B4BEFE",
 			dark_fg = "#7287FD",
 
@@ -817,153 +1147,81 @@ highlights.dynamic = {
 			}
 		});
 	end,
-	["Icon6Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon6", "MarkviewHeading6", "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
-			light_fg = "#B4BEFE",
-			dark_fg = "#7287FD",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
-	end,
-	["Icon6Fg"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewIcon6", "MarkviewHeading6", "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
-			light_fg = "#B4BEFE",
-			dark_fg = "#7287FD"
-		});
-	end,
 	---_
 	---+${hl, Headings}
 	["Heading1"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading1",
-			sign_name = "MarkviewHeading1Sign",
-
-			fallbacks = { "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			light_fg = "#F38BA8",
-			dark_fg = "#D20F39",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette1"
+		};
 	end,
 	["Heading2"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading2",
-			sign_name = "MarkviewHeading2Sign",
-
-			fallbacks = { "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
-			light_fg = "#FE640B",
-			dark_fg = "#FAB387",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette2"
+		};
 	end,
 	["Heading3"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading3",
-			sign_name = "MarkviewHeading3Sign",
-
-			fallbacks = { "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
-			light_fg = "#F9E2AF",
-			dark_fg = "#DF8E1D",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette3"
+		};
 	end,
 	["heading4"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading4",
-			sign_name = "MarkviewHeading4Sign",
-
-			fallbacks = { "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
-			light_fg = "#A6E3A1",
-			dark_fg = "#40A02B",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette4"
+		};
 	end,
 	["Heading5"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading5",
-			sign_name = "MarkviewHeading5Sign",
-
-			fallbacks = { "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
-			light_fg = "#74C7EC",
-			dark_fg = "#209FB5",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette5"
+		};
 	end,
 	["Heading6"] = function ()
-		return highlights.generate_heading({
-			group_name = "MarkviewHeading6",
-			sign_name = "MarkviewHeading6Sign",
-
-			fallbacks = { "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
-			light_fg = "#B4BEFE",
-			dark_fg = "#7287FD",
-		})
+		return {
+			default = true,
+			link = "MarkviewPalette6"
+		};
 	end,
 
 
 	["Heading1Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading1", "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			light_fg = "#F38BA8",
-			dark_fg = "#D20F39",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette1Sign"
+		};
 	end,
 	["Heading2Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading2", "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
-			light_fg = "#FE640B",
-			dark_fg = "#FAB387",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette2Sign"
+		};
 	end,
 	["Heading3Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading3", "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
-			light_fg = "#F9E2AF",
-			dark_fg = "#DF8E1D",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette3Sign"
+		};
 	end,
 	["heading4Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading4", "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
-			light_fg = "#A6E3A1",
-			dark_fg = "#40A02B",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette4Sign"
+		};
 	end,
 	["Heading5Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading5", "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
-			light_fg = "#74C7EC",
-			dark_fg = "#209FB5",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette5Sign"
+		};
 	end,
 	["Heading6Sign"] = function ()
-		return highlights.hl_generator({
-			source = { "MarkviewHeading6", "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
-			light_fg = "#B4BEFE",
-			dark_fg = "#7287FD",
-
-			hl_opts = {
-				bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-			}
-		});
+		return {
+			default = true,
+			link = "MarkviewPalette6Sign"
+		};
 	end,
 	---_
 
@@ -1114,101 +1372,70 @@ highlights.dynamic = {
 	["LatexSubscript"] = function ()
 		return {
 			default = true,
-			fg = highlights.hex(
-				highlights.get_property("fg", { "Conditional", "Keyword" }, "#8839EF", "#CBA6F7")
-			)
+			link = "MarkviewPalette3Fg"
 		};
 	end,
 	["LatexSuperscript"] = function ()
 		return {
 			default = true,
-			fg = highlights.hex(
-				highlights.get_property("fg", { "Character" }, "#179299", "#94E2D5")
-			)
+			link = "MarkviewPalette6Fg"
 		};
 	end,
 	---_
 	---+${hl, List Items}
 	["ListItemMinus"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticWarn" },
-			fallback_light = "#DF8E1D",
-			fallback_dark = "#F9E3AF"
-		})
-	end,
-	["ListItemPlus"] = function ()
-		return highlights.hl_generator({
-			source = { "DiagnosticOk" },
-			fallback_light = "#40A02B",
-			fallback_dark = "#A6E3A1"
-		})
-	end,
-	["ListItemStar"] = function ()
-		local fg  = highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-					highlights.get_property("fg", { "@comment.note" }, "#1E66F5", "#89B4FA")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(fg),
+			link = "MarkviewPalette2Fg"
+		};
+	end,
+	["ListItemPlus"] = function ()
+		return {
+			default = true,
+			link = "MarkviewPalette4Fg"
+		};
+	end,
+	["ListItemStar"] = function ()
+		return {
+			default = true,
+			link = "MarkviewPalette6Fg"
 		};
 	end,
 	---_
 	---+${hl, Tables}
 	["TableHeader"] = function ()
-		local header_fg =   highlights.get_property("fg", { "DiagnosticInfo" }, nil, nil) or
-							highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-							highlights.get_property("fg", { "@comment.note" }, "#179299",  "#94e2d5")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(header_fg),
+			link = "@markup.heading.markdown"
 		};
 	end,
 
 	["TableBorder"] = function ()
-		local fg =  highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-					highlights.get_property("fg", { "@comment.note" }, "#1e66f5", "#89b4fa")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(fg),
+			link = "MarkviewPalette5Fg"
 		};
 	end,
 
 	["TableAlignLeft"] = function ()
-		local fg =  highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-					highlights.get_property("fg", { "@comment.note" }, "#1e66f5", "#89b4fa")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(fg),
-		};
+			link = "@markup.heading.markdown"
+		}
 	end,
 
 	["TableAlignCenter"] = function ()
-		local fg =  highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-					highlights.get_property("fg", { "@comment.note" }, "#1e66f5", "#89b4fa")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(fg),
-		};
+			link = "@markup.heading.markdown"
+		}
 	end,
 
 	["TableAlignRight"] = function ()
-		local fg =  highlights.get_property("bg", { "@comment.note" }, nil, nil) or
-					highlights.get_property("fg", { "@comment.note" }, "#1e66f5", "#89b4fa")
-		;
-
 		return {
 			default = true,
-			fg = highlights.hex(fg),
-		};
+			link = "@markup.heading.markdown"
+		}
 	end,
 	---_
 };
