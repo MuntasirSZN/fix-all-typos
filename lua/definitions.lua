@@ -1078,7 +1078,7 @@
 ---
 ---@field class "typst_term"
 ---@field term string
----@field text string[]
+---@field default { text: string, hl: string? }
 ---@field range TSNode.range
 
 ---@class __typst.text

@@ -22,7 +22,7 @@ $$
 Hello LaTeX!
 \mathbf{Hello LaTeX!}
 \mathsfit{Hello LaTeX!}
-\mathtt{Hello LaTeX!}
+\mathtt{Hello LaTeX! \alpha}
 \mathsf{Hello LaTeX!}
 \mathsfbfit{Hello LaTeX!}
 \mathsfbf{Hello LaTeX!}

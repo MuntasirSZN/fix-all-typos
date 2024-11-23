@@ -16,8 +16,13 @@ local spec = require("markview.spec");
 ---@param address string
 links.__open_in_app = function (address)
 	local cmd, err = vim.ui.open(address);
+
 	if err then
-		vim.notify("[ Markview.nvim ] : Failed to open: " .. link.address, vim.diagnostic.severity.WARN)
+		spec.notify({
+			{ "Failed to open " },
+			{ " " .. link.address .. " ", "DiagnosticVirtualTextInfo" }
+		})
+
 		return;
 	end
 
@@ -30,16 +35,18 @@ end
 --- Opens a file inside **Neovim**.
 ---@param address string
 links.__open_in_nvim = function (address)
-	local method = spec.get({ "links", "nvim_open_method" }) or "tab";
+	local cmd = spec.get({ "experimental", "file_open_command" }, { fallback = "tab" });
+	local _, err = pcall(function ()
+		vim.cmd(cmd .. " " .. address);
+	end);
 
-	if method == "tab" then
-		vim.cmd("tabnew " .. address);
-	elseif method == "split" then
-		vim.cmd("split " .. address);
-	elseif method == "vsplit" then
-		vim.cmd("vsplit " .. address);
-	elseif method == "replace" then
-		vim.cmd("edit " .. address);
+	if err then
+		spec.notify({
+			{ "Failed to open " },
+			{ " " .. address .. " ", "DiagnosticVirtualTextInfo" }
+		})
+
+		return;
 	end
 end
 
@@ -51,11 +58,20 @@ links.__open = function (address)
 		return;
 	end
 
+	if spec.get({ "experimental", "link_open_alerts" }, { fallback = false }) then
+		spec.notify({
+			{ "Opening " },
+			{ " " .. address .. " ", "DiagnosticVirtualTextInfo" }
+		}, {
+			level = vim.log.levels.INFO
+		})
+	end
+
 	local extension = vim.fn.fnamemodify(address, ":e");
 
-	if spec.get({ "experimental", "text_filetypes" }) then
+	if spec.get({ "experimental", "text_filetypes" }, { fallback = nil }) then
 		---+${default, Configuration for filetypes to open in nvim exists}
-		local in_nvim = spec.get({ "experimental", "text_filetypes" });
+		local in_nvim = spec.get({ "experimental", "text_filetypes" }, { fallback = nil });
 
 		if
 			not address:match("^http") and
@@ -78,7 +94,7 @@ links.__open = function (address)
 		return;
 	end
 
-	local read_bytes = spec.get({ "experimental", "file_byte_read" }) or 1024;
+	local read_bytes = spec.get({ "experimental", "file_byte_read" }, { fallback = 1024 });
 	local bytes = file:read(read_bytes);
 	file:close();
 
@@ -158,8 +174,18 @@ end;
 --- Fallback to the `<cfile>` if no node
 --- was found.
 links.open = function ()
+	local utils = require("markview.utils");
 	local buffer = vim.api.nvim_get_current_buf();
-	local node = vim.treesitter.get_node({
+	local node;
+
+	if
+		vim.treesitter.language.get_lang(vim.bo[buffer].ft) == nil or
+		utils.parser_installed(vim.treesitter.language.get_lang(vim.bo[buffer].ft)) == false
+	then
+		goto language_not_found;
+	end
+
+	node = vim.treesitter.get_node({
 		ignore_injections = false
 	});
 
@@ -170,6 +196,19 @@ links.open = function ()
 		end
 
 		node = node:parent();
+	end
+
+	::language_not_found::
+
+	if not vim.fn.expand("<cfile>") then return; end
+
+	if spec.get({ "experimental", "link_open_alerts" }, { fallback = false }) then
+		spec.notify({
+			{ "Opening " },
+			{ " " .. vim.fn.expand("<cfile>") .. " ", "DiagnosticVirtualTextInfo" }
+		}, {
+			level = vim.log.levels.INFO
+		})
 	end
 
 	links.__open_in_app(vim.fn.expand("<cfile>"));

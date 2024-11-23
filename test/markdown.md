@@ -141,6 +141,9 @@ Setext 2
 
 ---
 
+; Reference definitions
+
+[Test]: www.neovim.org
 
 ; List items
 

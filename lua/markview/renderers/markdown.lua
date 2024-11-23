@@ -22,29 +22,7 @@ local function tbl_clamp(value, index)
 	return value[index];
 end
 
-local get_config = function (...)
-	return spec.get({ "markdown", ... });
-end
-
-markdown.cache = {
-};
-
----@param config table
----@param value string
----@return table
-markdown.custom_config = function (config, value)
-	if not config.patterns or not value then
-		return config.default;
-	end
-
-	for _, pattern in ipairs(config.patterns) do
-		if pattern.match_string and value:match(pattern.match_string) then
-			return vim.tbl_deep_extend("force", config.default, pattern);
-		end
-	end
-
-	return config.default;
-end
+markdown.cache = {};
 
 ---@param icons string
 ---@param ft string
@@ -70,19 +48,8 @@ end
 ---@param str string
 ---@return string
 ---@return integer
-markdown.output = function (str)
-	local function config(opt)
-		local conf = spec.get({ "markdown_inline" });
-
-		if not conf or conf.enable == false then
-			return;
-		elseif not conf[opt] or conf[opt].enable == false then
-			return;
-		end
-
-		return conf[opt];
-	end
-
+markdown.output = function (str, buffer)
+	---+${func}
 	local concat = function (list)
 		for i, item in ipairs(list) do
 			list[i] = utils.escape_string(item);
@@ -94,17 +61,17 @@ markdown.output = function (str)
 	local decorations = 0;
 
 	--- Inline codes config
-	local codes = config("inline_codes");
-	local hyper = config("hyperlinks");
-	local image = config("images");
-	local email = config("emails");
-	local embed = config("embed_files");
-	local blref = config("block_references");
-	local int = config("internal_links");
-	local uri = config("uri_autolinks");
-	local esc = config("escapes");
-	local ent = config("entities");
-	local hls = config("highlights");
+	local codes = spec.get({ "markdown_inline", "inline_codes"},      { fallback = nil });
+	local hyper = spec.get({ "markdown_inline", "hyperlinks" },       { fallback = nil });
+	local image = spec.get({ "markdown_inline", "images" },           { fallback = nil });
+	local email = spec.get({ "markdown_inline", "emails" },           { fallback = nil });
+	local embed = spec.get({ "markdown_inline", "embed_files" },      { fallback = nil });
+	local blref = spec.get({ "markdown_inline", "block_references" }, { fallback = nil });
+	local int   = spec.get({ "markdown_inline", "internal_links" },   { fallback = nil });
+	local uri   = spec.get({ "markdown_inline", "uri_autolinks" },    { fallback = nil });
+	local esc   = spec.get({ "markdown_inline", "escapes" },          { fallback = nil });
+	local ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil });
+	local hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil });
 
 	for escaped in str:gmatch("\\(%$)") do
 		if not esc then
@@ -140,23 +107,33 @@ markdown.output = function (str)
 				"`"
 			}), concat({ content }));
 		else
+			local _codes = utils.tostatic(codes, {
+				args = {
+					buffer,
+					{
+						class = "inline_code_span",
+						text = string.format("`%s`", inline_code)
+					}
+				}
+			});
+
 			str = str:gsub(concat({
 				"`",
 				inline_code,
 				"`"
 			}), concat({
-				codes.corner_left or "",
-				codes.padding_left or "",
+				_codes.corner_left or "",
+				_codes.padding_left or "",
 				inline_code:gsub(".", "X"),
-				codes.padding_right or "",
-				codes.corner_left or ""
+				_codes.padding_right or "",
+				_codes.corner_left or ""
 			}));
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
-				codes.corner_left or "",
-				codes.padding_left or "",
-				codes.padding_right or "",
-				codes.corner_left or ""
+				_codes.corner_left or "",
+				_codes.padding_left or "",
+				_codes.padding_right or "",
+				_codes.corner_left or ""
 			}));
 		end
 		---_
@@ -165,7 +142,22 @@ markdown.output = function (str)
 	for ref in str:gmatch("%!%[%[([^%]]+)%]%]") do
 		---+${custom, Handle embed files & block references}
 		if ref:match("%#%^(.+)") and blref then
-			local _blref = markdown.custom_config(blref, ref);
+			local _blref = utils.match_pattern(
+				blref,
+				ref,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_block_ref",
+							text = string.format("![[%s]]", ref),
+
+							label = ref:match("%#%^(.+)$")
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"![[",
@@ -188,7 +180,22 @@ markdown.output = function (str)
 				_blref.corner_right or ""
 			}));
 		elseif embed then
-			local _embed = markdown.custom_config(embed, ref);
+			local _embed = utils.match_pattern(
+				embed,
+				ref,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_embed_file",
+							text = string.format("![[%s]]", ref),
+
+							label = ref
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"![[",
@@ -215,31 +222,46 @@ markdown.output = function (str)
 	end
 
 	for ref in str:gmatch("%[%[%#%^([^%]]+)%]%]") do
-		---+${custom, Handle embed files & block references}
+		---+${custom, Handle block references}
 		if not blref then goto continue; end
 
-			local _blref = markdown.custom_config(blref, ref);
+		local _blref = utils.match_pattern(
+			blref,
+			ref,
+			{
+				fallback = {},
+				args = {
+					buffer,
+					{
+						class = "inline_link_block_ref",
+						text = string.format("[[%s]]", ref),
 
-			str = str:gsub(concat({
-				"[[#^",
-				ref,
-				"]]"
-			}), concat({
-				_blref.corner_left or "",
-				_blref.padding_left or "",
-				_blref.icon or "",
-				ref:gsub(".", "X"),
-				_blref.padding_right or "",
-				_blref.corner_right or ""
-			}));
+						label = ref:match("%#%^(.+)$")
+					}
+				}
+			}
+		);
 
-			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
-				_blref.corner_left or "",
-				_blref.padding_left or "",
-				_blref.icon or "",
-				_blref.padding_right or "",
-				_blref.corner_right or ""
-			}));
+		str = str:gsub(concat({
+			"[[#^",
+			ref,
+			"]]"
+		}), concat({
+			_blref.corner_left or "",
+			_blref.padding_left or "",
+			_blref.icon or "",
+			ref:gsub(".", "X"),
+			_blref.padding_right or "",
+			_blref.corner_right or ""
+		}));
+
+		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+			_blref.corner_left or "",
+			_blref.padding_left or "",
+			_blref.icon or "",
+			_blref.padding_right or "",
+			_blref.corner_right or ""
+		}));
 
 		::continue::
 		---_
@@ -253,13 +275,29 @@ markdown.output = function (str)
 				link,
 				"]]"
 			}), concat({
-				"0",
+				" ",
 				(alias or link):gsub(".", "X"),
-				"0"
+				" "
 			}));
 		else
 			local alias = link:match("%|(.+)$");
-			local _int = markdown.custom_config(int, address);
+			local _int = utils.match_pattern(
+				int,
+				link,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_internal",
+							text = string.format("[[%s]]", link),
+
+							label = link,
+							alias = alias
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"[[",
@@ -285,7 +323,7 @@ markdown.output = function (str)
 		---_
 	end
 
-	for link, address in str:gmatch("%!%[([^%)]*)%]([%(%[][^%)]*[%)%]])") do
+	for link, p_s, address, p_e in str:gmatch("%!%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
 		---+${custom, Handle image links}
 		if not image then
 			str = str:gsub(concat({
@@ -295,13 +333,31 @@ markdown.output = function (str)
 				address,
 			}), concat({ link }))
 		else
-			local _image = markdown.custom_config(image, address:gsub("[%[%]%(%)]", ""));
+			local _image = utils.match_pattern(
+				image,
+				address,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_image",
+							text = string.format("![%s]%s%s%s", link, p_s, address, p_e),
+
+							label = address,
+							description = link
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"![",
 				link,
 				"]",
-				address
+				p_s,
+				address,
+				p_e
 			}), concat({
 				_image.corner_left or "",
 				_image.padding_left or "",
@@ -329,41 +385,53 @@ markdown.output = function (str)
 				"![",
 				link,
 				"]",
-			}), concat({ link }))
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
 		else
-			local _t = link:gsub(".", function (h)
-				if h == "["  or h == "]" then
-					return h;
-				end
+			local _image = utils.match_pattern(
+				image,
+				address,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_image",
+							text = string.format("![%s]", link),
 
-				return "X";
-			end);
+							label = nil,
+							description = link
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"![",
 				link,
 				"]",
 			}), concat({
-				image.corner_left or "",
-				image.padding_left or "",
-				image.icon or "",
-				_t,
-				image.padding_right or "",
-				image.corner_right or ""
+				_image.corner_left or "",
+				_image.padding_left or "",
+				_image.icon or "",
+				utils.escape_string(link):gsub(".", "X"),
+				_image.padding_right or "",
+				_image.corner_right or ""
 			}));
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
-				image.corner_left or "",
-				image.padding_left or "",
-				image.icon or "",
-				image.padding_right or "",
-				image.corner_right or ""
+				_image.corner_left or "",
+				_image.padding_left or "",
+				_image.icon or "",
+				_image.padding_right or "",
+				_image.corner_right or ""
 			}));
 		end
 		---_
 	end
 
-	for link, address in str:gmatch("%[([^%)]*)%]([%(%[][^%)]*[%)%]])") do
+	for link, p_s, address, p_e in str:gmatch("%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
 		---+${custom, Handle hyperlinks}
 		if not hyper then
 			str = str:gsub(concat({
@@ -371,20 +439,38 @@ markdown.output = function (str)
 				link,
 				"]",
 				address
-			}), concat({ link }))
+			}), concat({ utils.escape_string(link):gsub(".", "X") }))
 		else
-			local _hyper = markdown.custom_config(hyper, address:gsub("[%[%]%(%)]", ""));
+			local _hyper = utils.match_pattern(
+				hyper,
+				address,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_hyperlink",
+							text = string.format("[%s]%s%s%s", link, p_s, address, p_e),
+
+							label = address,
+							description = link
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"[",
 				link,
 				"]",
-				address
+				p_s,
+				address,
+				p_e
 			}), concat({
 				_hyper.corner_left or "",
 				_hyper.padding_left or "",
 				_hyper.icon or "",
-				utils.escape_string(link):gsub("[^%[%]]", "X"),
+				utils.escape_string(link):gsub(".", "X"),
 				_hyper.padding_right or "",
 				_hyper.corner_right or ""
 			}));
@@ -407,9 +493,26 @@ markdown.output = function (str)
 				"[",
 				link,
 				"]",
-			}), concat({ link }))
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
 		else
-			local _hyper = markdown.custom_config(hyper, link);
+			local _hyper = utils.match_pattern(
+				hyper,
+				link,
+				{
+					fallback = {},
+					args = {
+						buffer,
+						{
+							class = "inline_link_shortcut",
+							text = string.format("[%s]", link),
+
+							label = link
+						}
+					}
+				}
+			);
 
 			str = str:gsub(concat({
 				"[",
@@ -419,7 +522,7 @@ markdown.output = function (str)
 				_hyper.corner_left or "",
 				_hyper.padding_left or "",
 				_hyper.icon or "",
-				utils.escape_string(link):gsub("[^%[%]]", "X"),
+				utils.escape_string(link):gsub(".", "X"),
 				_hyper.padding_right or "",
 				_hyper.corner_right or ""
 			}));
@@ -441,7 +544,22 @@ markdown.output = function (str)
 			break;
 		end
 
-		local _email = markdown.custom_config(email, address .. "@" .. domain);
+		local _email = utils.match_pattern(
+			email,
+			string.format("%s@%s", address, domain),
+			{
+				fallback = {},
+				args = {
+					buffer,
+					{
+						class = "inline_link_email",
+						text = string.format("<%s@%s>", address, domain),
+
+						label = string.format("%s@%s", address, domain)
+					}
+				}
+			}
+		);
 
 		str = str:gsub("%<" .. address .. "%@" .. domain .. "%>", concat({
 			_email.corner_left or "",
@@ -472,7 +590,22 @@ markdown.output = function (str)
 			goto continue;
 		end
 
-		local _uri = markdown.custom_config(uri, address);
+		local _uri = utils.match_pattern(
+			uri,
+			address,
+			{
+				fallback = {},
+				args = {
+					buffer,
+					{
+						class = "inline_link_uri_autolink",
+						text = string.format("<%s>", address),
+
+						label = address
+					}
+				}
+			}
+		);
 
 		str = str:gsub(concat({
 			"<",
@@ -535,28 +668,41 @@ markdown.output = function (str)
 		---+${custom, Handle highlighted text}
 		if not hls then goto continue; end
 
-			local _hls = markdown.custom_config(hls, highlight) or {};
+		local _hls = utils.match_pattern(
+			hls,
+			highlight,
+			{
+				fallback = {},
+				args = {
+					buffer,
+					{
+						class = "inline_highlight",
+						text = highlight
+					}
+				}
+			}
+		);
 
-			str = str:gsub(concat({
-				"==",
-				highlight,
-				"=="
-			}), concat({
-				_hls.corner_left or "",
-				_hls.padding_left or "",
-				_hls.icon or "",
-				utils.escape_string(highlight):gsub(".", "X"),
-				_hls.padding_right or "",
-				_hls.corner_left or ""
-			}));
+		str = str:gsub(concat({
+			"==",
+			highlight,
+			"=="
+		}), concat({
+			_hls.corner_left or "",
+			_hls.padding_left or "",
+			_hls.icon or "",
+			utils.escape_string(highlight):gsub(".", "X"),
+			_hls.padding_right or "",
+			_hls.corner_left or ""
+		}));
 
-			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
-				_hls.corner_left or "",
-				_hls.padding_left or "",
-				_hls.icon or "",
-				_hls.padding_right or "",
-				_hls.corner_left or ""
-			}));
+		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+			_hls.corner_left or "",
+			_hls.padding_left or "",
+			_hls.icon or "",
+			_hls.padding_right or "",
+			_hls.corner_left or ""
+		}));
 
 		::continue::
 		---_
@@ -613,6 +759,7 @@ markdown.concealed = function (str)
 	end
 
 	return str;
+	---_
 end
 
 markdown.__ns = {
@@ -627,16 +774,18 @@ markdown.ns = {
 setmetatable(markdown.ns, markdown.__ns)
 
 markdown.set_ns = function ()
-	local ns_pref = get_config("use_seperate_ns");
+	local ns_pref = spec.get({ "markdown", "use_seperate_ns" }, { fallback = true });
 	if not ns_pref then ns_pref = true; end
 
 	local available = vim.api.nvim_get_namespaces();
 	local ns_list = {
 		["block_quotes"] = "markview/markdown/block_quotes",
 		["code_blocks"] = "markview/markdown/code_blocks",
-		["list_items"] = "markview/markdown/list_items",
-		["metadatas"] = "markview/markdown/metadatas",
 		["headings"] = "markview/markdown/headings",
+		["horizontal_rules"] = "markview/markdown/horizontal_rules",
+		["list_items"] = "markview/markdown/list_items",
+		["metadata_minus"] = "markview/markdown/metadata_minus",
+		["metadata_plus"] = "markview/markdown/metadata_plus",
 		["tables"] = "markview/markdown/tables",
 	};
 
@@ -656,17 +805,21 @@ markdown.atx_heading = function (buffer, item)
 	---+${func, Renders ATX headings}
 
 	---@type markdown.headings?
-	local main_config = get_config("headings");
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil });
 
 	if not main_config then
 		return;
-	elseif not main_config["heading_" .. #item.marker] then
+	elseif not spec.get({ "heading_" .. #item.marker }, { source = main_config }) then
 		return;
 	end
 
 	---@type headings.atx
-	local config = main_config["heading_" .. #item.marker];
+	local config = spec.get({ "heading_" .. #item.marker }, { source = main_config });
 	local range = item.range;
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -678,7 +831,7 @@ markdown.atx_heading = function (buffer, item)
 
 		if config.align then
 			local win = vim.fn.win_findbuf(buffer)[1];
-			local res = markdown.output(item.text[1]):gsub("^#+%s", "");
+			local res = markdown.output(item.text[1], buffer):gsub("^#+%s", "");
 
 			local wid = vim.fn.strdisplaywidth(table.concat({
 				config.corner_left or "",
@@ -701,7 +854,7 @@ markdown.atx_heading = function (buffer, item)
 				space = string.rep(" ", w_wid - wid);
 			end
 		else
-				space = string.rep(" ", #item.marker * (get_config("headings").shift_width or 1));
+			space = string.rep(" ", #item.marker * spec.get({ "shift_width" }, { source = main_config, fallback = 1 }) );
 		end
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -749,7 +902,7 @@ markdown.atx_heading = function (buffer, item)
 			sign_hl_group = utils.set_hl(config.sign_hl),
 			virt_text_pos = "inline",
 			virt_text = {
-				{ string.rep(" ", #item.marker * (get_config("headings").shift_width or 1)) },
+				{ string.rep(" ", #item.marker * spec.get({ "shift_width" }, { source = main_config, fallback = 1 })) },
 				{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
 			},
 			line_hl_group = utils.set_hl(config.hl),
@@ -767,7 +920,7 @@ markdown.block_quote = function (buffer, item)
 	---+${func, Renders Block quotes & Callouts/Alerts}
 
 	---@type markdown.block_quotes?
-	local main_config = get_config("block_quotes");
+	local main_config = spec.get({ "markdown", "block_quotes" }, { fallback = nil });
 	---@type string[]
 	local keys = vim.tbl_keys(main_config);
 	local range = item.range;
@@ -787,7 +940,26 @@ markdown.block_quote = function (buffer, item)
 	end
 
 	---@type block_quotes.opts
-	local config = item.callout and (main_config[string.lower(item.callout)] or main_config[string.upper(item.callout)] or main_config[item.callout]) or main_config.default;
+	local config;
+
+	if item.callout then
+		config = spec.get(
+			{ string.lower(item.callout) },
+			{ source = main_config }
+		) or spec.get(
+			{ string.upper(item.callout) },
+			{ source = main_config }
+		) or spec.get(
+			{ item.callout },
+			{ source = main_config }
+		);
+	else
+		config = spec.get({ "default" }, { source = main_config });
+	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
 
 	if item.callout then
 		if item.title and config.title == true then
@@ -864,12 +1036,16 @@ markdown.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
 	---@type markdown.code_blocks?
-	local config = get_config("code_blocks");
+	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
 
 	local ft = languages.get_ft(item.language);
 	local icon, hl, sign_hl = markdown.get_icon(config.icons, ft);
@@ -1202,12 +1378,16 @@ markdown.hr = function (buffer, item)
 	---+${func, Horizontal rules}
 
 	---@type markdown.horizontal_rules?
-	local config = get_config("horizontal_rules");
+	local config = spec.get({ "markdown", "horizontal_rules" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	});
 
 	local virt_text = {};
 	local function val(opt, index)
@@ -1226,13 +1406,7 @@ markdown.hr = function (buffer, item)
 		if part.type == "text" then
 			table.insert(virt_text, { part.text, utils.set_hl(part.hl) });
 		elseif part.type == "repeating" then
-			local rep = 0;
-
-			if pcall(part.repeat_amount --[[ @as function ]], buffer) then
-				rep = part.repeat_amount(buffer);
-			elseif type(part.repeat_amount) == "number" then
-				rep = part.repeat_amount --[[ @as integer ]];
-			end
+			local rep = spec.get({ "repeat_amount" }, { source = part, args = { buffer, item } });
 
 			for r = 1, rep, 1 do
 				if part.direction == "right" then
@@ -1250,7 +1424,7 @@ markdown.hr = function (buffer, item)
 		end
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("tables"), range.row_start, 0, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("horizontal_rules"), range.row_start, 0, {
 		undo_restore = false, invalidate = true,
 		virt_text_pos = "overlay",
 		virt_text = virt_text,
@@ -1267,7 +1441,7 @@ markdown.link_ref_definition = function (buffer, item)
 	---+${func, Render normal links}
 
 	---@type inline.item?
-	local main_config = get_config("reference_definitions");
+	local main_config = spec.get({ "markdown", "reference_definitions" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -1275,7 +1449,17 @@ markdown.link_ref_definition = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
+
+	if not config then
+		return;
+	end
 
 	---+${class}
 	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start, {
@@ -1324,7 +1508,7 @@ markdown.list_item = function (buffer, item)
 	---+${func, Renders List items}
 
 	---@type markdown.list_items?
-	local main_config = get_config("list_items");
+	local main_config = spec.get({ "markdown", "list_items" }, { fallback = nil });
 	local checkbox;
 	local range = item.range;
 
@@ -1332,24 +1516,45 @@ markdown.list_item = function (buffer, item)
 		return;
 	end
 
-	if not item.checkbox or not spec.get({ "markdown_inline", "checkboxes" }) then
+	if
+		not item.checkbox or
+		not spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil })
+	then
 		goto continue;
 	end
 
 	if
-		item.checkbox == "X" or
-		item.checkbox == "x"
+		(
+			item.checkbox == "X" or
+			item.checkbox == "x"
+		) and
+		spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "checked" });
+		checkbox = spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil });
 	elseif
-		item.checkbox == " "
+		item.checkbox == " " and
+		spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "unchecked" });
+		checkbox = spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil });
 	elseif
-		spec.get({ "markdown_inline", "checkboxes" })[item.checkbox]
+		spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes" })[item.checkbox]
+		checkbox = spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil });
+	elseif item.checkbox then
+		return;
 	end
+
+	checkbox = utils.tostatic(checkbox, {
+		args = {
+			buffer,
+			{
+				class = "inline_checkbox",
+
+				text = item.checkbox,
+				range = {}
+			}
+		}
+	});
 
 	::continue::
 
@@ -1358,20 +1563,39 @@ markdown.list_item = function (buffer, item)
 	local shift_width, indent_size = main_config.shift_width or 1, main_config.indent_size or 1;
 
 	if item.marker == "-" then
-		config = main_config.marker_minus;
+		config = spec.get({ "marker_minus" }, {
+			source = main_config,
+			args = { buffer, item }
+		});
 	elseif item.marker == "+" then
-		config = main_config.marker_plus;
+		config = spec.get({ "marker_plus" }, {
+			source = main_config,
+			args = { buffer, item }
+		});
 	elseif item.marker == "*" then
-		config = main_config.marker_star;
+		config = spec.get({ "marker_star" }, {
+			source = main_config,
+			args = { buffer, item }
+		});
 	elseif item.marker:match("%d+%.") then
-		config = main_config.marker_dot;
+		config = spec.get({ "marker_dot" }, {
+			source = main_config,
+			args = { buffer, item }
+		});
 	elseif item.marker:match("%d+%)") then
-		config = main_config.marker_parenthesis;
+		config = spec.get({ "marker_parenthesis" }, {
+			source = main_config,
+			args = { buffer, item }
+		});
 	end
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	});
 
 	if config.add_padding then
 		for _, l in ipairs(item.candidates) do
@@ -1448,14 +1672,18 @@ markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
 	---@type markdown.metadata?
-	local config = get_config("metadata_minus");
+	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_start, 0, {
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
+
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_minus"), range.row_start, 0, {
 		undo_restore = false, invalidate = true,
 		end_col = #item.text[1],
 		conceal = "",
@@ -1474,7 +1702,7 @@ markdown.metadata_minus = function (buffer, item)
 		} or nil
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_end - 1, 0, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_minus"), range.row_end - 1, 0, {
 		undo_restore = false, invalidate = true,
 		end_col = #item.text[#item.text],
 		conceal = "",
@@ -1495,7 +1723,7 @@ markdown.metadata_minus = function (buffer, item)
 
 	if not config.hl then return; end
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_start + 1, 0, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_minus"), range.row_start + 1, 0, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end - 1,
 
@@ -1511,14 +1739,18 @@ markdown.metadata_plus = function (buffer, item)
 	---+${func, Renders TOML metadata blocks}
 
 	---@type markdown.metadata?
-	local config = get_config("metadata_plus");
+	local config = spec.get({ "markdown", "metadata_plus" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_start, 0, {
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
+
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_plus"), range.row_start, 0, {
 		undo_restore = false, invalidate = true,
 		end_col = #item.text[1],
 		conceal = "",
@@ -1537,7 +1769,7 @@ markdown.metadata_plus = function (buffer, item)
 		} or nil
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_end - 1, 0, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_plus"), range.row_end - 1, 0, {
 		undo_restore = false, invalidate = true,
 		end_col = #item.text[#item.text],
 		conceal = "",
@@ -1558,7 +1790,7 @@ markdown.metadata_plus = function (buffer, item)
 
 	if not config.hl then return; end
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadatas"), range.row_start + 1, 0, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_plus"), range.row_start + 1, 0, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end - 1,
 
@@ -1574,18 +1806,22 @@ markdown.setext_heading = function (buffer, item)
 	---+${func, Renders Setext headings}
 
 	---@type markdown.headings?
-	local main_config = get_config("headings");
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil });
 	local lvl = item.marker:match("%=") and 1 or 2;
 
 	if not main_config then
 		return;
-	elseif not main_config["setext_" .. lvl] then
+	elseif not spec.get({ "setext_" .. lvl }, { source = main_config }) then
 		return;
 	end
 
 	---@type headings.setext
-	local config = main_config["setext_" .. lvl];
+	local config = spec.get({ "setext_" .. lvl }, { source = main_config });
 	local range = item.range;
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -1662,12 +1898,16 @@ markdown.table = function (buffer, item)
 	---+${func, Renders Tables}
 
 	---@type markdown.tables?
-	local config = get_config("tables");
+	local config = spec.get({ "markdown", "tables" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
 
 	local col_widths = {};
 	local visible_texts = {
@@ -1681,7 +1921,7 @@ markdown.table = function (buffer, item)
 	---+${custom, Calculate heading column widths}
 	for _, col in ipairs(item.header) do
 		if col.class == "column" then
-			local o = markdown.output(col.text);
+			local o = markdown.output(col.text, buffer);
 			table.insert(visible_texts.header, o);
 			o = vim.fn.strdisplaywidth(o);
 
@@ -1717,7 +1957,7 @@ markdown.table = function (buffer, item)
 
 		for _, col in ipairs(row) do
 			if col.class == "column" then
-				local o = markdown.output(col.text);
+				local o = markdown.output(col.text, buffer);
 				table.insert(visible_texts.rows[r], o);
 				o = vim.fn.strdisplaywidth(o);
 
@@ -2313,6 +2553,9 @@ markdown.table = function (buffer, item)
 end
 
 
+ -----------------------------------------------------------------------------------------
+
+
 --- Renders wrapped block quotes, callouts & alerts.
 ---@param buffer integer
 ---@param item __markdown.block_quote
@@ -2320,7 +2563,7 @@ markdown.__block_quote = function (buffer, item)
 	---+${func, Post renderer for wrapped block quotes}
 
 	---@type markdown.block_quotes?
-	local main_config = get_config("block_quotes");
+	local main_config = spec.get({ "markdown", "block_quotes" }, { fallback = nil });
 	---@type string[]
 	local keys = vim.tbl_keys(main_config);
 	local range = item.range;
@@ -2340,7 +2583,27 @@ markdown.__block_quote = function (buffer, item)
 	end
 
 	---@type block_quotes.opts
-	local config = item.callout and (main_config[string.lower(item.callout)] or main_config[string.upper(item.callout)] or main_config[item.callout]) or main_config.default;
+	local config;
+
+	if item.callout then
+		config = spec.get(
+			{ string.lower(item.callout) },
+			{ source = main_config }
+		) or spec.get(
+			{ string.upper(item.callout) },
+			{ source = main_config }
+		) or spec.get(
+			{ item.callout },
+			{ source = main_config }
+		);
+	else
+		config = spec.get({ "default" }, { source = main_config });
+	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	})
+
 	local win = utils.buf_getwin(buffer);
 
 	local t = vim.fn.getwininfo(win)[1].textoff;
@@ -2376,6 +2639,9 @@ markdown.__block_quote = function (buffer, item)
 end
 
 
+ -----------------------------------------------------------------------------------------
+
+
 markdown.render = function (buffer, content)
 	markdown.cache = {};
 
@@ -2395,6 +2661,10 @@ markdown.post_render = function (buffer, content)
 		-- markdown["__" .. item.class:gsub("^markdown_", "")](buffer, item);
 	end
 end
+
+
+ -----------------------------------------------------------------------------------------
+
 
 markdown.clear = function (buffer, ignore_ns, from, to)
 	for name, ns in pairs(markdown.ns) do

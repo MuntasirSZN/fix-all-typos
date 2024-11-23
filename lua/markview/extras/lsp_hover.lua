@@ -39,7 +39,7 @@ hover.hover = function ()
 			local width = 0;
 
 			for _, line in ipairs(lines) do
-				local _l = markdown.output(line);
+				local _l = markdown.output(line, hover.buf);
 
 				if vim.fn.strdisplaywidth(_l) > width then
 					width = vim.fn.strdisplaywidth(_l);

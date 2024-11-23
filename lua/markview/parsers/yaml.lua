@@ -28,7 +28,7 @@ yaml.property = function (buffer, TSNode, text, range)
 	if key_text == "date" then
 		value_type = "date";
 	elseif key_text == "time" then
-		value_type = "time";
+		value_type = "date & time";
 	elseif key_text == "tags" then
 		value_type = "tags";
 	elseif key_text == "aliases" then
@@ -45,18 +45,21 @@ yaml.property = function (buffer, TSNode, text, range)
 	then
 		value_type = "list";
 	elseif type(value_text) == "string" then
-		value_type = "string";
+		value_type = "text";
 	elseif not value_text then
 		value_type = "nil";
 	end
 
-	if not #text == (range.row_end - range.row_start) then
-		range.row_end = range.row_start + #text;
+	if range.col_end == 0 then
+		range.row_end = range.row_start + #text - 1;
 	end
 
 	yaml.insert({
 		class = "yaml_property",
 		type = value_type,
+
+		key = key_text,
+		value = value_text,
 
 		text = text,
 

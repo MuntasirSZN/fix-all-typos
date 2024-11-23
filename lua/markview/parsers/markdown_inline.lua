@@ -122,6 +122,8 @@ inline.embed_file = function (_, _, text, range)
 
 		range.label_start = range.col_start + #tmp + 2;
 		range.label_end = range.col_end - 2;
+	else
+		label = text[1]:match("%[%[([^%[+])%]%]");
 	end
 
 	inline.insert({
@@ -309,7 +311,7 @@ inline.internal_link = function (_, _, text, range)
 	if range.row_start ~= range.row_end then return; end
 
 	local class, alias = "inline_link_internal", nil;
-	local label = nil;
+	local label;
 
 	---@diagnostic disable-next-line
 	text = text[1]:gsub("[%[%]]", "");
@@ -323,6 +325,7 @@ inline.internal_link = function (_, _, text, range)
 		range.label_start = range.col_start + #tmp + 2;
 		range.label_end = range.col_end - 2;
 	elseif text:match("%|([^%|]+)$") then
+		label = text;
 		range.alias_start, range.alias_end, alias = text:find("%|([^%|]+)$");
 
 		range.alias_start = range.alias_start + range.col_start + 2;
