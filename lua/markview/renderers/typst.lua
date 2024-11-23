@@ -8,19 +8,6 @@ local languages = require("markview.languages");
 local devicons_loaded, devicons = pcall(require, "nvim-web-devicons");
 local mini_loaded, MiniIcons = pcall(require, "mini.icons");
 
-local get_config = function (...)
-	local _c = spec.get({ "typst", ... });
-
-	if
-		not _c or
-		(type(_c) == "table" and _c.enable == false)
-	then
-		return;
-	end
-
-	return _c;
-end
-
 typst.cache = {
 	style_regions = {
 		superscripts = {},
@@ -56,7 +43,7 @@ typst.ns = {
 setmetatable(typst.ns, typst.__ns)
 
 typst.set_ns = function ()
-	local ns_pref = get_config("use_seperate_ns");
+	local ns_pref = spec.get({ "typst", "use_seperate_ns" }, { fallback = true });
 	if not ns_pref then ns_pref = true; end
 
 	local available = vim.api.nvim_get_namespaces();
@@ -96,12 +83,19 @@ typst.code = function (buffer, item)
 	---+${func, Renders Code blocks}
 
 	---@type typst.codes?
-	local config = get_config("codes");
+	local config = spec.get({ "typst", "codes" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("codes"), range.row_start, range.col_start, {
@@ -242,7 +236,7 @@ end
 ---@param item __typst.escaped
 typst.escaped = function (buffer, item)
 	---@type typst.escapes?
-	local config = get_config("escapes");
+	local config = spec.get({ "typst", "escapes" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -263,17 +257,24 @@ typst.heading = function (buffer, item)
 	---+${func}
 
 	---@type typst.headings?
-	local main_config = get_config("headings");
+	local main_config = spec.get({ "typst", "headings" }, { fallback = nil });
 
 	if not main_config then
 		return;
-	elseif not main_config["heading_" .. item.level] then
+	elseif not spec.get({ "heading_" .. item.level }, { source = main_config }) then
 		return;
 	end
 
 	local range = item.range;
 	---@type heading.typst
-	local config = main_config["heading_" .. item.level];
+	local config = spec.get({ "heading_" .. item.level }, { source = main_config });
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("headings"), range.row_start, range.col_start, {
@@ -289,7 +290,7 @@ typst.heading = function (buffer, item)
 			sign_hl_group = utils.set_hl(config.sign_hl),
 			virt_text_pos = "inline",
 			virt_text = {
-				{ string.rep(" ", item.level * (get_config("headings").shift_width or 1)) },
+				{ string.rep(" ", item.level * spec.get({ "typst", "headings", "shift_width" }, { fallback = 1 })) },
 				{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
 			},
 			line_hl_group = utils.set_hl(config.hl),
@@ -306,12 +307,18 @@ typst.label = function (buffer, item)
 	---+${func}
 
 	---@type typst.labels?
-	local config = get_config("labels");
+	local config = spec.get({ "typst", "labels" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
 
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 	local range = item.range;
 
 	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
@@ -359,11 +366,19 @@ typst.link_ref = function (buffer, item)
 	---+${func}
 
 	---@type typst.links?
-	local config = get_config("reference_links");
+	local main_config = spec.get({ "typst", "reference_links" }, { fallback = nil });
 
-	if not config then
+	if not main_config then
 		return;
 	end
+
+	local config = utils.match_pattern(
+		main_config,
+		string.sub(item.text[1], 2),
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -410,14 +425,21 @@ typst.link_url = function (buffer, item)
 	---+${func}
 
 	---@type typst.links?
-	local config = get_config("url_links");
+	local main_config = spec.get({ "typst", "url_links" }, { fallback = nil });
 
-	if not config then
+	if not main_config then
 		return;
 	end
 
 	local range = item.range;
-	config = typst.custom_config(config, item.label)
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
+
 
 	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -459,23 +481,30 @@ typst.list_item = function (buffer, item)
 	---+${func}
 
 	---@type typst.list_items?
-	local main_config = get_config("list_items");
+	local main_config = spec.get({ "typst", "list_items" }, { fallback = nil });
 	---@type list_items.typst
 	local config;
 
 	if not main_config then return; end
 
 	if item.marker == "-" then
-		config = main_config.marker_minus;
+		config = spec.get({ "marker_minus" }, { source = main_config });
 	elseif item.marker == "+" then
-		config = main_config.marker_plus;
+		config = spec.get({ "marker_plus" }, { source = main_config });
 	elseif item.marker:match("%d+%.") then
-		config = main_config.marker_dot;
+		config = spec.get({ "marker_dot" }, { source = main_config });
 	end
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local indent = main_config.indent_size;
 	local shift  = main_config.shift_width;
@@ -532,8 +561,15 @@ typst.math = function (buffer, item)
 
 	if item.inline then
 		---@type typst.math_spans?
-		local config = get_config("math_spans");
+		local config = spec.get({ "typst", "math_spans" }, { fallback = nil });
 		if not config then return; end
+
+		config = utils.tostatic(
+			config,
+			{
+				args = { buffer, item }
+			}
+		);
 
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -612,8 +648,15 @@ typst.math = function (buffer, item)
 		end
 	else
 		---@type typst.math_blocks?
-		local config = get_config("math_blocks");
+		local config = spec.get({ "typst", "math_blocks" }, { fallback = nil });
 		if not config then return; end
+
+		config = utils.tostatic(
+			config,
+			{
+				args = { buffer, item }
+			}
+		);
 
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -657,12 +700,19 @@ typst.raw_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
 	---@type typst.raw_blocks?
-	local config = get_config("raw_blocks");
+	local config = spec.get({ "typst", "raw_blocks" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local ft = languages.get_ft(item.language);
 	local icon, hl, sign_hl = typst.get_icon(config.icons, ft);
@@ -832,11 +882,18 @@ typst.raw_span = function (buffer, item)
 	---+${func}
 
 	---@type typst.raw_spans?
-	local config = get_config("raw_spans");
+	local config = spec.get({ "typst", "raw_spans" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -903,11 +960,18 @@ typst.superscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = get_config("superscripts");
+	local config = spec.get({ "typst", "superscripts" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -963,11 +1027,18 @@ typst.subscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = get_config("subscripts");
+	local config = spec.get({ "typst", "subscripts" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -1023,7 +1094,7 @@ typst.symbol = function (buffer, item)
 	---+${func}
 
 	-- -@type typst.symbols?
-	local config = get_config("symbols");
+	local config = spec.get({ "typst", "symbols" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -1031,14 +1102,22 @@ typst.symbol = function (buffer, item)
 		return;
 	end
 
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
+
 	local range = item.range;
 	local _o, _h = "", nil;
 
 	if
-		item.style and get_config(item.style)
+		item.style and
+		spec.get({ "typst", item.style, "hl" }, { fallback = nil })
 	then
 		_o = symbols[item.style][item.name] or symbols.typst_entries[item.name];
-		_h = get_config(item.style, "hl");
+		_h = spec.get({ "typst", item.style, "hl" }, { fallback = nil });
 	elseif symbols.typst_shorthands[item.name] then
 		_o = symbols.typst_shorthands[item.name];
 		_h = config.hl;
@@ -1068,11 +1147,19 @@ typst.term = function (buffer, item)
 	---+${func}
 
 	---@type typst.term?
-	local config = get_config("terms");
+	local main_config = spec.get({ "typst", "terms" }, { fallback = nil });
 
-	if not config then
+	if not main_config then
 		return;
 	end
+
+	local config = utils.match_pattern(
+		main_config,
+		item.term,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -1116,7 +1203,7 @@ typst.text = function (buffer, item)
 
 	local _o, _h = "", nil;
 
-	if get_config(style) and within_style == true then
+	if spec.get({ "typst", style }) and within_style == true then
 		for letter in item.text[1]:gmatch(".") do
 			if symbols[style][letter] then
 				_o = _o .. symbols[style][letter];
@@ -1125,7 +1212,7 @@ typst.text = function (buffer, item)
 			end
 		end
 
-		_h = get_config(style, "hl");
+		_h = spec.get({ "typst", style, "hl" }, { fallback = nil });
 	else
 		for letter in item.text[1]:gmatch(".") do
 			if symbols.fonts.default[letter] then
@@ -1135,7 +1222,7 @@ typst.text = function (buffer, item)
 			end
 		end
 
-		_h = get_config("fonts", "hl")
+		_h = spec.get({ "typst", "fonts", "hl" }, { fallback = nil });
 	end
 
 	vim.api.nvim_buf_set_extmark(buffer, typst.ns("fonts"), range.row_start, range.col_start, {

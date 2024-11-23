@@ -77,14 +77,23 @@ spec.warnings = {};
 spec.notify = function (chunks, opts)
 	if not opts then opts = {}; end
 
+	local highlights = {
+		[vim.log.levels.DEBUG] = "DiagnosticInfo",
+		[vim.log.levels.ERROR] = "DiagnosticError",
+		[vim.log.levels.INFO] = "DiagnosticInfo",
+		[vim.log.levels.OFF] = "Comment",
+		[vim.log.levels.TRACE] = "DiagnosticInfo",
+		[vim.log.levels.WARN] = "DiagnosticWarn"
+	};
+
 	vim.api.nvim_echo(
 		vim.list_extend(
 			{
 				{
-					"█",
-					opts.deprecated and "DiagnosticError" or "DiagnosticWarn"
+					"█ markview",
+					highlights[opts.level or vim.log.levels.WARN]
 				},
-				{ " markview: ", "Special" }
+				{ ": " }
 			},
 			chunks
 		),
@@ -103,6 +112,7 @@ spec.default = {
 	experimental = {
 		---+${conf}
 		file_byte_read = 1000,
+		file_open_command = "tabnew",
 		text_filetypes = nil,
 		list_empty_line_tolerance = 3
 		---_
@@ -222,6 +232,7 @@ spec.default = {
 
 	markdown = {
 		block_quotes = {
+			---+${class}
 			enable = true,
 			wrap = true,
 
@@ -465,6 +476,7 @@ spec.default = {
 
 				border = "▋"
 			}
+			---_
 			---_
 		},
 
@@ -739,6 +751,8 @@ spec.default = {
 		},
 	},
 	markdown_inline = {
+		use_seperate_ns = false,
+
 		block_references = {
 			enable = true,
 
@@ -1067,7 +1081,7 @@ spec.default = {
 
 		escapes = { enable = true },
 		symbols = { enable = true, hl = "Comment" },
-		fonts = { enable = true },
+		fonts = { enable = true, default = {}, patterns = {} },
 		subscripts = { enable = true, hl = "LatexSubscript" },
 		superscripts = { enable = true, hl = "LatexSuperscript" },
 		texts = { enable = true },
@@ -1239,15 +1253,21 @@ spec.default = {
 			enable = true,
 			__emoji_link_compatibility = true,
 
-			icon = " ",
-			hl = "MarkviewEmail"
+			default = {
+				icon = " ",
+				hl = "MarkviewEmail"
+			},
+			patterns = {}
 		},
 
 		reference_links = {
 			enable = true,
 
-			icon = " ",
-			hl = "Hyperlink"
+			default = {
+				icon = " ",
+				hl = "Hyperlink"
+			},
+			patterns = {}
 		},
 
 		subscripts = { enable = true, hl = "LatexSubscript" },
@@ -1260,7 +1280,10 @@ spec.default = {
 		terms = {
 			enable = true,
 
-			text = " ",
+			default = {
+				text = " "
+			},
+			patterns = {}
 		}
 	},
 	yaml = {
@@ -1279,18 +1302,98 @@ spec.default = {
 				["time"]       = "MarkviewIcon3",
 				["unknown"]    = "MarkviewIcon2"
 			},
-			text = {
-				["aliases"]    = " 󱞫 ",
-				["cssclasses"] = "  ",
-				["checkbox"]   = " 󰄵 ",
-				["date"]       = " 󰃭 ",
-				["list"]       = " 󱉯 ",
-				["number"]     = "  ",
-				["nil"]        = "  ",
-				["string"]     = "  ",
-				["tags"]       = " 󰓻 ",
-				["time"]       = " 󱑂 ",
-				["unknown"]    = "  "
+
+			data_types = {
+				["text"] = {
+					text = " 󰗊 "
+				},
+				["list"] = {
+					text = " 󰝖 "
+				},
+				["number"] = {
+					text = "  "
+				},
+				["checkbox"] = {
+					text = function (_, item)
+						return item.value == "true" and " 󰄲 " or " 󰄱 "
+					end
+				},
+				["date"] = {
+					text = " 󰃭 "
+				},
+				["date & time"] = {
+					text = " 󰥔 "
+				}
+			},
+
+			default = {
+				use_types = true,
+
+				border_top = " │ ",
+				border_middle = " │ ",
+				border_bottom = " ╰╸",
+
+				border_hl = "Comment"
+			},
+			patterns = {
+				{
+					match_string = "^tags$",
+					use_types = false,
+
+					text = " 󰓹 ",
+					hl = nil
+				},
+				{
+					match_string = "^aliases$",
+					use_types = false,
+
+					text = " 󱞫 ",
+					hl = nil
+				},
+				{
+					match_string = "^cssclasses$",
+					use_types = false,
+
+					text = "  ",
+					hl = nil
+				},
+
+
+				{
+					match_string = "^publish$",
+					use_types = false,
+
+					text = "  ",
+					hl = nil
+				},
+				{
+					match_string = "^permalink$",
+					use_types = false,
+
+					text = "  ",
+					hl = nil
+				},
+				{
+					match_string = "^description$",
+					use_types = false,
+
+					text = " 󰋼 ",
+					hl = nil
+				},
+				{
+					match_string = "^image$",
+					use_types = false,
+
+					text = " 󰋫 ",
+					hl = nil
+				},
+				{
+					match_string = "^cover$",
+					use_types = false,
+
+					text = " 󰹉 ",
+					hl = nil
+				},
 			}
 		}
 	}
@@ -1376,7 +1479,7 @@ spec.__preview = function (config)
 				old = "preview.ignore_nodes",
 				new = "preview.ignore_node_classes",
 
-				deprecated = true
+				level = vim.log.levels.ERROR,
 			});
 
 			config["ignore_nodes"] = nil;
@@ -1392,7 +1495,7 @@ spec.__preview = function (config)
 				old = "preview.initial_state",
 				new = "preview.enable_preview_on_attach",
 
-				deprecated = true
+				level = vim.log.levels.ERROR,
 			});
 
 			config["enable_preview_on_attach"] = val;
@@ -1431,7 +1534,7 @@ spec.__markdown = function (config)
 				{ " is deprecated!" },
 			}, {
 				class = "markview_opt_deprecated",
-				deprecated = true,
+				level = vim.log.levels.ERROR,
 
 				name = "markdown.block_quotes.callouts"
 			});
@@ -1543,7 +1646,7 @@ spec.__markdown = function (config)
 					{ " instead."},
 				}, {
 					class = "markview_opt_name_change",
-					deprecated = true,
+					level = vim.log.levels.ERROR,
 
 					old = "markdown.tables.hls",
 					new = "markdown.tables.hl"
@@ -1624,7 +1727,7 @@ spec.__markdown_inline = function (config)
 				{ " is deprecated!" },
 			}, {
 				class = "markview_opt_deprecated",
-				deprecated = true,
+				level = vim.log.levels.ERROR,
 
 				old = "preview.buf_ignore",
 				new = "preview.ignore_buftypes"
@@ -1659,7 +1762,7 @@ spec.__markdown_inline = function (config)
 				}, {
 					class = "markview_opt_deprecated",
 					name = "links." .. k,
-					deprecated = true
+					level = vim.log.levels.ERROR
 				});
 
 				config[k] = v;
@@ -1691,7 +1794,7 @@ spec.__markdown_inline = function (config)
 					}, {
 						class = "markview_opt_deprecated",
 						name = string.format("markdown_inline.%s.%s", opt, k),
-						deprecated = true
+						level = vim.log.levels.ERROR
 					});
 
 					val.default[k] = v;
@@ -1778,30 +1881,78 @@ spec.setup = function (config)
 	-- vim.print(config)
 end
 
-spec.get = function (opts, func, ...)
-	local _o = spec.config;
+--- Gets a configuration options value.
+---@param keys string[]
+---@param opts? { args: any[]?, eval: boolean, fallback: any, ignore_enable: boolean?, source: table? }
+---@return any
+spec.get = function (keys, opts)
+	---+${func}
+	if not opts then opts = {}; end
 
-	for _, key in ipairs(opts or {}) do
-		if _o[key] then
-			---@diagnostic disable-next-line
-			if _o.enable == false then
-				return;
+	--- Gets the value from the entry.
+	---@param entry any
+	---@return any
+	local __val = function (entry)
+		---@diagnostic disable
+		if pcall(entry, unpack(opts.args or {})) then
+			return entry(unpack(opts.args or {}));
+		end
+		---@diagnostic enable
+
+		return entry == nil and opts.fallback or entry;
+	end
+
+	local __k = 1;
+
+	local __meta;
+	local __tmp = opts.source or spec.config;
+
+	--- Meta table. Uses a proxy empty table to invoke
+	--- `__index`. Gets values from the `__tmp` cache
+	--- table.
+	__meta = {
+		__index = function (_, key)
+			if type(__tmp) ~= "table" then return; end
+			local _v = rawget(__tmp, key);
+
+			if __k ~= #keys then
+				return __val(_v);
+			elseif
+				__k == #keys and
+				opts.eval ~= true
+			then
+				return _v;
+			else
+				return __val(_v);
 			end
+		end
+	};
 
-			_o = _o[key];
+	--- Proxy table. MUST BE EMPTY.
+	local __proxy = {};
+	setmetatable(__proxy, __meta);
+
+	--- Iterate over the keys and get their value.
+	for k, key in ipairs(keys) do
+		__k = k;
+
+		if __proxy[key] ~= nil then
+			__tmp = __proxy[key];
+
+			if
+				type(__tmp) == "table" and
+				keys[k + 1] ~= "enable" and
+				__proxy.enable == false
+			then
+				return opts.fallback;
+			end
 		else
-			return;
+			return opts.fallback;
 		end
 	end
 
-	if func and pcall(_o, ...) then
-		_o = _o(...);
-	end
-
-	return _o;
+	return __val(__tmp);
+	---_
 end
 
--- local k = vim.tbl_keys(spec.default.markdown);
--- table.sort(k)
--- vim.print(k)
 return spec;

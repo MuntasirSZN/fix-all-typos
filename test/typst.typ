@@ -105,3 +105,11 @@ paren.l.double bracket.t shell.b fence.l
 arrow.l.r.long
 $
 
+; Term
+
+/ Term: Some term
+
+; Urls
+
+https://www.neovim.org
+

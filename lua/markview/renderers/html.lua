@@ -1,37 +1,7 @@
 local html = {};
+
+local utils = require("markview.utils");
 local spec = require("markview.spec");
-
-local get_config = function (...)
-	local _c = spec.get({ "html", ... });
-
-	if not _c or _c.enable == false then
-		return;
-	end
-
-	return _c;
-end
-
---- Gets sub-option values.
----@param source table
----@param opts { key: string, args: any[], fallback: any?, operator: function? }
----@return unknown
-local get_opt = function (source, opts)
-	if not opts then opts = {}; end
-
-	local _o = source[opts.key] or opts.fallback;
-
-	---@diagnostic disable
-	if pcall(_o, unpack(opts.args or {})) then
-		_o = _o(unpack(opts.args or {}));
-	end
-	---@diagnostic enable
-
-	if opts.operator then
-		return opts.operator(_o);
-	else
-		return _o;
-	end
-end
 
 html.__ns = {
 	__call = function (self, key)
@@ -45,7 +15,7 @@ html.ns = {
 setmetatable(html.ns, html.__ns)
 
 html.set_ns = function ()
-	local ns_pref = get_config("use_seperate_ns");
+	local ns_pref = spec.get({ "html", "use_seperate_ns" }, { fallback = true });
 	if not ns_pref then ns_pref = true; end
 
 	local available = vim.api.nvim_get_namespaces();
@@ -69,16 +39,23 @@ end
 ---@param item __html.heading_item
 html.heading = function (buffer, item)
 	---+${func}
-	local main_config = get_config("headings");
+	local main_config = spec.get({ "html", "headings" }, { fallback = nil });
 
 	if not main_config then
 		return;
-	elseif not get_opt(main_config, { key = "heading_" .. item.level, args = { buffer, item } }) then
+	elseif not spec.get({ "heading_" .. item.level }, { source = main_config }) then
 		return;
 	end
 
 	local range = item.range;
-	local config = get_opt(main_config, { key = "heading_" .. item.level, args = { buffer, item } });
+	local config = spec.get({ "heading_" .. item.level }, { source = main_config });
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	vim.api.nvim_buf_set_extmark(
 		buffer,
@@ -101,8 +78,8 @@ end
 ---@param item __html.container_item
 html.container_element = function (buffer, item)
 	---+${func}
-	local config = get_config("container_elements");
-	local keys = vim.tbl_keys(config);
+	local main_config = spec.get({ "html", "container_elements" }, { fallback = nil });
+	local keys = vim.tbl_keys(main_config);
 
 	if not config then
 		return;
@@ -117,23 +94,22 @@ html.container_element = function (buffer, item)
 	end
 
 	---@type html.container_opts
-	config = config[string.lower(item.name)] or config[string.upper(item.name)] or config[item.name];
-
-	local eval = function (val, ...)
-		if type(val) ~= "function" then
-			return val;
-		elseif not pcall(val, ...) then
-			return;
-		end
-
-		return val(...)
-	end
+	local config = spec.get(
+		{ string.lower(item.name) },
+		{ source = main_config }
+	) or spec.get(
+		{ string.upper(item.name) },
+		{ source = main_config }
+	) or spec.get(
+		{ item.name },
+		{ source = main_config }
+	);
 
 	if
 		item.opening_tag and
 		config.on_opening_tag
 	then
-		local open_conf = eval(config.on_opening_tag, item.opening_tag);
+		local open_conf = spec.get({ "on_opening_tag" }, { source = config, args = { item.opening_tag } });
 		local range = item.opening_tag.range;
 
 		if pcall(config.opening_tag_offset, range) then range = config.opening_tag_offset(range) end
@@ -153,7 +129,7 @@ html.container_element = function (buffer, item)
 	end
 
 	if config.on_node then
-		local node_conf = eval(config.on_node, item);
+		local node_conf = spec.get({ "on_node" }, { source = config, args = { item } });
 		local range = {
 			item.range.row_start, item.range.col_start,
 			item.range.row_end,   item.range.col_end
@@ -179,7 +155,7 @@ html.container_element = function (buffer, item)
 		item.closing_tag and
 		config.on_closing_tag
 	then
-		local close_conf = eval(config.on_closing_tag, item.closing_tag);
+		local close_conf = spec.get({ "on_closing_tag" }, { source = config, args = { item.closing_tag } });
 		local range = item.closing_tag.range;
 
 		if pcall(config.closing_tag_offset, range) then range = config.closing_tag_offset(range) end
@@ -205,7 +181,7 @@ end
 ---@param item __html.void_item
 html.void_element = function (buffer, item)
 	---+${func}
-	local config = get_config("void_elements");
+	local main_config = spec.get({ "html", "void_elements" }, { fallback = nil });
 	local keys = vim.tbl_keys(config);
 
 	if not config then
@@ -221,20 +197,19 @@ html.void_element = function (buffer, item)
 	end
 
 	---@type html.void_opts
-	config = config[string.lower(item.name)] or config[string.upper(item.name)] or config[item.name];
-
-	local eval = function (val, ...)
-		if type(val) ~= "function" then
-			return val;
-		elseif not pcall(val, ...) then
-			return;
-		end
-
-		return val(...)
-	end
+	local config = spec.get(
+		{ string.lower(item.name) },
+		{ source = main_config }
+	) or spec.get(
+		{ string.upper(item.name) },
+		{ source = main_config }
+	) or spec.get(
+		{ item.name },
+		{ source = main_config }
+	);
 
 	if config.on_node then
-		local node_conf = eval(config.on_node, item);
+		local node_conf = spec.get({ "on_node" }, { source = config, args = { item } });
 		local range = {
 			item.range.row_start, item.range.col_start,
 			item.range.row_end,   item.range.col_end

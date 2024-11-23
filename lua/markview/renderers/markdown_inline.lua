@@ -4,10 +4,6 @@ local spec = require("markview.spec");
 local utils = require("markview.utils");
 local entities = require("markview.entities");
 
-local get_config = function (...)
-	return spec.get({ "markdown_inline", ... });
-end
-
 inline.__ns = {
 	__call = function (self, key)
 		return self[key] or self.default;
@@ -20,15 +16,23 @@ inline.ns = {
 setmetatable(inline.ns, inline.__ns)
 
 inline.set_ns = function ()
-	local ns_pref = get_config("use_seperate_ns");
-	if not ns_pref then ns_pref = true; end
+	local ns_pref = spec.get({ "markdown_inline", "use_seperate_ns" }, { fallback = true });
 
 	local available = vim.api.nvim_get_namespaces();
 	local ns_list = {
+		["block_references"] = "markview/markdown_inline/block_references",
+		["checkboxes"] = "markview/markdown_inline/checkboxes",
+		["emails"] = "markview/markdown_inline/emails",
+		["embed_files"] = "markview/markdown_inline/embed_files",
+		["entities"] = "markview/markdown_inline/entities",
+		["escapes"] = "markview/markdown_inline/escapes",
+		["footnotes"] = "markview/markdown_inline/footnotes",
+		["highlights"] = "markview/markdown_inline/highlights",
+		["hyperlinks"] = "markview/markdown_inline/hyperlinks",
+		["images"] = "markview/markdown_inline/images",
 		["inline_codes"] = "markview/markdown_inline/inline_codes",
-		["links"] = "markview/markdown_inline/links",
-		["obsidian"] = "markview/markdown_inline/obsidian",
-		["symbols"] = "markview/markdown_inline/symbols",
+		["internal_links"] = "markview/markdown_inline/internal_links",
+		["uri_autolinks"] = "markview/markdown_inline/uri_autolinks",
 	};
 
 	if ns_pref == true then
@@ -60,18 +64,33 @@ inline.link_block_ref = function (buffer, item)
 	---+${func, Render Obsidian's block reference links}
 
 	---@type inline.item?
-	local main_config = get_config("block_references");
+	local main_config = spec.get({ "markdown_inline", "block_references" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
 		return;
 	end
 
+	---@type inline.item_config?
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
+
+	if not config then
+		return;
+	end
+
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	});
 
 	---+${custom, Draw the parts for the embed file links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("block_references"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + (item.has_file and 2 or 4),
 		conceal = "",
@@ -87,13 +106,13 @@ inline.link_block_ref = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("block_references"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.alias_end or (range.col_end - 2), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("block_references"), range.row_start, range.alias_end or (range.col_end - 2), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -116,35 +135,40 @@ inline.checkbox = function (buffer, item)
 	---+${func, Renders Checkboxes}
 
 	---@type inline.checkboxes?
-	local main_config = get_config("checkboxes");
+	local main_config = spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil });
+
+	if not main_config then
+		return;
+	end
 
 	---@type { text: string, hl: string?, scope_hl: string? }
 	local config;
 	local range = item.range;
 
-	if not main_config then
-		return;
+	if
+		(
+			item.text == "X" or
+			item.text == "x"
+		) and
+		spec.get({ "checked" }, { source = main_config })
+	then
+		config = spec.get({ "checked" }, { source = main_config });
+	elseif
+		item.text == " " and
+		spec.get({ "unchecked" }, { source = main_config })
+	then
+		config = spec.get({ "unchecked" }, { source = main_config });
+	elseif
+		spec.get({ item.text }, { source = main_config })
+	then
+		config = spec.get({ item.text }, { source = main_config });
 	else
-		if
-			(
-				item.text == "X" or item.text == "x"
-			) and
-			main_config.checked
-		then
-			config = main_config.checked;
-		elseif
-			item.text == " " and
-			main_config.unchecked
-		then
-			config = main_config.unchecked;
-		elseif
-			main_config[item.text]
-		then
-			config = main_config[item.text];
-		else
-			return;
-		end
+		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	});
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("checkboxes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -165,12 +189,16 @@ inline.code_span = function (buffer, item)
 	---+${func, Render Inline codes}
 
 	---@type inline.item_config?
-	local config = get_config("inline_codes");
+	local config = spec.get({ "markdown_inline", "inline_codes" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(config, {
+		args = { buffer, item }
+	});
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -214,7 +242,7 @@ inline.highlight = function (buffer, item)
 	---+${func, Render Email links}
 
 	---@type inline.item?
-	local main_config = get_config("highlights");
+	local main_config = spec.get({ "markdown_inline", "highlights" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -222,10 +250,16 @@ inline.highlight = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.text);
+	local config = utils.match_pattern(
+		main_config,
+		item.text,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the email}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("highlights"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 2,
 		conceal = "",
@@ -241,13 +275,13 @@ inline.highlight = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start + 2, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("highlights"), range.row_start, range.col_start + 2, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end - 2,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 2, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("highlights"), range.row_start, range.col_end - 2, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -270,7 +304,7 @@ inline.link_email = function (buffer, item)
 	---+${func, Render Email links}
 
 	---@type inline.item?
-	local main_config = get_config("emails");
+	local main_config = spec.get({ "markdown_inline", "emails" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -278,10 +312,16 @@ inline.link_email = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label)
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the email}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("emails"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -297,13 +337,13 @@ inline.link_email = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start + 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("emails"), range.row_start, range.col_start + 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end - 1,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("emails"), range.row_start, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -326,7 +366,7 @@ inline.link_image = function (buffer, item)
 	---+${func, Render Image links}
 
 	---@type inline.item?
-	local main_config = get_config("images");
+	local main_config = spec.get({ "markdown_inline", "images" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -334,10 +374,16 @@ inline.link_image = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label)
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the image}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.desc_start or (range.col_start + 1),
 		conceal = "",
@@ -353,13 +399,13 @@ inline.link_image = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.desc_start or range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.desc_start or range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.desc_end or range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.desc_end or (range.col_end - 3), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.desc_end or (range.col_end - 3), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -382,7 +428,7 @@ inline.link_hyperlink = function (buffer, item)
 	---+${func, Render normal links}
 
 	---@type inline.item?
-	local main_config = get_config("hyperlinks");
+	local main_config = spec.get({ "markdown_inline", "hyperlinks" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -390,7 +436,13 @@ inline.link_hyperlink = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the image}
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
@@ -438,7 +490,7 @@ inline.link_shortcut = function (buffer, item)
 	---+${func, Render Shortcut links}
 
 	---@type inline.item?
-	local main_config = get_config("hyperlinks");
+	local main_config = spec.get({ "markdown_inline", "hyperlinks" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -446,10 +498,16 @@ inline.link_shortcut = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label)
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the shortcut links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -465,13 +523,13 @@ inline.link_shortcut = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start + 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start, range.col_start + 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end - 1,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -494,7 +552,7 @@ inline.link_uri_autolink = function (buffer, item)
 	---+${func, Render URI links}
 
 	---@type inline.item?
-	local main_config = get_config("uri_autolinks");
+	local main_config = spec.get({ "markdown_inline", "uri_autolinks" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -502,10 +560,16 @@ inline.link_uri_autolink = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the autolinks}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -521,13 +585,13 @@ inline.link_uri_autolink = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -550,7 +614,7 @@ inline.link_internal = function (buffer, item)
 	---+${func, Render Obsidian's internal links}
 
 	---@type inline.item?
-	local main_config = get_config("internal_links");
+	local main_config = spec.get({ "markdown_inline", "internal_links" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -558,10 +622,16 @@ inline.link_internal = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the internal links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("internal_links"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.alias_start or (range.col_start + 2),
 		conceal = "",
@@ -577,13 +647,13 @@ inline.link_internal = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("internal_links"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.alias_end or (range.col_end - 2), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("internal_links"), range.row_start, range.alias_end or (range.col_end - 2), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -606,7 +676,7 @@ inline.link_embed_file = function (buffer, item)
 	---+${func, Render Obsidian's embed file links}
 
 	---@type inline.item?
-	local main_config = get_config("embed_files");
+	local main_config = spec.get({ "markdown_inline", "embed_files" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -614,10 +684,16 @@ inline.link_embed_file = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the embed file links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 2,
 		conceal = "",
@@ -633,13 +709,13 @@ inline.link_embed_file = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("obsidian"), range.row_start, range.alias_end or (range.col_end - 2), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.alias_end or (range.col_end - 2), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -662,14 +738,14 @@ inline.escaped = function (buffer, item)
 	---+${func, Render Escaped characters}
 
 	---@type { enable: boolean }?
-	local config = get_config("escapes");
+	local config = spec.get({ "markdown_inline", "escapes" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("escapes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = ""
@@ -681,7 +757,7 @@ end
 ---@param item { class: "inline_escaped", text: string, range: TSNode.range }
 inline.entity = function (buffer, item)
 	---+${func, Renders Character entities}
-	local config = get_config("entities");
+	local config = spec.get({ "markdown_inline", "entities" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
@@ -690,7 +766,7 @@ inline.entity = function (buffer, item)
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("entities"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -709,7 +785,7 @@ inline.footnote = function (buffer, item)
 	---+${func}
 
 	---@type inline.item?
-	local main_config = get_config("footnotes");
+	local main_config = spec.get({ "markdown_inline", "footnotes" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -717,10 +793,16 @@ inline.footnote = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = inline.custom_config(main_config, item.label);
+	local config = utils.match_pattern(
+		main_config,
+		item.label,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	---+${custom, Draw the parts for the autolinks}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("footnotes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 2,
 		conceal = "",
@@ -736,13 +818,13 @@ inline.footnote = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("footnotes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("footnotes"), range.row_start, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",

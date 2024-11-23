@@ -25,19 +25,6 @@ markview.state = {
 	splitview_window = nil
 };
 
---- Gets preview options.
----@param opts string[]
----@param ... any
----@return any
-local get_config = function (opts, ...)
-	---+${func,  Gets sub-options from the "preview" option.}
-	return spec.get(
-		vim.list_extend({ "preview" }, opts or {}),
-		...
-	);
-	---_
-end
-
 --- Checks if a buffer is already attached.
 ---@param buffer integer
 local buf_attached = function (buffer)
@@ -158,14 +145,14 @@ end
 ---@param ignore_modes? boolean
 markview.draw = function (buffer, ignore_modes)
 	---+${func}
-	local line_limit = get_config({ "max_file_length" }) or 0;
-	local draw_range = get_config({ "render_distance" }) or 0;
-	local edit_range = get_config({ "edit_distance" }) or 0;
+	local line_limit = spec.get({ "preview", "max_file_length" }, { fallback = 0 });
+	local draw_range = spec.get({ "preview", "render_distance" }, { fallback = 0 });
+	local edit_range = spec.get({ "preview", "edit_distance" }, { fallback = 0 });
 
 	local line_count = vim.api.nvim_buf_line_count(buffer);
 
-	local preview_modes = get_config({ "modes" }) or {};
-	local hybrid_modes = get_config({ "hybrid_modes" }) or {};
+	local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+	local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 	local mode = vim.api.nvim_get_mode().mode;
 
@@ -234,7 +221,7 @@ markview.draw = function (buffer, ignore_modes)
 		if clear_from and clear_to then
 			renderer.clear(
 				buffer,
-				get_config({ "ignore_node_classes" }),
+				spec.get({ "preview", "ignore_node_classes" }, { fallback = {} }),
 				clear_from,
 				clear_to
 			);
@@ -264,7 +251,7 @@ markview.commands = {
 		buffer = buffer or vim.api.nvim_get_current_buf();
 
 		if not can_attach(buffer) then return; end
-		local initial_state = get_config({ "enable_preview_on_attach" }) or true;
+		local initial_state = spec.get({ "preview", "enable_preview_on_attach" }, { fallback = true });
 
 		if buf_attached(buffer) then
 			return;
@@ -273,8 +260,8 @@ markview.commands = {
 		markview.state.buffer_states[buffer] = initial_state;
 		markview.state.autocmds[buffer] = {};
 
-		local events = get_config({ "redraw_events" }) or {};
-		local preview_modes = get_config({ "modes" }) or {};
+		local events = spec.get({ "preview", "redraw_events" }, { fallback = {} });
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
 
 		if
 			vim.list_contains(preview_modes, "n") or
@@ -289,7 +276,7 @@ markview.commands = {
 			table.insert(events, "TextChangedI");
 		end
 
-		local debounce_delay = get_config({ "debounce" }) or 50;
+		local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50 });
 		local debounce = vim.uv.new_timer();
 
 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
@@ -297,10 +284,10 @@ markview.commands = {
 
 			if initial_state == true then
 				markview.draw(buffer);
-				call = get_config({ "callbacks", "on_attach" }, false)
+				call = spec.get({ "preview", "callbacks", "on_attach" }, { fallback = nil });
 			else
 				markview.clear(buffer);
-				call = get_config({ "callbacks", "on_detach" }, false)
+				call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil });
 			end
 
 			if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
@@ -315,6 +302,7 @@ markview.commands = {
 				debounce:stop();
 				debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
 					--- Drawer function
+					if can_draw(buffer) == false then return; end
 					markview.draw(buffer);
 				end));
 			end
@@ -324,7 +312,7 @@ markview.commands = {
 	["detach"] = function (buffer)
 		---+${class}
 		buffer = buffer or vim.api.nvim_get_current_buf();
-		local call = get_config({ "callbacks", "on_detach" }, false)
+		local call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil });
 
 		markview.clear(buffer);
 		local cmds = markview.state.autocmds[buffer];
@@ -358,7 +346,7 @@ markview.commands = {
 			end
 		end
 
-		local call = get_config({ "callbacks", "on_state_change" });
+		local call = spec.get({ "preview", "callbacks", "on_state_change" }, { fallback = nil });
 
 		if
 			call and
@@ -381,7 +369,7 @@ markview.commands = {
 			end
 		end
 
-		local call = get_config({ "callbacks", "on_state_change" });
+		local call = spec.get({ "preview", "callbacks", "on_state_change" }, { fallback = nil });
 
 		if
 			call and
@@ -440,7 +428,7 @@ markview.commands = {
 	["enable"] = function (buffer)
 		---+${class}
 		buffer = buffer or vim.api.nvim_get_current_buf();
-		local call = get_config({ "callbacks", "on_enable" }, false)
+		local call = spec.get({ "preview", "callbacks", "on_enable" }, { fallback = nil });
 
 		if markview.state.buffer_states[buffer] == nil then
 			return;
@@ -457,7 +445,7 @@ markview.commands = {
 	["disable"] = function (buffer)
 		---+${class}
 		buffer = buffer or vim.api.nvim_get_current_buf();
-		local call = get_config({ "callbacks", "on_disable" }, false)
+		local call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
 
 		if markview.state.buffer_states[buffer] == nil then
 			return;
@@ -544,7 +532,7 @@ markview.commands = {
 		markview.state.buffer_states[markview.state.splitview_source] = false;
 		markview.clear(markview.state.splitview_source)
 
-		local s_call = get_config({ "callbacks", "on_disable" }, false)
+		local s_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
 		if s_call and pcall(s_call, buffer, vim.fn.win_findbuf(buffer)) then s_call(buffer, vim.fn.win_findbuf(buffer)); end
 
 		local ft = vim.bo[buffer].filetype;
@@ -570,12 +558,19 @@ markview.commands = {
 		);
 
 		if win_is_safe(markview.state.splitview_window) == false then
+			local _opts = spec.get({
+				"preview",
+				"splitview_winopts"
+			}, {
+				eval = true,
+				args = { markview.state.splitview_buffer }
+			});
+
 			markview.state.splitview_window = vim.api.nvim_open_win(
 				markview.state.splitview_buffer,
 				false,
-				get_config({
-					"splitview_winopts"
-				}, markview.state.splitview_buffer) or
+
+				_opts or
 				{
 					split = "right"
 				}
@@ -595,7 +590,7 @@ markview.commands = {
 			)
 		);
 
-		local call = get_config({ "callbacks", "splitview_enable" }, false)
+		local call = spec.get({ "preview", "callbacks", "splitview_enable" }, { fallback = nil });
 
 		if
 			call and
@@ -614,13 +609,15 @@ markview.commands = {
 			);
 		end
 
-		pcall(vim.api.nvim_del_autocmd, markview.state.autocmds[markview.state.splitview_source].redraw)
+		if markview.state.autocmds[markview.state.splitview_source] then
+			pcall(vim.api.nvim_del_autocmd, markview.state.autocmds[markview.state.splitview_source].redraw)
+		end
 
-		local debounce_delay = get_config({ "debounce" }) or 50;
+		local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50 });
 		local debounce = vim.uv.new_timer();
 
 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
-			local _call = get_config({ "callbacks", "on_detach" }, false);
+			local _call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil });
 
 			markview.clear(markview.state.splitview_source);
 			if _call and pcall(_call, markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)) then _call(markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)); end
@@ -661,14 +658,14 @@ markview.commands = {
 		end
 
 		--- Run the callback.
-		local call = get_config({ "callbacks", "splitview_disable" });
+		local call = spec.get({ "preview", "callbacks", "splitview_disable" }, { fallback = nil });
 		if call and pcall(call) then call(); end
 
 		--- Delete the splitview updating autocmd.
 		vim.api.nvim_del_autocmd(markview.state.autocmds[buffer].redraw)
 
-		local events = get_config({ "redraw_events" }) or {};
-		local preview_modes = get_config({ "modes" }) or {};
+		local events = spec.get({ "preview", "redraw_events" }, { fallback = {} });
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
 
 		if
 			vim.list_contains(preview_modes, "n") or
@@ -683,10 +680,10 @@ markview.commands = {
 			table.insert(events, "TextChangedI");
 		end
 
-		local debounce_delay = get_config({ "debounce" }) or 50;
+		local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50 });
 		local debounce = vim.uv.new_timer();
 
-		local initial_state = get_config({ "enable_preview_on_attach" }) or true;
+		local initial_state = spec.get({ "preview", "enable_preview_on_attach", }, { fallback = true });
 
 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
 			local _call;
@@ -698,10 +695,10 @@ markview.commands = {
 
 			if initial_state == true then
 				markview.draw(buffer);
-				_call = get_config({ "callbacks", "on_attach" }, false)
+				_call = spec.get({ "preview", "callbacks", "on_attach" }, { fallback = nil });
 			else
 				markview.clear(buffer);
-				_call = get_config({ "callbacks", "on_detach" }, false)
+				_call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil });
 			end
 
 			if _call and pcall(_call, buffer, vim.fn.win_findbuf(buffer)) then _call(buffer, vim.fn.win_findbuf(buffer)); end
@@ -717,6 +714,7 @@ markview.commands = {
 				debounce:stop();
 				debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
 					--- Drawer function
+					if can_draw(buffer) == false then return; end
 					markview.draw(buffer);
 				end));
 			end

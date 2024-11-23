@@ -149,4 +149,48 @@ utils.virt_len = function (virt_texts)
 	return _l;
 end
 
+utils.tostatic = function (tbl, opts)
+	if not opts then opts = {}; end
+	local _o = {};
+
+	for k, v in pairs(tbl or {}) do
+		---@diagnostic disable
+		if
+			pcall(v, unpack(opts.args or {}))
+		then
+			_o[k] = v(unpack(opts.args or {}));
+		---@diagnostic enable
+		elseif type(v) ~= "function" then
+			_o[k] = v;
+		end
+	end
+
+	return _o;
+end
+
+utils.match_pattern = function (main_config, txt, opts)
+	if
+		not main_config or
+		(
+			not main_config.patterns and
+			not opts.patterns
+		) or
+		not txt
+	then
+		return utils.tostatic(main_config.default, opts);
+	end
+
+	for _, pattern in ipairs(opts.patterns or main_config.patterns) do
+		if pattern.match_string and txt:match(pattern.match_string) then
+			return vim.tbl_deep_extend(
+				"force",
+				utils.tostatic(main_config.default, opts),
+				utils.tostatic(pattern)
+			);
+		end
+	end
+
+	return utils.tostatic(main_config.default, opts);
+end
+
 return utils;

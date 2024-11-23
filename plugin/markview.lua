@@ -1,4 +1,5 @@
 local markview = require("markview");
+require("markview.highlights").setup();
 
 --- Patch for the broken (fenced_code_block) concealment
 vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, predicate, metadata)
@@ -67,54 +68,48 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	end
 });
 
-local md_debounce = vim.uv.new_timer();
-
 vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 	group = markview.group,
 	callback = function ()
 		local renderer = require("markview.renderer");
+		local spec = require("markview.spec");
 
-		md_debounce:stop();
-		md_debounce:start(5, 0, vim.schedule_wrap(function ()
-			local spec = require("markview.spec");
+		local preview_modes = spec.get({ "preview", "modes" });
+		local mode = vim.api.nvim_get_mode().mode;
 
-			local preview_modes = spec.get({ "preview", "modes" });
-			local mode = vim.api.nvim_get_mode().mode;
+		local call = spec.get({ "preview", "callbacks", "on_mode_change" });
 
-			local call = spec.get({ "preview", "callbacks", "on_mode_change" });
+		if markview.state.enable == false then
+			return;
+		elseif not preview_modes then
+			return;
+		end
 
-			if markview.state.enable == false then
-				return;
-			elseif not preview_modes then
-				return;
+		for buf, state in ipairs(markview.state.buffer_states) do
+			---+${func, Buffer redrawing}
+			renderer.clear(buf);
+			if state == false then goto continue; end
+
+			if vim.list_contains(preview_modes, mode) then
+				markview.draw(buf);
+			else
+				renderer.clear(buf, {}, 0, -1);
 			end
 
-			for buf, state in ipairs(markview.state.buffer_states) do
-				---+${func, Buffer redrawing}
-				renderer.clear(buf);
-				if state == false then goto continue; end
-
-				if vim.list_contains(preview_modes, mode) then
-					markview.draw(buf);
-				else
-					renderer.clear(buf, {}, 0, -1);
-				end
-
-				if
-					call and
-					pcall(call, buf, vim.fn.win_findbuf(buf), mode)
-				then
-					call(
-						buf,
-						vim.fn.win_findbuf(buf),
-						mode
-					)
-				end
-
-				::continue::
-				---_
+			if
+				call and
+				pcall(call, buf, vim.fn.win_findbuf(buf), mode)
+			then
+				call(
+					buf,
+					vim.fn.win_findbuf(buf),
+					mode
+				)
 			end
-		end))
+
+			::continue::
+			---_
+		end
 	end
 });
 
@@ -128,16 +123,10 @@ vim.api.nvim_create_user_command(
 	}
 );
 
-
-
-
-
-
-
-vim.api.nvim_create_autocmd({ "Colorscheme" }, {
+vim.api.nvim_create_autocmd({ "ColorScheme" }, {
 	group = markview.augroup,
 	callback = function ()
-		require("markview.highlights").create(require("markview.spec").get({ "highlight_groups" }));
+		require("markview.highlights").setup();
 	end
 });
 vim.api.nvim_set_keymap("n", "gx", "", {
@@ -146,5 +135,8 @@ vim.api.nvim_set_keymap("n", "gx", "", {
 vim.api.nvim_set_keymap("n", "M", "", {
 	callback = require("markview.extras.lsp_hover").hover
 })
+
+-- vim.api.nvim_set_keymap("i", "<Ctrl-s>", "<CMD>Markview splitToggle<CR>", {
+-- })
 
 

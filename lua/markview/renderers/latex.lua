@@ -12,16 +12,6 @@ latex.cache = {
 	},
 };
 
-local get_config = function (...)
-	local _c = spec.get({ "latex", ... });
-
-	if not _c or _c.enable == false then
-		return;
-	end
-
-	return _c;
-end
-
 latex.__ns = {
 	__call = function (self, key)
 		return self[key] or self.default;
@@ -34,7 +24,7 @@ latex.ns = {
 setmetatable(latex.ns, latex.__ns)
 
 latex.set_ns = function ()
-	local ns_pref = get_config("use_seperate_ns");
+	local ns_pref = spec.get({ "latex", "use_seperate_ns" }, { fallback = true });
 	if not ns_pref then ns_pref = true; end
 
 	local available = vim.api.nvim_get_namespaces();
@@ -77,8 +67,15 @@ latex.block = function (buffer, item)
 	local range = item.range;
 
 	if item.inline then
-		local config = get_config("inlines");
+		local config = spec.get({ "latex", "inlines" }, { fallback = nil });
 		if not config then return; end
+
+		config = utils.tostatic(
+			config,
+			{
+				args = { buffer, item }
+			}
+		);
 
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -155,8 +152,15 @@ latex.block = function (buffer, item)
 		end
 	else
 		---@type latex.blocks?
-		local config = get_config("blocks");
+		local config = spec.get({ "latex", "blocks" }, { fallback = nil });
 		if not config then return; end
+
+		config = utils.tostatic(
+			config,
+			{
+				args = { buffer, item }
+			}
+		);
 
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -200,35 +204,29 @@ latex.command = function (buffer, item)
 	--+${func}
 
 	---@type latex.commands?
-	local main_config = get_config("commands");
+	local main_config = spec.get({ "latex", "commands" }, { fallback = nil });
 
 	if not main_config then
 		return;
-	elseif not main_config[item.command.name] then
+	elseif not spec.get({ item.command.name }, { source = main_config }) then
 		return;
 	end
 
 	---@type command.opts
-	local config = main_config[item.command.name];
+	local config = spec.get({ item.command.name }, { source = main_config });
 
 	if
-		config.condition and
-		pcall(config.condition, item) and
-		config.condition(item) == false
+		spec.get({ "condition" }, { source = config, args = { item } }) == false
 	then
 		return;
 	end
 
 	if config.on_command then
 		local range = item.command.range;
-		local extmark = config.on_command;
+		local extmark = spec.get({ "on_command" }, { source = config, args = { item.command } });
 
-		if type(extmark) == "function" then
-			if pcall(extmark, item.command) then
-				extmark = extmark(item.command);
-			else
-				goto invalid_extmark;
-			end
+		if not extmark then
+			goto invalid_extmark;
 		end
 
 		if pcall(config.command_offset, range) then range = config.command_offset(range) end
@@ -244,26 +242,18 @@ latex.command = function (buffer, item)
 
 	if not config.on_args then return; end
 
-	local eval = function (val, ...)
-		if type(val) ~= "function" then
-			return;
-		elseif not pcall(val, ...) then
-			return;
-		end
-
-		return val(...)
-	end
+	local on_args = spec.get({ "on_args" }, { source = config, args = { item.command } });
 
 	for a, arg in ipairs(item.args) do
-		if not config.on_args[a] then
+		if not on_args[a] then
 			goto continue;
 		end
 
 		---@type command.arg_opts
-		local arg_conf = config.on_args[a];
+		local arg_conf = on_args[a];
 
 		if arg_conf.before then
-			local b_conf = eval(arg_conf.before, arg) or {};
+			local b_conf = spec.get({ "before" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
 			if pcall(arg_conf.before_offset, range) then range = arg_conf.before_offset(range) end
@@ -274,7 +264,7 @@ latex.command = function (buffer, item)
 		end
 
 		if arg_conf.content then
-			local c_conf = eval(arg_conf.content, arg) or {};
+			local c_conf = spec.get({ "content" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
 			if pcall(arg_conf.content_offset, range) then range = arg_conf.content_offset(range) end
@@ -287,7 +277,7 @@ latex.command = function (buffer, item)
 		end
 
 		if arg_conf.after then
-			local a_conf = eval(arg_conf.after, arg) or {};
+			local a_conf = spec.get({ "after" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
 			if pcall(arg_conf.after_offset, range) then range = arg_conf.after_offset(range) end
@@ -308,7 +298,7 @@ latex.escaped = function (buffer, item)
 	---+${func}
 
 	---@type latex.escapes?
-	local config = get_config("escapes");
+	local config = spec.get({ "latex", "escapes" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -322,6 +312,13 @@ latex.escaped = function (buffer, item)
 		conceal = ""
 	});
 
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
+
 	if not config.hl then
 		return;
 	end
@@ -331,7 +328,9 @@ latex.escaped = function (buffer, item)
 		end_row = range.row_end,
 		end_col = range.col_end,
 
-		hl_group = utils.set_hl(config.hl)
+		hl_group = utils.set_hl(
+			spec.get({ "hl" }, { source = config, fallback = nil, args = { buffer, item }
+		}))
 	});
 	---_
 end
@@ -342,11 +341,14 @@ latex.font = function (buffer, item)
 	---+${func}
 
 	---@type latex.fonts?
-	local config = get_config("fonts");
+	local config = spec.get({ "latex", "fonts" }, { fallback = nil });
 
 	if not config then
 		return;
-	elseif not symbols.fonts[item.name] then
+	elseif
+		not symbols.fonts[item.name] or
+		spec.get({ "latex", "fonts", item.name, "enable" }, { fallback = true }) == false
+	then
 		return;
 	end
 
@@ -373,12 +375,19 @@ latex.inline = function (buffer, item)
 	---+${func}
 
 	---@type latex.inlines?
-	local config = get_config("inlines");
+	local config = spec.get({ "latex", "inlines" }, { fallback = nil });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -466,7 +475,7 @@ latex.parenthesis = function (buffer, item)
 	---+${func}
 
 	---@type latex.parenthesis?
-	local config = get_config("parenthesis");
+	local config = spec.get({ "latex", "parenthesis" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -496,11 +505,18 @@ latex.subscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = get_config("subscripts");
+	local config = spec.get({ "latex", "subscripts" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -556,11 +572,18 @@ latex.superscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = get_config("superscripts");
+	local config = spec.get({ "latex", "superscripts" }, { fallback = nil });
 
 	if not config then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 
@@ -616,13 +639,23 @@ latex.symbol = function (buffer, item)
 	---+${func}
 
 	---@type latex.symbols?
-	local config = get_config("symbols");
+	local config = spec.get({ "latex", "symbols" }, { fallback = nil });
 
 	if not config then
 		return;
-	elseif not item.name or not symbols.entries[item.name] then
+	elseif
+		not item.name or
+		not symbols.entries[item.name]
+	then
 		return;
 	end
+
+	config = utils.tostatic(
+		config,
+		{
+			args = { buffer, item }
+		}
+	);
 
 	local range = item.range;
 	local within_font, font;
@@ -638,19 +671,52 @@ latex.symbol = function (buffer, item)
 	local _o, _h = "", nil;
 
 	if
-		item.style and get_config(item.style)
+		item.style and
+		spec.get({ "latex", item.style }, { fallback = nil })
 	then
 		_o = symbols[item.style][item.name] or symbols.entries[item.name];
-		_h = get_config(item.style, "hl");
+		_h = spec.get({ "latex", item.style, "hl" }, { fallback = nil });
 	elseif
-		get_config("fonts") and within_font == true and symbols.fonts[font] and
-		symbols.fonts[font][item.name]
+		within_font == true and
+		symbols.fonts[font] and
+		symbols.fonts[font][item.name] and
+		spec.get({ "latex", "fonts" }, { fallback = nil })
 	then
 		_o = symbols.fonts[font][item.name];
-		_h = get_config("fonts", "hl");
+
+		_h = utils.match_pattern(
+			spec.get({ "latex", "fonts" }, { fallback = nil }),
+			font,
+			{
+				args = {
+					buffer,
+					{
+						class = "inline_font",
+						name = font,
+
+						text = string.format("\\%s{%s}", font, symbol)
+					}
+				}
+			}
+		).hl or config.hl;
 	elseif symbols.entries[item.name] then
 		_o = symbols.entries[item.name];
-		_h = config.hl;
+
+		_h = config.hl or utils.match_pattern(
+			spec.get({ "latex", "fonts" }, { fallback = nil }),
+			font,
+			{
+				args = {
+					buffer,
+					{
+						class = "inline_font",
+						name = font,
+
+						text = string.format("\\%s{%s}", font, symbol)
+					}
+				}
+			}
+		).hl;
 	else
 		return;
 	end
@@ -674,7 +740,7 @@ latex.text = function (buffer, item)
 	---+${func}
 
 	---@type latex.texts?
-	local config = get_config("texts");
+	local config = spec.get({ "latex", "texts" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -702,7 +768,7 @@ latex.word = function (buffer, item)
 	---+${func}
 
 	---@type latex.fonts?
-	local config = get_config("fonts");
+	local config = spec.get({ "latex", "fonts" }, { fallback = nil });
 
 	if not config then
 		return;
@@ -740,7 +806,10 @@ latex.word = function (buffer, item)
 
 	local _o, _h = "", nil;
 
-	if get_config(style) and within_style == true then
+	if
+		within_style == true and
+		spec.get({ "latex", style }, { fallback = nil })
+	then
 		for letter in item.text[1]:gmatch(".") do
 			if symbols[style][letter] then
 				_o = _o .. symbols[style][letter];
@@ -749,8 +818,12 @@ latex.word = function (buffer, item)
 			end
 		end
 
-		_h = get_config(style, "hl");
-	elseif within_font == true and symbols.fonts[font] then
+		_h = spec.get({ "latex", style, "hl" }, { fallback = nil });
+	elseif
+		within_font == true and
+		symbols.fonts[font] and
+		spec.get({ "latex", "fonts" }, { fallback = nil })
+	then
 		for letter in item.text[1]:gmatch(".") do
 			if symbols.fonts[font][letter] then
 				_o = _o .. symbols.fonts[font][letter];
@@ -759,7 +832,21 @@ latex.word = function (buffer, item)
 			end
 		end
 
-		_h = get_config("fonts", "hl");
+		_h = utils.match_pattern(
+			spec.get({ "latex", "fonts" }, { fallback = nil }),
+			font,
+			{
+				args = {
+					buffer,
+					{
+						class = "inline_font",
+						name = font,
+
+						text = string.format("\\%s{%s}", font, symbol)
+					}
+				}
+			}
+		).hl;
 	else
 		for letter in item.text[1]:gmatch(".") do
 			if symbols.fonts.default[letter] then
@@ -769,7 +856,21 @@ latex.word = function (buffer, item)
 			end
 		end
 
-		_h = get_config("fonts", "hl")
+		_h = utils.match_pattern(
+			spec.get({ "latex", "fonts" }, { fallback = nil }),
+			"default",
+			{
+				args = {
+					buffer,
+					{
+						class = "inline_font",
+						name = font,
+
+						text = string.format("\\%s{%s}", font, symbol)
+					}
+				}
+			}
+		).hl;
 	end
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
