@@ -1171,11 +1171,11 @@ markdown.code_block = function (buffer, item)
 
 		if config.language_direction == nil or config.language_direction == "left" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
-				end_col = range.col_start + range.lang_end,
+				end_col = range.col_start + (range.lang_end or 0),
 				conceal = "",
 				undo_restore = false, invalidate = true,
 			});
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start + range.lang_end, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start + (range.lang_end or 0), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -1243,7 +1243,7 @@ markdown.code_block = function (buffer, item)
 			end
 		elseif config.language_direction == "right" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
-				end_col = range.col_start + (range.info_start or range.lang_end),
+				end_col = range.col_start + (range.info_start or range.lang_end or 0),
 				conceal = "",
 				undo_restore = false, invalidate = true,
 
@@ -2648,8 +2648,8 @@ markdown.render = function (buffer, content)
 	markdown.set_ns();
 
 	for _, item in ipairs(content or {}) do
-		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
-		-- markdown[item.class:gsub("^markdown_", "")](buffer, item);
+		-- pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		markdown[item.class:gsub("^markdown_", "")](buffer, item);
 	end
 
 	return { markdown = markdown.cache };
