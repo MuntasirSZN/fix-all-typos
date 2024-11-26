@@ -1076,6 +1076,18 @@ highlights.dynamic = {
 	end,
 
 
+	["Icon0"] = function ()
+		return highlights.hl_generator({
+			source = { "MarkviewPalette0" },
+			light_fg = "#FE640B",
+			dark_fg = "#FAB387",
+
+			hl_opts = {
+				bg = vim.api.nvim_get_hl(0, { name = "MarkviewCode", link = false }).bg
+			}
+		});
+	end,
+
 	["Icon1"] = function ()
 		return highlights.hl_generator({
 			source = { "MarkviewPalette1" },
