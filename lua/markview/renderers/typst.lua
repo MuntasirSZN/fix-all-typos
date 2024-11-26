@@ -5,6 +5,7 @@ local spec = require("markview.spec");
 local utils = require("markview.utils");
 local languages = require("markview.languages");
 
+local filetypes = require("markview.filetypes");
 local devicons_loaded, devicons = pcall(require, "nvim-web-devicons");
 local mini_loaded, MiniIcons = pcall(require, "mini.icons");
 
@@ -707,58 +708,29 @@ typst.raw_block = function (buffer, item)
 		return;
 	end
 
-	config = utils.tostatic(
-		config,
-		{
+	config = utils.tostatic(config, {
 			args = { buffer, item }
-		}
-	);
+	});
 
-	local ft = languages.get_ft(item.language);
-	local icon, hl, sign_hl = typst.get_icon(config.icons, ft);
+	local decorations = filetypes.get(item.language);
+	local label = { string.format(" %s%s ", decorations.icon, decorations.name), decorations.icon_hl };
+	local lbl_w = utils.virt_len({ label });
+	local win = utils.buf_getwin(buffer);
 
 	if
-		icon and
-		icon ~= "" and
-		not icon:match("(%s)$")
+		config.style == "simple" or
+		(
+			vim.o.wrap == true or
+			vim.wo[win].wrap == true
+		)
 	then
-		icon = " " .. icon .. " ";
-	elseif not icon then
-		icon = "";
-	end
-
-	local lang_name;
-
-	--- In case the user changes the name ALWAYS prioritize
-	--- user-defined names over the default ones.
-	if config.language_names then
-		--- It may be faster to use {key: value} instead,
-		--- TODO: Use key value pairs instead.
-		for match, replace in pairs(config.language_names) do
-			if ft == match then
-				lang_name = replace;
-				goto nameFound;
-			end
-		end
-	end
-
-	lang_name = languages.get_name(ft)
-	::nameFound::
-
-	local label = icon .. lang_name;
-
-	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 3 + vim.fn.strdisplaywidth(item.language or ""),
 			conceal = "",
 
 			virt_text_pos = config.language_direction == "left" and "right_align" or "inline",
-			virt_text = {
-				{ " " },
-				{ label, utils.set_hl(hl) },
-				{ " " },
-			},
+			virt_text = { label },
 
 			hl_mode = "combine",
 
@@ -771,6 +743,20 @@ typst.raw_block = function (buffer, item)
 			end_col = range.col_end,
 			conceal = ""
 		});
+
+		for l = range.row_start + 1, range.row_end - 1, 1 do
+			local pad_amount = config.pad_amount;
+
+			--- Left padding
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), l, range.col_start, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
+				},
+			});
+		end
 
 		if not config.hl then return; end
 
@@ -803,15 +789,13 @@ typst.raw_block = function (buffer, item)
 
 			virt_text_pos = "inline",
 			virt_text = config.language_direction == "left" and {
-				{ config.pad_char or " ", utils.set_hl(config.hl) },
-				{ label, utils.set_hl(hl) },
-				{ string.rep(config.pad_char or " ", block_width - vim.fn.strdisplaywidth(label) - 1), utils.set_hl(config.hl) },
+				label,
+				{ string.rep(config.pad_char or " ", block_width - lbl_w), utils.set_hl(config.hl) },
 				{ string.rep(config.pad_char or " ", (2 * pad_amount)), utils.set_hl(config.hl) },
 			} or {
 				{ string.rep(config.pad_char or " ", (2 * pad_amount)), utils.set_hl(config.hl) },
-				{ string.rep(config.pad_char or " ", block_width - vim.fn.strdisplaywidth(label) - 1), utils.set_hl(config.hl) },
-				{ label, utils.set_hl(hl) },
-				{ config.pad_char or " ", utils.set_hl(config.hl) },
+				{ string.rep(config.pad_char or " ", block_width - lbl_w), utils.set_hl(config.hl) },
+				label
 			},
 
 			hl_mode = "combine",

@@ -4,6 +4,8 @@ local inline = require("markview.renderers.markdown_inline");
 local spec = require("markview.spec");
 local utils = require("markview.utils");
 local languages = require("markview.languages");
+
+local filetypes = require("markview.filetypes");
 local entities = require("markview.entities");
 
 local devicons_loaded, devicons = pcall(require, "nvim-web-devicons");
@@ -1047,37 +1049,8 @@ markdown.code_block = function (buffer, item)
 		args = { buffer, item }
 	})
 
-	local ft = languages.get_ft(item.language);
-	local icon, hl, sign_hl = markdown.get_icon(config.icons, ft);
-
-	local sign = icon;
-	sign_hl = utils.set_hl(config.sign_hl or sign_hl)
-
-	if icon and not icon:match("(%s)$") then
-		icon = " " .. icon .. " ";
-	elseif not icon then
-		icon = "";
-	end
-
-	local lang_name;
-
-	--- In case the user changes the name ALWAYS prioritize
-	--- user-defined names over the default ones.
-	if config.language_names ~= nil then
-		--- It may be faster to use {key: value} instead,
-		--- TODO: Use key value pairs instead.
-		for match, replace in pairs(config.language_names) do
-			if ft == match then
-				lang_name = replace;
-				goto nameFound;
-			end
-		end
-	end
-
-	lang_name = languages.get_name(ft)
-
-	::nameFound::
-
+	local decorations = filetypes.get(item.language);
+	local label = { string.format(" %s%s ", decorations.icon, decorations.name), decorations.icon_hl };
 	local win = utils.buf_getwin(buffer);
 
 	if
@@ -1098,33 +1071,24 @@ markdown.code_block = function (buffer, item)
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
-				virt_text = {
-					{ " ", utils.set_hl(config.hl) },
-					{ icon, utils.set_hl(hl or config.hl) },
-					{ lang_name .. " ", utils.set_hl(config.language_hl or hl or config.hl) },
-				},
+				virt_text = { label },
 
 				line_hl_group = utils.set_hl(config.info_hl or config.hl),
 
-				sign_text = config.sign == true and sign or nil,
-				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl),
+				sign_text = config.sign == true and decorations.sign or nil,
+				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 			});
 		elseif config.language_direction == "right" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start + vim.fn.strchars(item.info_string or ""), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "right_align",
-				virt_text = {
-					{ " ", utils.set_hl(config.hl) },
-					{ icon, utils.set_hl(hl or config.hl) },
-					{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-					{ " ", utils.set_hl(config.hl) },
-				},
+				virt_text = { label },
 
 				line_hl_group = utils.set_hl(config.info_hl or config.hl),
 
-				sign_text = config.sign == true and sign or nil,
-				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl)
+				sign_text = config.sign == true and decorations.sign or nil,
+				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl)
 			});
 		end
 
@@ -1164,14 +1128,11 @@ markdown.code_block = function (buffer, item)
 			end
 		end
 
-		local preview = utils.virt_len({
-			{ icon, utils.set_hl(hl or config.hl) },
-			{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-		});
+		local preview = utils.virt_len({ label });
 
 		if config.language_direction == nil or config.language_direction == "left" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
-				end_col = range.col_start + (range.lang_end or 0),
+				end_col = range.col_start + (range.info_start or range.lang_end or 0),
 				conceal = "",
 				undo_restore = false, invalidate = true,
 			});
@@ -1179,14 +1140,10 @@ markdown.code_block = function (buffer, item)
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
-				virt_text = {
-					{ config.pad_char or " ", utils.set_hl(config.hl) },
-					{ icon, utils.set_hl(hl or config.hl) },
-					{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-				},
+				virt_text = { label },
 
-				sign_text = config.sign == true and sign or nil,
-				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl),
+				sign_text = config.sign == true and decorations.sign or nil,
+				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 			});
 
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, range.col_start, {
@@ -1196,8 +1153,8 @@ markdown.code_block = function (buffer, item)
 			});
 
 			if item.info_string then
-				if (preview + vim.fn.strdisplaywidth(item.info_string)) >= block_width then
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, (range.col_start + range.info_start) + 1 + (block_width - (pad_amount + preview)), {
+				if ((preview + 1) + vim.fn.strdisplaywidth(item.info_string)) >= block_width then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, (range.col_start + range.info_start) + pad_amount + (block_width - (preview + 1)), {
 						end_col = range.col_start + item.text[1]:len(),
 						conceal = "",
 						undo_restore = false, invalidate = true,
@@ -1208,8 +1165,7 @@ markdown.code_block = function (buffer, item)
 						virt_text_pos = "inline",
 						virt_text = {
 							{ "…", utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount - 1), utils.set_hl(config.hl) }
+							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 						},
 					});
 				else
@@ -1218,9 +1174,9 @@ markdown.code_block = function (buffer, item)
 
 						virt_text_pos = "inline",
 						virt_text = {
-							{ string.rep(config.pad_char or " ", (block_width - (preview + 1 + #item.info_string))), utils.set_hl(config.hl) },
+							{ string.rep(config.pad_char or " ", (block_width - (preview + #item.info_string))), utils.set_hl(config.hl) },
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount - 1), utils.set_hl(config.hl) }
+							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 						},
 					});
 				end
@@ -1235,7 +1191,7 @@ markdown.code_block = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					virt_text_pos = "inline",
 					virt_text = {
-						{ string.rep(config.pad_char or " ", block_width - (1 + preview)), utils.set_hl(config.hl) },
+						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 					}
@@ -1263,8 +1219,8 @@ markdown.code_block = function (buffer, item)
 			});
 
 			if item.info_string then
-				if (preview + 1 + vim.fn.strdisplaywidth(item.info_string)) >= block_width then
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, (range.col_start + range.info_start) + 1 + (block_width - (pad_amount + preview)), {
+				if (preview + 1 + vim.fn.strdisplaywidth(item.info_string)) >= (block_width - (2 * pad_amount)) then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start, (range.col_start + range.info_start) + (block_width - (preview + 1)), {
 						undo_restore = false, invalidate = true,
 						end_col = range.col_start + item.text[1]:len(),
 						conceal = "",
@@ -1277,9 +1233,7 @@ markdown.code_block = function (buffer, item)
 						virt_text = {
 							{ "…", utils.set_hl(config.info_hl or config.hl) },
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-							{ icon, utils.set_hl(hl or config.hl) },
-							{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-							{ config.pad_char or " ", utils.set_hl(config.hl) },
+							label
 						},
 					});
 				else
@@ -1288,10 +1242,8 @@ markdown.code_block = function (buffer, item)
 
 						virt_text_pos = "inline",
 						virt_text = {
-							{ string.rep(config.pad_char or " ", pad_amount + (block_width - (preview + 1 + #item.info_string))), utils.set_hl(config.hl) },
-							{ icon, utils.set_hl(hl or config.hl) },
-							{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-							{ config.pad_char or " ", utils.set_hl(config.hl) },
+							{ string.rep(config.pad_char or " ", pad_amount + (block_width - (preview + #item.info_string))), utils.set_hl(config.hl) },
+							label
 						},
 					});
 				end
@@ -1306,11 +1258,9 @@ markdown.code_block = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					virt_text_pos = "inline",
 					virt_text = {
-						{ string.rep(config.pad_char or " ", block_width - (1 + preview)), utils.set_hl(config.hl) },
+						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-						{ icon, utils.set_hl(hl or config.hl) },
-						{ lang_name, utils.set_hl(config.language_hl or hl or config.hl) },
-						{ config.pad_char or " ", utils.set_hl(config.hl) },
+						label
 					}
 				});
 			end
@@ -1335,7 +1285,10 @@ markdown.code_block = function (buffer, item)
 			local line = item.text[(l + 1) - range.row_start];
 			local final = line;
 
-			if ft == "md" then
+			if
+				item.language == "md" or
+				item.language == "markdown"
+			then
 				final = markdown.concealed(line);
 			end
 
