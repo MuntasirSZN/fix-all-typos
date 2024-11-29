@@ -223,7 +223,7 @@ markview.draw = function (buffer, ignore_modes)
 				buffer,
 				spec.get({ "preview", "ignore_node_classes" }, { fallback = {} }),
 				clear_from,
-				clear_to
+				clear_to == clear_from and clear_to + 1 or clear_to
 			);
 		end
 	end
@@ -340,8 +340,21 @@ markview.commands = {
 		---+${class}
 		markview.state.enable = true;
 
+		local e_call = spec.get({ "preview", "callbacks", "on_enable" }, { fallback = nil });
+
 		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
 			if can_draw(buf) then
+				if
+					e_call and
+					pcall(
+						e_call,
+						buf,
+						vim.fn.win_findbuf(buf)
+					)
+				then
+					e_call(buf, vim.fn.win_findbuf(buf));
+				end
+
 				markview.draw(buf);
 			end
 		end
@@ -363,8 +376,21 @@ markview.commands = {
 		---+${class}
 		markview.state.enable = false;
 
+		local d_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
+
 		for buf, _ in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
 			if buf_is_safe(buf) then
+				if
+					d_call and
+					pcall(
+						d_call,
+						buf,
+						vim.fn.win_findbuf(buf)
+					)
+				then
+					d_call(buf, vim.fn.win_findbuf(buf));
+				end
+
 				markview.clear(buf);
 			end
 		end
