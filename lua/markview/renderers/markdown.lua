@@ -861,7 +861,7 @@ markdown.atx_heading = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + #item.marker + 1,
+			end_col = range.col_start + #item.marker + (#item.text[1] > 1 and 1 or 0),
 			conceal = "",
 			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl),
@@ -898,7 +898,7 @@ markdown.atx_heading = function (buffer, item)
 	elseif config.style == "icon" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + #item.marker + 1,
+			end_col = range.col_start + #item.marker + (#item.text[1] > 1 and 1 or 0),
 			conceal = "",
 			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl),
@@ -1092,20 +1092,6 @@ markdown.code_block = function (buffer, item)
 			});
 		end
 
-		for l = range.row_start + 1, range.row_end - 2, 1 do
-			local pad_amount = config.pad_amount;
-
-			--- Left padding
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start, {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				},
-			});
-		end
-
 		--- NOTE: Don't highlight extra line after the closing ```
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), range.row_start + 1, range.col_start, {
 			line_hl_group = utils.set_hl(config.hl),
@@ -1292,18 +1278,31 @@ markdown.code_block = function (buffer, item)
 				final = markdown.concealed(line);
 			end
 
+			--- If the line inside the code block is somehow shorter than
+			--- the start column of this node.
+			local offset = 0;
+
+			if final == "" then
+				local _t = vim.api.nvim_buf_get_lines(buffer, l, l + 1, false)[1]:sub(0, range.col_start);
+
+				if #_t < range.col_start then
+					offset = range.col_start - #_t;
+				end
+			end
+
 			--- Left padding
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start - offset, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
 				virt_text = {
+					{ string.rep(" ", offset),},
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 				},
 			});
 
 			--- Right padding
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start + #line, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, offset > 0 and range.col_start - offset or range.col_start + #line, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -1314,9 +1313,9 @@ markdown.code_block = function (buffer, item)
 			});
 
 			--- Background color
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("code_blocks"), l, offset > 0 and range.col_start - offset or range.col_start, {
 				undo_restore = false, invalidate = true,
-				end_col = range.col_start + #line,
+				end_col = offset > 0 and range.col_start - offset or range.col_start + #line,
 				hl_group = utils.set_hl(config.hl)
 			});
 		end
