@@ -94,7 +94,7 @@ links.__open = function (address)
 		return;
 	end
 
-	local read_bytes = spec.get({ "experimental", "file_byte_read" }, { fallback = 1024 });
+	local read_bytes = spec.get({ "experimental", "read_chunk_size" }, { fallback = 1024 });
 	local bytes = file:read(read_bytes);
 	file:close();
 
