@@ -195,7 +195,8 @@ markdown.list_item = function (_, _, text, range)
 
 	range.col_start = before:len();
 
-	local tolerance = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
+	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
+	local tolerance       = tolerance_limit;
 
 	local candidates = {};
 	local inside_code = false;
@@ -204,27 +205,39 @@ markdown.list_item = function (_, _, text, range)
 		--- Logic for detecting when lists should
 		--- end
 		if line ~= "" and #line < range.col_start then
+			--- Reached normal text.
 			break;
 		elseif tolerance == 0 then
+			--- Too many empty lines detected!
 			break;
 		end
 
-		--- On the first line don't do checks
+		--- On the first line don't do checks.
+		--- Since it would be a false positive.
 		if l == 1 then
 			table.insert(candidates, 0);
 			goto continue
 		end
 
+		--- We are only curious about stuff inside
+		--- the list item.
+		--- Get rid of text(e.g block quote marker)
+		--- before the start of list item.
 		line = line:sub(range.col_start);
 
+		--- These are NESTED list items. Ignore them!
+		---
+		--- Unless there's a bug in the parser the text
+		--- shouldn't go beyond the range of the list
+		--- item.
 		if line:match("^%s*([%-%+%*])%s") then
-			break;
+			goto continue;
 		elseif line:match("^%s*(%d+)[%.%)]%s") then
-			break;
+			goto continue;
 		end
 
 		--- If inside of a code block then
-		--- don't do checks
+		--- don't do checks.
 		if inside_code == false and line:match("^%s*```") then
 			table.insert(candidates, l - 1);
 			inside_code = true;
@@ -238,12 +251,12 @@ markdown.list_item = function (_, _, text, range)
 			goto continue
 		end
 
+		--- Do empty line checks.
+		--- Reset counter on non-empty lines.
 		if line == "" then
 			tolerance = tolerance - 1;
-		elseif line:match("^%s*[%-%+%*]%s") then
-			break;
-		elseif line:match("^%s*%d[%.%)]%s") then
-			break;
+		else
+			tolerance = tolerance_limit;
 		end
 
 		table.insert(candidates, l - 1);
