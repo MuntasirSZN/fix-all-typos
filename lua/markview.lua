@@ -378,7 +378,7 @@ markview.commands = {
 
 		local d_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
 
-		for buf, _ in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
+		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
 			if buf_is_safe(buf) then
 				if
 					d_call and
