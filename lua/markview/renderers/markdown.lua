@@ -1561,6 +1561,7 @@ markdown.list_item = function (buffer, item)
 				undo_restore = false, invalidate = true,
 				end_col = to,
 				conceal = "",
+				right_gravity = false,
 
 				virt_text_pos = "inline",
 				virt_text = {
