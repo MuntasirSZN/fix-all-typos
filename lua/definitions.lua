@@ -63,7 +63,7 @@
 
 ---@class markview.o.experimental
 ---
----@field file_byte_read integer
+---@field read_chunk_size integer
 ---@field list_empty_line_tolerance integer
 ---@field text_filetypes string[]?
 

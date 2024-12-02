@@ -111,7 +111,7 @@ spec.default = {
 	---+${conf}
 	experimental = {
 		---+${conf}
-		file_byte_read = 1000,
+		read_chunk_size = 1000,
 		file_open_command = "tabnew",
 		text_filetypes = nil,
 		list_empty_line_tolerance = 3
@@ -914,22 +914,22 @@ spec.default = {
 			enable = true,
 
 			heading_1 = {
-				hl_group = "MarkviewHeading1"
+				hl_group = "MarkviewPalette1Bg"
 			},
 			heading_2 = {
-				hl_group = "MarkviewHeading2"
+				hl_group = "MarkviewPalette2Bg"
 			},
 			heading_3 = {
-				hl_group = "MarkviewHeading3"
+				hl_group = "MarkviewPalette3Bg"
 			},
 			heading_4 = {
-				hl_group = "MarkviewHeading4"
+				hl_group = "MarkviewPalette4Bg"
 			},
 			heading_5 = {
-				hl_group = "MarkviewHeading5"
+				hl_group = "MarkviewPalette5Bg"
 			},
 			heading_6 = {
-				hl_group = "MarkviewHeading6"
+				hl_group = "MarkviewPalette6Bg"
 			},
 		},
 		container_elements = {
