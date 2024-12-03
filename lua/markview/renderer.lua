@@ -47,9 +47,27 @@ end
 
 renderer.range = function (content)
 	local _f, _t = nil, nil;
+	local range_processoer = {
+		["markdown_table"] = function (range)
+			local use_virt = require("markview.spec").get({ "markdown", "tables", "use_virt_lines" }, { fallback = false });
+
+			if use_virt ~= true then
+				range.row_start = range.row_start - 1;
+				range.row_end = range.row_end + 1;
+			end
+
+			return range;
+		end
+	}
 
 	for _, lang in pairs(content) do
 		for _, item in ipairs(lang) do
+			-- Change the range when specific options
+			-- are set.
+			if range_processoer[item.class] then
+				item.range = range_processoer[item.class](item.range);
+			end
+
 			if not _f or item.range.row_start < _f then
 				_f = item.range.row_start;
 			end
