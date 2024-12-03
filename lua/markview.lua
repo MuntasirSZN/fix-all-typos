@@ -291,6 +291,14 @@ markview.commands = {
 			end
 
 			if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = initial_state == true and "MarkviewAttach" or "MarkviewDetach",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 		end));
 
 		markview.state.autocmds[buffer].redraw = vim.api.nvim_create_autocmd(events, {
@@ -324,6 +332,14 @@ markview.commands = {
 		markview.state.hybrid_states[buffer] = nil;
 
 		if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
+
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewDetach",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
 		---_
 	end,
 
@@ -362,6 +378,14 @@ markview.commands = {
 
 				markview.draw(buf);
 			end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewEnable",
+				data = {
+					buffer = buf,
+					windows = vim.fn.win_findbuf(buf)
+				}
+			});
 		end
 
 		local call = spec.get({ "preview", "callbacks", "on_state_change" }, { fallback = nil });
@@ -370,11 +394,20 @@ markview.commands = {
 			call and
 			pcall(
 				call,
-				vim.tbl_keys(markview.state.buffer_states), markview.state.enable
+				vim.tbl_keys(markview.state.buffer_states),
+				markview.state.enable
 			)
 		then
 			call(vim.tbl_keys(markview.state.buffer_states), markview.state.enable);
 		end
+
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewStateChange",
+			data = {
+				buffers = vim.tbl_keys(markview.state.buffer_states),
+				state = markview.state.enable
+			}
+		});
 		---_
 	end,
 	["Disable"] = function ()
@@ -403,6 +436,14 @@ markview.commands = {
 
 				markview.clear(buf);
 			end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewDisable",
+				data = {
+					buffer = buf,
+					windows = vim.fn.win_findbuf(buf)
+				}
+			});
 		end
 
 		local call = spec.get({ "preview", "callbacks", "on_state_change" }, { fallback = nil });
@@ -411,11 +452,20 @@ markview.commands = {
 			call and
 			pcall(
 				call,
-				vim.tbl_keys(markview.state.buffer_states), markview.state.enable
+				vim.tbl_keys(markview.state.buffer_states),
+				markview.state.enable
 			)
 		then
 			call(vim.tbl_keys(markview.state.buffer_states), markview.state.enable);
 		end
+
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewStateChange",
+			data = {
+				buffers = vim.tbl_keys(markview.state.buffer_states),
+				state = markview.state.enable
+			}
+		});
 		---_
 	end,
 
@@ -476,6 +526,14 @@ markview.commands = {
 		markview.draw(buffer);
 
 		if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
+
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewEnable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
 		---_
 	end,
 	["disable"] = function (buffer)
@@ -493,6 +551,14 @@ markview.commands = {
 		markview.clear(buffer);
 
 		if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
+
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewDisable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
 		---_
 	end,
 
@@ -583,8 +649,18 @@ markview.commands = {
 		markview.state.buffer_states[markview.state.splitview_source] = false;
 		markview.clear(markview.state.splitview_source)
 
-		local s_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
-		if s_call and pcall(s_call, buffer, vim.fn.win_findbuf(buffer)) then s_call(buffer, vim.fn.win_findbuf(buffer)); end
+		if markview.state.buffer_states[buffer] then
+			local s_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
+			if s_call and pcall(s_call, buffer, vim.fn.win_findbuf(buffer)) then s_call(buffer, vim.fn.win_findbuf(buffer)); end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewDisable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
+		end
 
 		local ft = vim.bo[buffer].filetype;
 
@@ -641,7 +717,7 @@ markview.commands = {
 			)
 		);
 
-		local call = spec.get({ "preview", "callbacks", "splitview_enable" }, { fallback = nil });
+		local call = spec.get({ "preview", "callbacks", "splitview_open" }, { fallback = nil });
 
 		if
 			call and
@@ -667,6 +743,15 @@ markview.commands = {
 			pcall(vim.api.nvim_del_autocmd, markview.state.autocmds[markview.state.splitview_source].redraw)
 		end
 
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewSplitviewOpen",
+			data = {
+				source = buffer,
+				preview_buffer = markview.state.splitview_buffer,
+				preview_window = markview.state.splitview_window
+			}
+		});
+
 		local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50 });
 		local debounce = vim.uv.new_timer();
 
@@ -675,6 +760,14 @@ markview.commands = {
 
 			markview.clear(markview.state.splitview_source);
 			if _call and pcall(_call, markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)) then _call(markview.state.splitview_source, vim.fn.win_findbuf(markview.state.splitview_source)); end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewDetach",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 		end));
 
 		markview.state.autocmds[markview.state.splitview_source].redraw = vim.api.nvim_create_autocmd({
@@ -712,8 +805,11 @@ markview.commands = {
 		end
 
 		--- Run the callback.
-		local call = spec.get({ "preview", "callbacks", "splitview_disable" }, { fallback = nil });
+		local call = spec.get({ "preview", "callbacks", "splitview_close" }, { fallback = nil });
 		if call and pcall(call) then call(); end
+
+		vim.api.nvim_exec_autocmds("User", { pattern = "MarkviewSplitviewClose" });
+
 
 		--- Delete the splitview updating autocmd.
 		vim.api.nvim_del_autocmd(markview.state.autocmds[buffer].redraw)
@@ -762,6 +858,14 @@ markview.commands = {
 			end
 
 			if _call and pcall(_call, buffer, vim.fn.win_findbuf(buffer)) then _call(buffer, vim.fn.win_findbuf(buffer)); end
+
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = initial_state == true and "MarkviewAttach" or "MarkviewDetach",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 		end));
 
 		--- Add the regular preview updating autocmd.
