@@ -75,30 +75,8 @@ markdown.output = function (str, buffer)
 	local ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil });
 	local hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil });
 
-	for escaped in str:gmatch("\\(%$)") do
-		if not esc then
-			break;
-		end
 
-		str = str:gsub(concat({
-			"\\",
-			escaped
-		}), " ");
-	end
-
-	for latex in str:gmatch("%$([^%$]*)%$") do
-		---+${custom, Handle LaTeX blocks}
-		str = str:gsub(concat({
-			"$",
-			latex,
-			"$"
-		}), concat({
-			"$",
-			utils.escape_string(latex):gsub(".", " "),
-			"$"
-		}));
-		---_
-	end
+	str = str:gsub("\\%`", " ");
 
 	for inline_code in str:gmatch("`(.-)`") do
 		---+${custom, Handle inline codes}
@@ -138,6 +116,31 @@ markdown.output = function (str, buffer)
 				_codes.corner_left or ""
 			}));
 		end
+		---_
+	end
+
+	for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%$])") do
+		if not esc then
+			break;
+		end
+
+		str = str:gsub(concat({
+			"\\",
+			escaped
+		}), " ");
+	end
+
+	for latex in str:gmatch("%$([^%$]*)%$") do
+		---+${custom, Handle LaTeX blocks}
+		str = str:gsub(concat({
+			"$",
+			latex,
+			"$"
+		}), concat({
+			"$",
+			utils.escape_string(latex):gsub(".", " "),
+			"$"
+		}));
 		---_
 	end
 
