@@ -339,6 +339,11 @@ markview.commands = {
 	["Enable"] = function ()
 		---+${class}
 		markview.state.enable = true;
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewStateChange",
+			buffers = vim.tbl_keys(markview.state.buffer_states),
+			enabled = true
+		});
 
 		local e_call = spec.get({ "preview", "callbacks", "on_enable" }, { fallback = nil });
 
@@ -375,6 +380,11 @@ markview.commands = {
 	["Disable"] = function ()
 		---+${class}
 		markview.state.enable = false;
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewStateChange",
+			buffers = vim.tbl_keys(markview.state.buffer_states),
+			enabled = false
+		});
 
 		local d_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil });
 
@@ -488,17 +498,32 @@ markview.commands = {
 
 	["splitToggle"] = function ()
 		---+${class}
-		if not buf_is_safe(markview.state.splitview_source) then
+		if
+			( --- Source buffer doesn't exist or is invalid.
+				markview.state.splitview_source == nil or
+				buf_is_safe(markview.state.splitview_source) == false
+			) or
+			( --- Preview buffer doesn't exist or is invalid.
+				markview.state.splitview_buffer == nil or
+				buf_is_safe(markview.state.splitview_buffer) == false
+			)
+		then
+			--- Close any open previews.
+			--- Open a new preview.
+			markview.commands.splitClose();
 			markview.commands.splitOpen();
-		elseif
-			markview.state.splitview_source and
-			markview.state.splitview_window and
-			vim.api.nvim_win_get_tabpage(markview.state.splitview_window) ~= vim.api.nvim_get_current_tabpage()
+		elseif --- Preview window doesn't exist or is invalid.
+			markview.state.splitview_window == nil or
+			win_is_safe(markview.state.splitview_window) == false
 		then
 			markview.commands.splitClose();
 			markview.commands.splitOpen();
-		else
+		elseif --- Source buffer is available, close preview.
+			markview.state.splitview_source
+		then
 			markview.commands.splitClose();
+		else --- Splitview isn't being used.
+			markview.commands.splitOpen();
 		end
 		---_
 	end,
@@ -635,7 +660,10 @@ markview.commands = {
 			);
 		end
 
-		if markview.state.autocmds[markview.state.splitview_source] then
+		if
+			markview.state.buffer_states[markview.state.splitview_source] and
+			markview.state.autocmds[markview.state.splitview_source]
+		then
 			pcall(vim.api.nvim_del_autocmd, markview.state.autocmds[markview.state.splitview_source].redraw)
 		end
 
@@ -689,6 +717,12 @@ markview.commands = {
 
 		--- Delete the splitview updating autocmd.
 		vim.api.nvim_del_autocmd(markview.state.autocmds[buffer].redraw)
+
+		--- If the buffer was never attached to then
+		--- return.
+		if markview.state.buffer_states[markview.state.splitview_source] == nil then
+			return;
+		end
 
 		local events = spec.get({ "preview", "redraw_events" }, { fallback = {} });
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
