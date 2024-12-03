@@ -27,22 +27,6 @@ vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, 
 end)
 
 --- Autocmd for attaching to a buffer
-vim.api.nvim_create_autocmd("User", {
-	pattern = "MarkviewAttach",
-	callback = function (event)
-		markview.commands.attach(event.buf)
-	end
-});
-
---- Autocmd for detaching from a buffer
-vim.api.nvim_create_autocmd("User", {
-	pattern = "MarkviewDetach",
-	callback = function (event)
-		markview.commands.detach(event.buf)
-	end
-});
-
---- Autocmd for attaching to a buffer
 vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	group = markview.augroup,
 	callback = function (event)
@@ -122,21 +106,4 @@ vim.api.nvim_create_user_command(
 		complete = markview.completion
 	}
 );
-
-vim.api.nvim_create_autocmd({ "ColorScheme" }, {
-	group = markview.augroup,
-	callback = function ()
-		require("markview.highlights").setup();
-	end
-});
-vim.api.nvim_set_keymap("n", "gx", "", {
-	callback = require("markview.links").open
-})
-vim.api.nvim_set_keymap("n", "M", "", {
-	callback = require("markview.extras.lsp_hover").hover
-})
-
--- vim.api.nvim_set_keymap("i", "<Ctrl-s>", "<CMD>Markview splitToggle<CR>", {
--- })
-
 
