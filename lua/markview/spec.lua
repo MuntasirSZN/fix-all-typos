@@ -122,6 +122,7 @@ spec.default = {
 
 	preview = {
 		---+${conf}
+		enable = true,
 		callbacks = {
 			---+${func}
 			on_attach = function (_, wins)
@@ -211,7 +212,6 @@ spec.default = {
 
 		debounce = 50,
 		edit_distance = { 1, 0 },
-		enable_preview_on_attach = true,
 
 		filetypes = { "markdown", "typst" },
 		hybrid_modes = {},
@@ -1487,18 +1487,18 @@ spec.__preview = function (config)
 			spec.notify({
 				{ " preview.initial_state ", "DiagnosticVirtualTextInfo" },
 				{ " is deprecated! Use " },
-				{ " preview.enable_preview_on_attach ", "DiagnosticVirtualTextHint" },
+				{ " preview.enable ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
 			}, {
 				class = "markview_opt_name_change",
 
 				old = "preview.initial_state",
-				new = "preview.enable_preview_on_attach",
+				new = "preview.enable",
 
 				level = vim.log.levels.ERROR,
 			});
 
-			config["enable_preview_on_attach"] = val;
+			config["enable"] = val;
 			config["initial_state"] = nil;
 		elseif opt == "split_conf" then
 			spec.notify({
@@ -1942,6 +1942,7 @@ spec.get = function (keys, opts)
 			if
 				type(__tmp) == "table" and
 				keys[k + 1] ~= "enable" and
+				opts.ignore_enable == false and
 				__proxy.enable == false
 			then
 				return opts.fallback;
