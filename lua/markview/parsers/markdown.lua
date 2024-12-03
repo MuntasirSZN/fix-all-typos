@@ -176,6 +176,7 @@ end
 ---@param text string[]
 ---@param range TSNode.range
 markdown.list_item = function (_, _, text, range)
+	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
 	local marker, before, indent, checkbox;
 
 	if text[1]:match("^[%>%s]*([%-%+%*])%s") then
@@ -195,72 +196,62 @@ markdown.list_item = function (_, _, text, range)
 
 	range.col_start = before:len();
 
-	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
-	local tolerance       = tolerance_limit;
+	local list_tolerance, nested_tolerance = 0, 0;
+	local nested_indent = 0;
+	local skip = false;
 
 	local candidates = {};
-	local inside_code = false;
 
 	for l, line in ipairs(text) do
-		--- Logic for detecting when lists should
-		--- end
-		if line ~= "" and #line < range.col_start then
-			--- Reached normal text.
-			break;
-		elseif tolerance == 0 then
-			--- Too many empty lines detected!
+		if list_tolerance >= tolerance_limit then
 			break;
 		end
 
-		--- On the first line don't do checks.
-		--- Since it would be a false positive.
-		if l == 1 then
-			table.insert(candidates, 0);
-			goto continue
-		end
-
-		--- We are only curious about stuff inside
-		--- the list item.
-		--- Get rid of text(e.g block quote marker)
-		--- before the start of list item.
 		line = line:sub(range.col_start);
 
-		--- These are NESTED list items. Ignore them!
-		---
-		--- Unless there's a bug in the parser the text
-		--- shouldn't go beyond the range of the list
-		--- item.
-		if line:match("^%s*([%-%+%*])%s") then
-			goto continue;
-		elseif line:match("^%s*(%d+)[%.%)]%s") then
-			goto continue;
-		end
+		if l == 1 then
+			table.insert(candidates, (l - 1));
+		elseif
+			line:match("^(%s*)[%-%+%*]%s")
+		then
+			nested_indent = line:match("^(%s*)[%-%+%*]%s"):len();
+			nested_tolerance = 0;
 
-		--- If inside of a code block then
-		--- don't do checks.
-		if inside_code == false and line:match("^%s*```") then
-			table.insert(candidates, l - 1);
-			inside_code = true;
-			goto continue
-		elseif inside_code == true and line:match("^%s*```$") then
-			table.insert(candidates, l - 1);
-			inside_code = false;
-			goto continue
-		elseif inside_code == true then
-			table.insert(candidates, l - 1);
-			goto continue
-		end
+			skip = true;
+		elseif
+			line:match("^(%s*)%d+[%.%)]%s")
+		then
+			nested_indent = line:match("^(%s*)%d+[%.%)]%s"):len();
+			nested_tolerance = 0;
 
-		--- Do empty line checks.
-		--- Reset counter on non-empty lines.
-		if line == "" then
-			tolerance = tolerance - 1;
+			skip = true;
+		elseif skip == true then
+			local line_indent = line:match("^%s*"):len();
+
+			if list_tolerance >= tolerance_limit then
+				skip = false;
+				nested_indent = 0;
+
+				table.insert(candidates, (l - 1));
+			elseif line == "" then
+				nested_tolerance = nested_tolerance + 1;
+			elseif line_indent <= nested_indent then
+				skip = false;
+				nested_indent = 0;
+
+				table.insert(candidates, (l - 1));
+			else
+				nested_tolerance = 0;
+			end
 		else
-			tolerance = tolerance_limit;
+			if list_tolerance >= tolerance_limit then
+				break;
+			elseif line == "" then
+				list_tolerance = list_tolerance + 1;
+			else
+				table.insert(candidates, (l - 1));
+			end
 		end
-
-		table.insert(candidates, l - 1);
-		::continue::
 	end
 
 	markdown.insert({
@@ -496,8 +487,8 @@ markdown.parse = function (buffer, TSTree, from, to)
 			end
 		end
 
-		pcall(
-			markdown[capture_name:gsub("^markdown%.", "")],
+		-- pcall(
+			markdown[capture_name:gsub("^markdown%.", "")](
 
 			buffer,
 			capture_node,
