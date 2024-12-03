@@ -69,7 +69,7 @@
 
 ---@class markview.o.preview
 ---
----@field enable_preview_on_attach boolean
+---@field enable boolean
 ---@field callbacks { [string]: function }
 ---@field debounce integer
 ---@field edit_distance [integer, integer]
