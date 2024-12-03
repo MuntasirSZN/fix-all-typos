@@ -37,17 +37,17 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 		if
 			spec.get({ "enable" }) ~= false and
 			vim.list_contains(
-				spec.get({ "preview", "filetypes" }) or {},
+				spec.get({ "preview", "filetypes" }, { fallback = {}, ignore_enable = true }),
 				ft
 			) and
 			not vim.list_contains(
-				spec.get({ "preview", "ignore_buftypes" }) or {},
+				spec.get({ "preview", "ignore_buftypes" }, { fallback = {}, ignore_enable = true }),
 				bt
 			)
 		then
-			vim.uv.new_timer():start(0, 0, vim.schedule_wrap(function ()
+			-- vim.uv.new_timer():start(0, 0, vim.schedule_wrap(function ()
 				markview.commands.attach(event.buf);
-			end));
+			-- end));
 		end
 	end
 });
@@ -58,10 +58,10 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		local renderer = require("markview.renderer");
 		local spec = require("markview.spec");
 
-		local preview_modes = spec.get({ "preview", "modes" });
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 		local mode = vim.api.nvim_get_mode().mode;
 
-		local call = spec.get({ "preview", "callbacks", "on_mode_change" });
+		local call = spec.get({ "preview", "callbacks", "on_mode_change" }, { fallback = nil, ignore_enable = true });
 
 		if markview.state.enable == false then
 			return;
@@ -106,4 +106,12 @@ vim.api.nvim_create_user_command(
 		complete = markview.completion
 	}
 );
+
+vim.api.nvim_create_autocmd("ColorScheme", {
+	callback = function ()
+		local hls = require("markview.highlights");
+
+		hls.create(hls.groups)
+	end
+})
 
