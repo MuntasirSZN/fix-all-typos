@@ -119,7 +119,7 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%$])") do
+	for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%%<%>$])") do
 		if not esc then
 			break;
 		end
