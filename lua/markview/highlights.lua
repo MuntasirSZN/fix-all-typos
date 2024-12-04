@@ -18,6 +18,8 @@ local clamp = utils.clamp;
 ---@param input string | number[]
 ---@return number[]?
 highlights.rgb = function (input)
+	---+${func}
+
 	--- Lookup table for the regular color names.
 	--- For example,
 	---     • `red` → `#FF0000`.
@@ -102,43 +104,9 @@ highlights.rgb = function (input)
 
 		return { tonumber(r, 16), tonumber(g, 16), tonumber(b, 16) };
 	elseif vim.islist(input) then
-		--- Uses the adjusted hue to get the R, G, B values.
-		--- This function simply interpolates between
-		--- *p* & *q* based on **t**.
-		--- 
-		---@param p number Min value of RGB.
-		---@param q number Max value of RGB.
-		---@param t number Adjusted hue value.
-		---@return number
-		local hue2rgb = function (p, q, t)
-			if t < 0 then t = t + 1; end
-			if t > 1 then t = t - 1; end
-
-			if t < (1 / 6) then return p + (q - p) * 6 * t; end
-			if t < (1 / 2) then return q; end
-			if t < (2 / 3) then return p + (q - p) * 6 * (2 / 3 - t); end
-
-			return p;
-		end
-
-		---@type number, number, number
-		local r, g, b = input[3], input[3], input[3];
-
-		if input[2] ~= 0 then
-			local q = input[3] < 0.5 and input[3] * (1 + input[2]) or input[2] + input[3] - (input[2] * input[3]);
-			local p = 2 * input[3] - q;
-
-			r = hue2rgb(p, q, input[1] + (1 / 3));
-			g = hue2rgb(p, q, input[1]);
-			b = hue2rgb(p, q, input[1] - (1 / 3));
-		end
-
-		return {
-			math.floor(r * 255),
-			math.floor(g * 255),
-			math.floor(b * 255)
-		};
+		return highlights.hsl_to_rgb(input);
 	end
+	---_
 end
 
 --- Simple RGB *color-mixer* function.
@@ -172,52 +140,99 @@ end
 --- Input should be a list (as `{ R, G, B }`).
 --- Returns a list(as `{ H, S, L }`).
 ---@param color number[]
+---@param literal? boolean
 ---@return number[]
-highlights.rgb2hsl = function (color)
-	for c, val in ipairs(color) do
-		if val > 1 then
-			color[c] = val / 255;
+highlights.rgb_to_hsl = function (color, literal)
+	---+${func}
+
+	local RGB = vim.deepcopy(color);
+
+	for c, channel in ipairs(RGB) do
+		if literal ~= false then
+			RGB[c] = channel / 255;
 		end
 	end
 
-	local min, max = math.min(color[1], color[2], color[3]), math.max(color[1], color[2], color[3]);
-	local hue, sature, lumen = nil, nil, (min + max) / 2;
-	local delta = max - min;
+	---@diagnostic disable-next-line
+	local minRGB, maxRGB = math.min(unpack(RGB)), math.max(unpack(RGB));
 
-	if max == min then
-		hue = 0;
-		sature = 0;
+	local HSL = { 0, 0, 0 };
+	HSL[3] = (minRGB + maxRGB) / 2;
+
+	if minRGB == maxRGB then
+		HSL[2] = 0;
+	elseif HSL[3] <= 0.5 then
+		HSL[2] = (maxRGB - minRGB) / (maxRGB + minRGB);
 	else
-		sature = lumen > 0.5 and delta / (2 - max - min) or delta / (max + min);
-
-		if max == color[1] then
-			hue = (color[2] - color[3]) / delta + (color[2] < color[3] and 6 or 0);
-		elseif max == color[2] then
-			hue = (color[3] - color[1]) / delta + 2;
-		elseif max == color[3] then
-			hue = (color[1] - color[2]) / delta + 4;
-		end
-
-		hue = hue / 6;
+		HSL[2] = (maxRGB - minRGB) / (2 - maxRGB - minRGB);
 	end
 
-	return { hue, sature, lumen };
+	local delta = maxRGB - minRGB
+
+	if delta == RGB[1] then
+		HSL[1] = (RGB[2] - RGB[3]) / (maxRGB - minRGB);
+	elseif delta == RGB[2] then
+		HSL[1] = 2 + (RGB[3] - RGB[1]) / (maxRGB - minRGB);
+	else
+		HSL[1] = 4 + (RGB[1] - RGB[2]) / (maxRGB - minRGB);
+	end
+
+	HSL[1] = HSL[1] * 60;
+
+	return HSL;
+	---_
+end
+
+highlights.hsl_to_rgb = function (color)
+	---+${func}
+
+	local HSL = vim.deepcopy(color);
+	local C = ( 1 - math.abs((2 * HSL[3]) - 1) ) * HSL[2];
+	local X;
+
+	local h = HSL[1] / 60;
+	X = C * (1 - math.abs((h % 2) - 1));
+
+	local m = HSL[3] - (C / 2);
+	local RGB = {};
+
+	if 0 <= h and h <= 1 then
+		RGB = { C, X, 0};
+	elseif 1 <= h and h <= 2 then
+		RGB = { X, C, 0 };
+	elseif 2 <= h and h <= 3 then
+		RGB = { 0, C, X };
+	elseif 3 <= h and h <= 4 then
+		RGB = { 0, X, C };
+	elseif 4 <= h and h <= 5 then
+		RGB = { X, 0, C };
+	else
+		RGB = { C, 0, X };
+	end
+
+	return {
+		(RGB[1] + m) * 255,
+		(RGB[2] + m) * 255,
+		(RGB[3] + m) * 255,
+	};
+	---_
 end
 
 highlights.hsl = function (rgb)
-	vim.notify("[ markview.nvim ]: highlights.hsl is deprecated. Use 'highlights.rgb2hsl' instead", vim.log.levels.WARN);
-	highlights.rgb2hsl(rgb);
+	vim.notify("[ markview.nvim ]: highlights.hsl is deprecated. Use 'highlights.rgb_to_hsl' instead", vim.log.levels.WARN);
+	highlights.rgb_to_hsl(rgb);
 end
 
 --- Gets the luminosity of a RGB value.
 ---
 ---@param input number[]
+---@param literal? boolean
 ---@return number
-highlights.lumen = function (input)
+highlights.lumen = function (input, literal)
 	local rgb = vim.deepcopy(input);
 
 	for c, val in ipairs(rgb) do
-		if val > 1 then
+		if literal ~= false then
 			rgb[c] = val / 255;
 		end
 	end
@@ -243,107 +258,146 @@ highlights.opacify = function (fg, bg, alpha)
 	}
 end
 
-highlights.gamma_correction = function (val)
-	if val > 0.04045 then
-		return ((val + 0.055) / 1.055) ^ 2.4;
-	end
+--- Turns RGB color-space into XYZ.
+---@param color number[]
+---@param literal? boolean
+---@return number[]
+highlights.rgb_to_xyz = function (color, literal)
+	---+${func}
 
-	return val / 12.92;
-end
+	local RGB = vim.deepcopy(color);
 
-highlights.rgb2xyz = function (color)
-	local _c = vim.deepcopy(color);
-
-	for i, channel in ipairs(_c) do
-		if channel > 1 then
-			_c[i] = channel / 255;
+	for c, channel in ipairs(RGB) do
+		if literal ~= false then
+			channel = channel / 255;
 		end
 
-		_c[i] = highlights.gamma_correction(_c[i]);
+		if channel > 0.04045 then
+			RGB[c] = ( ( channel + 0.055 ) / 1.055 ) ^ 2.4;
+		else
+			RGB[c] = channel / 12.92;
+		end
+
+		RGB[c] = RGB[c] * 100;
 	end
 
 	return {
-		(_c[1] * 0.4124564) + (_c[2] * 0.3575761) + (_c[3] * 0.1804375),
-		(_c[1] * 0.2126729) + (_c[2] * 0.7151522) + (_c[3] * 0.0721750),
-		(_c[1] * 0.0193339) + (_c[2] * 0.1191920) + (_c[3] * 0.9503041),
-	}
+		RGB[1] * 0.4124 + RGB[2] * 0.3576 + RGB[3] * 0.1805,
+		RGB[1] * 0.2126 + RGB[2] * 0.7152 + RGB[3] * 0.0722,
+		RGB[1] * 0.0193 + RGB[2] * 0.1192 + RGB[3] * 0.9505
+	};
+	---_
 end
 
-highlights.__gamma_correction = function (val)
-	if val <= 0.0031308 then
-		return 12.92 * val;
+--- Turns XYZ color-space into RGB.
+---@param color number[]
+---@param literal? boolean
+---@return number[]
+highlights.xyz_to_rgb = function (color, literal)
+	---+${func}
+
+	local XYZ = vim.deepcopy(color);
+
+	for c, channel in ipairs(XYZ) do
+		if literal ~= false then
+			XYZ[c] = channel / 100;
+		end
 	end
 
-	return 1.055 * (val^(1 / 2.4)) - 0.055;
-end
-
-highlights.xyz2rgb = function (color)
-	local _c = vim.deepcopy(color);
-
-	local lRGB = {
-		(_c[1] *  3.2404542) + (_c[2] * -1.5371385) + (_c[3] * -0.4985314),
-		(_c[1] * -0.9692660) + (_c[2] *  1.8760108) + (_c[3] *  0.0415560),
-		(_c[1] *  0.0556434) + (_c[2] * -0.2040259) + (_c[3] *  1.0572252),
+	local RGB = {
+		XYZ[1] * 3.2406 + XYZ[2] * -1.5372 + XYZ[3] * -0.4986,
+		XYZ[1] * -0.9689 + XYZ[2] * 1.8758 + XYZ[3] * 0.0415,
+		XYZ[1] * 0.0557 + XYZ[2] * -0.2040 + XYZ[3] * 1.0570,
 	};
 
-	return {
-		clamp(highlights.__gamma_correction(lRGB[1]) * 255, 0, 255),
-		clamp(highlights.__gamma_correction(lRGB[2]) * 255, 0, 255),
-		clamp(highlights.__gamma_correction(lRGB[3]) * 255, 0, 255),
-	}
-end
-
-highlights.xyz2lab = function (color)
-	local ref = { 0.95047, 1.0000, 1.08883 };
-	local _c = vim.deepcopy(color);
-
-	for i, channel in ipairs(_c) do
-		_c[i] = channel / ref[i];
-	end
-
-	local function transform (t)
-		if t > 0.008856 then
-			return t^(1 / 3);
+	for c, channel in ipairs(RGB) do
+		if channel > 0.0031308 then
+			RGB[c] = ( 1.055 * (channel ^ ( 1 / 2.4 ) ) ) - 0.055;
+		else
+			RGB[c] = 12.92 * channel;
 		end
-
-		return (7.787 * t) + (16 / 116);
 	end
 
 	return {
-		(116 * transform(_c[2])) - 16,
-		500 * (transform(_c[1]) - transform(_c[2])),
-		200 * (transform(_c[2]) - transform(_c[3]))
-	}
+		utils.clamp(RGB[1] * 255, 0, 255),
+		utils.clamp(RGB[2] * 255, 0, 255),
+		utils.clamp(RGB[3] * 255, 0, 255)
+	};
+	---_
 end
 
-highlights.lab2xyz = function (color)
-	local ref = { 0.95047, 1.0000, 1.08883 };
+--- Turns XYZ color-space into Lab.
+---@param color number[]
+---@return number[]
+highlights.xyz_to_lab = function (color)
+	---+${func}
 
-	local fy = (color[1] + 16) / 116;
-	local fx = fy + (color[2] / 500);
-	local fz = fy - (color[3] / 200);
+	local XYZ = vim.deepcopy(color);
+	local RXYZ = { 94.811, 100, 107.304 };
 
-	local function inv_transform (t)
-		if t^3 > 0.008856 then
-			return t^3;
+	for c, channel in ipairs(XYZ) do
+		channel = channel / RXYZ[c];
+
+		if channel > 0.008856 then
+			XYZ[c] = channel ^ ( 1 / 3);
+		else
+			XYZ[c] = ( 7.787 * channel ) + ( 16 / 116 );
 		end
-
-		return (t - (16 / 116)) / 7.787;
 	end
 
 	return {
-		ref[1] * inv_transform(fx),
-		ref[2] * inv_transform(fy),
-		ref[3] * inv_transform(fz),
-	}
+		( 116 * XYZ[2] ) - 16,
+		500 * ( XYZ[1] - XYZ[2] ),
+		200 * ( XYZ[2] - XYZ[3] )
+	};
+	---_
 end
 
-highlights.rgb2lab = function (color)
-	return highlights.xyz2lab(highlights.rgb2xyz(color));
+--- Turns Lab color-space into XYZ.
+---@param color number[]
+---@return number[]
+highlights.lab_to_xyz = function (color)
+	---+${func}
+
+	local LAB = vim.deepcopy(color);
+	local RXYZ = { 94.811, 100, 107.304 };
+
+	local VXYZ = {};
+
+	VXYZ[2] = ( LAB[1] + 16 ) / 116;
+	VXYZ[1] = LAB[2] / 500 + VXYZ[2];
+	VXYZ[3] = VXYZ[2] - LAB[3] / 200;
+
+	for c, channel in ipairs(VXYZ) do
+		if channel > 0.008856 then
+			VXYZ[c] = channel ^ 3;
+		else
+			VXYZ[c] = ( channel - 16 / 116 ) / 7.787
+		end
+	end
+
+	return {
+		VXYZ[1] * RXYZ[1],
+		VXYZ[2] * RXYZ[2],
+		VXYZ[3] * RXYZ[3],
+	};
+	---_
 end
 
-highlights.lab2rgb = function (color)
-	return highlights.xyz2rgb(highlights.lab2xyz(color));
+--- Turns RGB color-space into Lab.
+---@param RGB number[]
+---@return number[]
+highlights.rgb_to_lab = function (RGB)
+	local XYZ = highlights.rgb_to_xyz(RGB);
+	return highlights.xyz_to_lab(XYZ);
+end
+
+--- Turns Lab color-space into RGB.
+---@param Lab number[]
+---@return number[]
+highlights.lab_to_rgb = function (Lab)
+	local XYZ = highlights.lab_to_xyz(Lab);
+	return highlights.xyz_to_rgb(XYZ);
 end
 ---_
 
@@ -420,26 +474,26 @@ end
 
 --- Generates a heading
 highlights.generate_heading = function (opts)
-	local vim_bg = highlights.rgb2lab(highlights.get_property(
+	local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 		"bg",
 		opts.bg_fallbacks or { "Normal" },
 		opts.light_bg or "#FFFFFF",
 		opts.dark_bg or "#000000"
 	));
-	local h_fg = highlights.rgb2lab(highlights.get_property(
+	local h_fg = highlights.rgb_to_lab(highlights.get_property(
 		"fg",
 		opts.fallbacks,
 		opts.light_fg or "#000000",
 		opts.dark_fg or "#FFFFFF"
 	));
 
-	local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+	local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 	local alpha = opts.alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
-	local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+	local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-	vim_bg = highlights.lab2rgb(vim_bg);
-	h_fg = highlights.lab2rgb(h_fg);
+	vim_bg = highlights.lab_to_rgb(vim_bg);
+	h_fg = highlights.lab_to_rgb(h_fg);
 
 	return {
 		bg = highlights.hex(res_bg),
@@ -463,27 +517,27 @@ end
 highlights.dynamic = {
 	["0P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "Comment" },
 			"#9CA0B0",
 			"#6C7086"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -525,27 +579,27 @@ highlights.dynamic = {
 	end,
 	["1P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
 			"#F38BA8",
 			"#D20F39"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -587,27 +641,27 @@ highlights.dynamic = {
 	end,
 	["2P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
 			"#FE640B",
 			"#FAB387"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -649,27 +703,27 @@ highlights.dynamic = {
 	end,
 	["3P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
 			"#F9E2AF",
 			"#DF8E1D"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -711,27 +765,27 @@ highlights.dynamic = {
 	end,
 	["4P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
 			"#A6E3A1",
 			"#40A02B"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -773,27 +827,27 @@ highlights.dynamic = {
 	end,
 	["5P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
 			"#74C7EC",
 			"#209FB5"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -835,27 +889,27 @@ highlights.dynamic = {
 	end,
 	["6P"] = function ()
 		---+${hl}
-		local vim_bg = highlights.rgb2lab(highlights.get_property(
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#1E1E2E",
 			"#EFF1F5"
 		));
-		local h_fg = highlights.rgb2lab(highlights.get_property(
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
 			"#B4BEFE",
 			"#7287FD"
 		));
 
-		local l_bg = highlights.lumen(highlights.lab2rgb(vim_bg));
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
 		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
 
 		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
-		local res_bg = highlights.lab2rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
 
-		vim_bg = highlights.lab2rgb(vim_bg);
-		h_fg = highlights.lab2rgb(h_fg);
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
 
 		return {
 			{
@@ -980,7 +1034,7 @@ highlights.dynamic = {
 	---_
 	---+${hl, Code blocks & Inline codes/Injections}
 	["Code"] = function ()
-		local vim_bg = highlights.rgb2hsl(highlights.get_property(
+		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#FFFFFF",
@@ -994,7 +1048,7 @@ highlights.dynamic = {
 		end
 
 		---@diagnostic disable
-		vim_bg = highlights.rgb(vim_bg);
+		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.hex(vim_bg)
@@ -1002,7 +1056,7 @@ highlights.dynamic = {
 		---@diagnostic enable
 	end,
 	["CodeInfo"] = function ()
-		local vim_bg = highlights.rgb2hsl(highlights.get_property(
+		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#FFFFFF",
@@ -1022,7 +1076,7 @@ highlights.dynamic = {
 		end
 
 		---@diagnostic disable
-		vim_bg = highlights.rgb(vim_bg);
+		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.hex(vim_bg),
@@ -1031,7 +1085,7 @@ highlights.dynamic = {
 		---@diagnostic enable
 	end,
 	["CodeFg"] = function ()
-		local vim_bg = highlights.rgb2hsl(highlights.get_property(
+		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#FFFFFF",
@@ -1045,7 +1099,7 @@ highlights.dynamic = {
 		end
 
 		---@diagnostic disable
-		vim_bg = highlights.rgb(vim_bg);
+		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			fg = highlights.hex(vim_bg)
@@ -1053,7 +1107,7 @@ highlights.dynamic = {
 		---@diagnostic enable
 	end,
 	["InlineCode"] = function ()
-		local vim_bg = highlights.rgb2hsl(highlights.get_property(
+		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
 			"bg",
 			{ "Normal" },
 			"#FFFFFF",
@@ -1067,7 +1121,7 @@ highlights.dynamic = {
 		end
 
 		---@diagnostic disable
-		vim_bg = highlights.rgb(vim_bg);
+		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.hex(vim_bg)
