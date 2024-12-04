@@ -62,10 +62,12 @@ renderer.range = function (content)
 
 	for _, lang in pairs(content) do
 		for _, item in ipairs(lang) do
+			local range = vim.deepcopy(item.range);
+
 			-- Change the range when specific options
 			-- are set.
 			if range_processoer[item.class] then
-				item.range = range_processoer[item.class](item.range);
+				range = range_processoer[item.class](range);
 			end
 
 			if not _f or item.range.row_start < _f then
