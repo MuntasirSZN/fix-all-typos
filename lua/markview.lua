@@ -357,8 +357,10 @@ markview.commands = {
 		markview.state.enable = true;
 		vim.api.nvim_exec_autocmds("User", {
 			pattern = "MarkviewStateChange",
-			buffers = vim.tbl_keys(markview.state.buffer_states),
-			enabled = true
+			data = {
+				buffers = vim.tbl_keys(markview.state.buffer_states),
+				enabled = true
+			}
 		});
 
 		local e_call = spec.get({ "preview", "callbacks", "on_enable" }, { fallback = nil, ignore_enable = true });
@@ -415,8 +417,10 @@ markview.commands = {
 		markview.state.enable = false;
 		vim.api.nvim_exec_autocmds("User", {
 			pattern = "MarkviewStateChange",
-			buffers = vim.tbl_keys(markview.state.buffer_states),
-			enabled = false
+			data = {
+				buffers = vim.tbl_keys(markview.state.buffer_states),
+				enabled = false
+			}
 		});
 
 		local d_call = spec.get({ "preview", "callbacks", "on_disable" }, { fallback = nil, ignore_enable = true });
