@@ -230,7 +230,7 @@ markview.draw = function (buffer, ignore_modes)
 	---_
 end
 
---- Wrapper yo clear decorations from a buffer
+--- Wrapper to clear decorations from a buffer
 ---@param buffer integer
 markview.clear = function (buffer)
 	require("markview.renderer").clear(
@@ -472,6 +472,20 @@ markview.commands = {
 		});
 		---_
 	end,
+	["Redraw"] = function ()
+		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
+			if buf_is_safe(buf) then
+				markview.draw(buf, true);
+			end
+		end
+	end,
+	["Clear"] = function ()
+		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
+			if buf_is_safe(buf) then
+				markview.clear(buf);
+			end
+		end
+	end,
 
 	["toggleAll"] = function ()
 		spec.notify({
@@ -564,6 +578,20 @@ markview.commands = {
 			}
 		});
 		---_
+	end,
+	["redraw"] = function (buffer)
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if buf_is_safe(buffer) then
+			markview.draw(buffer, true);
+		end
+	end,
+	["clear"] = function (buffer)
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if buf_is_safe(buffer) then
+			markview.clear(buffer);
+		end
 	end,
 
 	["splitToggle"] = function ()
@@ -936,26 +964,35 @@ markview.completion = function (arg_lead, cmdline, _)
 
 	local results = {};
 
-	if
-		(nargs == 0) or
-		(nargs == 1 and cmdline:match("%S$"))
-	then
+	local function show_commands()
+		if nargs == 0 then
+			return true;
+		elseif nargs == 1 and cmdline:match("%S$") then
+			return true;
+		end
+
+		return false;
+	end
+
+	local show_args = function ()
+		if nargs == 1 and cmdline:match("%s$") then
+			return true;
+		elseif nargs > 2 then
+			return false;
+		elseif vim.list_contains(vim.tbl_keys(markview.commands), args[1]) then
+			return true;
+		end
+
+		return false;
+	end
+
+	if show_commands() == true then
 		for cmd, _ in pairs(markview.commands) do
 			if cmd:match(arg_lead) then
 				table.insert(results, cmd);
 			end
 		end
-	elseif
-		(nargs == 1 and cmdline:match("%s$")) or
-		(
-			nargs == 2 and
-			cmdline:match("%S$") and
-			vim.list_contains(
-				vim.tbl_keys(markview.commands),
-				args[1]
-			)
-		)
-	then
+	elseif show_args() == true then
 		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
 			table.insert(results, tostring(buf));
 		end
