@@ -260,61 +260,40 @@ markview.commands = {
 		markview.state.buffer_states[buffer] = initial_state;
 		markview.state.autocmds[buffer] = {};
 
-		local events = spec.get({ "preview", "redraw_events" }, { fallback = {}, ignore_enable = true });
-		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local call;
 
-		if
-			vim.list_contains(preview_modes, "n") or
-			vim.list_contains(preview_modes, "v")
-		then
-			table.insert(events, "CursorMoved");
-			table.insert(events, "TextChanged");
+		if initial_state == true then
+			markview.draw(buffer);
+			call = spec.get({ "preview", "callbacks", "on_attach" }, { fallback = nil, ignore_enable = true });
+		else
+			markview.clear(buffer);
+			call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil, ignore_enable = true });
 		end
 
-		if vim.list_contains(preview_modes, "i") then
-			table.insert(events, "CursorMovedI");
-			table.insert(events, "TextChangedI");
-		end
+		if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
 
-		local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
-		local debounce = vim.uv.new_timer();
-
-		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
-			local call;
-
-			if initial_state == true then
-				markview.draw(buffer);
-				call = spec.get({ "preview", "callbacks", "on_attach" }, { fallback = nil, ignore_enable = true });
-			else
-				markview.clear(buffer);
-				call = spec.get({ "preview", "callbacks", "on_detach" }, { fallback = nil, ignore_enable = true });
-			end
-
-			if call and pcall(call, buffer, vim.fn.win_findbuf(buffer)) then call(buffer, vim.fn.win_findbuf(buffer)); end
-
-			vim.api.nvim_exec_autocmds("User", {
-				pattern = initial_state == true and "MarkviewAttach" or "MarkviewDetach",
-				data = {
-					buffer = buffer,
-					windows = vim.fn.win_findbuf(buffer)
-				}
-			});
-		end));
-
-		markview.state.autocmds[buffer].redraw = vim.api.nvim_create_autocmd(events, {
-			group = markview.augroup,
-			buffer = buffer,
-			desc = "Buffer specific preview updater for `markview.nvim`.",
-
-			callback = function ()
-				debounce:stop();
-				debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
-					--- Drawer function
-					if can_draw(buffer) == false then return; end
-					markview.draw(buffer);
-				end));
-			end
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = initial_state == true and "MarkviewAttach" or "MarkviewDetach",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
 		});
+
+		-- markview.state.autocmds[buffer].redraw = vim.api.nvim_create_autocmd(events, {
+		-- 	group = markview.augroup,
+		-- 	buffer = buffer,
+		-- 	desc = "Buffer specific preview updater for `markview.nvim`.",
+		--
+		-- 	callback = function ()
+		-- 		debounce:stop();
+		-- 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+		-- 			--- Drawer function
+		-- 			if can_draw(buffer) == false then return; end
+		-- 			markview.draw(buffer);
+		-- 		end));
+		-- 	end
+		-- });
 		---_
 	end,
 	["detach"] = function (buffer)
@@ -943,17 +922,124 @@ markview.exec = function (cmd)
 	---_
 end
 
+markview.__completion = {
+	default = {
+		completion = function (arg_lead)
+			local comp = {};
+
+			for _, item in ipairs(vim.tbl_keys(markview.commands)) do
+				if item:match(arg_lead) then
+					table.insert(comp, item);
+				end
+			end
+
+			table.sort(comp);
+			return comp;
+		end,
+		action = function ()
+			print("hi")
+		end
+	},
+	sub_commands = {
+		["Disable"] = {
+			action = function ()
+				print("hi")
+			end
+		},
+		["Enable"] = {
+			action = function ()
+				print("hi")
+			end
+		},
+		["Toggle"] = {
+			action = function ()
+				print("hi")
+			end
+		},
+
+		["disable"] = {
+			completion = function (arg_lead)
+				local cmp = {};
+
+				for buf, state in pairs(markview.state.buffer_states) do
+					if state == true and tostring(buf):match(arg_lead) then
+						table.insert(cmp, tostring(buf));
+					end
+				end
+
+				return cmp;
+			end,
+			action = function ()
+				print("hi")
+			end
+		},
+		["enable"] = {
+			completion = function (arg_lead)
+				local cmp = {};
+
+				for buf, state in pairs(markview.state.buffer_states) do
+					if state == false and tostring(buf):match(arg_lead) then
+						table.insert(cmp, tostring(buf));
+					end
+				end
+
+				return cmp;
+			end,
+			action = function ()
+				print("hi")
+			end
+		},
+		["toggle"] = {
+			completion = function (arg_lead)
+				local cmp = {};
+
+				for buf, _ in pairs(markview.state.buffer_states) do
+					if tostring(buf):match(arg_lead) then
+						table.insert(cmp, tostring(buf));
+					end
+				end
+
+				return cmp;
+			end,
+			action = function ()
+				print("hi")
+			end
+		},
+	}
+};
+
 --- Cmdline completion.
 ---@param arg_lead string
 ---@param cmdline string
----@param _ integer
----@return string[]
-markview.completion = function (arg_lead, cmdline, _)
+---@param cursor_pos integer
+---@return string[]?
+markview.completion = function (arg_lead, cmdline, cursor_pos)
 	---+${class, Completion provider}
+	local is_subcommand = function (text)
+		local cmds = vim.tbl_keys(markview.commands);
+		return vim.list_contains(cmds, text);
+	end
+
+	local matches_subcommand = function (text)
+		if is_subcommand(text) then
+			return false;
+		end
+
+		for key, _ in pairs(markview.commands) do
+			if key:match(text) then
+				return true;
+			end
+		end
+
+		return false;
+	end
+
 	local nargs = 0;
 	local args  = {};
 
-	for arg in cmdline:gmatch("(%S+)") do
+	local text = cmdline:sub(0, cursor_pos);
+
+	for arg in text:gmatch("(%S+)") do
 		if arg == "Markview" then goto continue; end
 
 		nargs = nargs + 1;
@@ -962,44 +1048,23 @@ markview.completion = function (arg_lead, cmdline, _)
 		::continue::
 	end
 
-	local results = {};
+	local config;
 
-	local function show_commands()
-		if nargs == 0 then
-			return true;
-		elseif nargs == 1 and cmdline:match("%S$") then
-			return true;
-		end
-
-		return false;
+	if nargs == 0 or (nargs == 1 and matches_subcommand(args[1])) then
+		config = markview.__completion.default;
+	elseif is_subcommand(args[1]) and markview.__completion.sub_commands[args[1]] then
+		config = markview.__completion.sub_commands[args[1]];
+	else
+		return {};
 	end
 
-	local show_args = function ()
-		if nargs == 1 and cmdline:match("%s$") then
-			return true;
-		elseif nargs > 2 then
-			return false;
-		elseif vim.list_contains(vim.tbl_keys(markview.commands), args[1]) then
-			return true;
-		end
-
-		return false;
+	if vim.islist(config.completion) then
+		return config.completion --[[ @as string[] ]];
+	elseif pcall(config.completion, arg_lead, cmdline, cursor_pos) then
+		---@type string[]
+		local val = config.completion(arg_lead, cmdline, cursor_pos);
+		return val;
 	end
-
-	if show_commands() == true then
-		for cmd, _ in pairs(markview.commands) do
-			if cmd:match(arg_lead) then
-				table.insert(results, cmd);
-			end
-		end
-	elseif show_args() == true then
-		for _, buf in ipairs(vim.tbl_keys(markview.state.buffer_states)) do
-			table.insert(results, tostring(buf));
-		end
-	end
-
-	table.sort(results);
-	return results;
 	---_
 end
 
