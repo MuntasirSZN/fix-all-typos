@@ -61,106 +61,167 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 });
 
 --- Autocmd to listen to mode changes.
-vim.api.nvim_create_autocmd({ "ModeChanged" }, {
-	group = markview.group,
-	callback = function ()
-		local renderer = require("markview.renderer");
+-- vim.api.nvim_create_autocmd({ "ModeChanged" }, {
+-- 	group = markview.group,
+-- 	callback = function ()
+-- 		local renderer = require("markview.renderer");
+--
+-- 		local mode = vim.api.nvim_get_mode().mode;
+--
+-- 		local call = spec.get({ "preview", "callbacks", "on_mode_change" }, { fallback = nil, ignore_enable = true });
+--
+-- 		if markview.state.enable == false then
+-- 			return;
+-- 		elseif not preview_modes then
+-- 			return;
+-- 		end
+--
+-- 		for buf, state in ipairs(markview.state.buffer_states) do
+-- 			---+${func, Buffer redrawing}
+-- 			renderer.clear(buf);
+-- 			if state == false then goto continue; end
+--
+-- 			if vim.list_contains(preview_modes, mode) then
+-- 				-- markview.draw(buf);
+-- 			else
+-- 				renderer.clear(buf, {}, 0, -1);
+-- 			end
+--
+-- 			if
+-- 				call and
+-- 				pcall(call, buf, vim.fn.win_findbuf(buf), mode)
+-- 			then
+-- 				call(
+-- 					buf,
+-- 					vim.fn.win_findbuf(buf),
+-- 					mode
+-- 				)
+-- 			end
+--
+-- 			::continue::
+-- 			---_
+-- 		end
+-- 	end
+-- });
+--
+-- -- local events = spec.get({ "preview", "redraw_events" }, { fallback = {}, ignore_enable = true });
+--
+-- vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "TextChanged", "TextChangedI" }, {
+-- 	group = markview.group,
+-- 	callback = function (param)
+-- 		--- Checks if decorations can be drawn on a buffer.
+-- 		---@param buffer integer
+-- 		---@return boolean
+-- 		local buf_is_safe = function (buffer)
+-- 			---+${func}
+-- 			markview.clean();
+--
+-- 			if markview.state.enable == false then
+-- 				return false;
+-- 			elseif markview.state.buffer_states[buffer] == false then
+-- 				return false;
+-- 			end
+--
+-- 			return true;
+-- 			---_
+-- 		end
+--
+-- 		local can_render = function ()
+-- 			local ev = param.event;
+-- 			local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+--
+-- 			if (ev == "CursorMoved" or ev == "TextChanged") and (vim.list_contains(modes, "n") or vim.list_contains(modes, "v")) then
+-- 				return true;
+-- 			elseif (ev == "CursorMovedI" or ev == "TextChangedI") and vim.list_contains(modes, "i") then
+-- 				return true;
+-- 			end
+--
+-- 			return false;
+-- 		end
+--
+-- 		if can_render() == false then
+-- 			return;
+-- 		end
+--
+-- 		local attached_bufs = vim.tbl_keys(markview.state.buffer_states);
+-- 		debounce:stop();
+--
+-- 		if vim.list_contains(attached_bufs, param.buf) == false then
+-- 			return;
+-- 		end
+--
+-- 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+-- 			--- Drawer function
+-- 			if buf_is_safe(param.buf) == false then return; end
+-- 		end));
+--
+-- 	end
+-- });
 
-		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-		local mode = vim.api.nvim_get_mode().mode;
 
-		local call = spec.get({ "preview", "callbacks", "on_mode_change" }, { fallback = nil, ignore_enable = true });
-
-		if markview.state.enable == false then
-			return;
-		elseif not preview_modes then
-			return;
-		end
-
-		for buf, state in ipairs(markview.state.buffer_states) do
-			---+${func, Buffer redrawing}
-			renderer.clear(buf);
-			if state == false then goto continue; end
-
-			if vim.list_contains(preview_modes, mode) then
-				markview.draw(buf);
-			else
-				renderer.clear(buf, {}, 0, -1);
-			end
-
-			if
-				call and
-				pcall(call, buf, vim.fn.win_findbuf(buf), mode)
-			then
-				call(
-					buf,
-					vim.fn.win_findbuf(buf),
-					mode
-				)
-			end
-
-			::continue::
-			---_
-		end
-	end
-});
-
-local events = spec.get({ "preview", "redraw_events" }, { fallback = {}, ignore_enable = true });
-local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-
-if
-	vim.list_contains(preview_modes, "n") or
-	vim.list_contains(preview_modes, "v")
-then
-	table.insert(events, "CursorMoved");
-	table.insert(events, "TextChanged");
-end
-
-if vim.list_contains(preview_modes, "i") then
-	table.insert(events, "CursorMovedI");
-	table.insert(events, "TextChangedI");
-end
-
-local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
+local debounce_delay = 0 or spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
 local debounce = vim.uv.new_timer();
 
-vim.api.nvim_create_autocmd(events, {
-	group = markview.group,
-	callback = function (param)
-		--- Checks if decorations can be drawn on a buffer.
-		---@param buffer integer
-		---@return boolean
-		local can_draw = function (buffer)
-			---+${func}
-			markview.clean();
+local list_contains = function (list, items)
+	for _, item in ipairs(items) do
+		if vim.list_contains(list, item) then
+			return true;
+		end
+	end
 
-			if not buf_is_safe(buffer) then
-				return false;
-			elseif markview.state.enable == false then
-				return false;
-			elseif markview.state.buffer_states[buffer] == false then
-				return false;
+	return false;
+end
+
+vim.api.nvim_create_autocmd({
+	"ModeChanged",
+	"CursorMoved", "TextChanged",
+	"CursorMovedI", "TextChangedI"
+}, {
+	group = markview.augroup,
+	callback = function (ev)
+		local event = ev.event;
+		local buf = ev.buf;
+		local mode = vim.api.nvim_get_mode().mode;
+
+		local state = markview.state;
+
+		--- Stop any active timers
+		debounce:stop();
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+
+		local render_event = function ()
+			if (event == "CursorMoved" or event == "TextChanged") and list_contains(preview_modes, { "n", "v" }) then
+				return true;
+			elseif (event == "CursorMovedI" or event == "TextChangedI") and list_contains(preview_modes, { "i" }) then
+				return true;
 			end
 
-			return true;
-			---_
+			return false;
 		end
 
-		local attached_bufs = vim.tbl_keys(markview.state.buffer_states);
-		debounce:stop();
-
-		if vim.list_contains(attached_bufs, param.buf) == false then
-			return;
+		if event == "ModeChanged" then
+			if vim.list_contains(state.attached_buffers, buf) == false then
+				return;
+			elseif markview.buf_is_safe(buf) == false then
+				markview.clean();
+				return;
+			elseif buf == markview.state.splitview_source then
+				markview.commands.splitRedraw();
+			elseif vim.list_contains(preview_modes, mode) then
+				markview.draw(buf);
+			else
+				markview.clear(buf);
+			end
+		elseif render_event() == true then
+			if buf == markview.state.splitview_source then
+				markview.commands.splitRedraw();
+			else
+				markview.clear(buf);
+				markview.draw(buf);
+			end
 		end
-
-		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
-			--- Drawer function
-			if can_draw(param.buf) == false then return; end
-			markview.draw(param.buf);
-		end));
-
 	end
-});
+})
 
 vim.api.nvim_create_user_command(
 	"Markview",
