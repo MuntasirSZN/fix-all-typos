@@ -17,6 +17,7 @@ markview.state = {
 
 	autocmds = {},
 	attached_buffers = {},
+	ignore_modes = {},
 
 	buffer_states = {},
 	hybrid_states = {},
@@ -245,7 +246,7 @@ end
 ---@type { [string]: function }
 markview.commands = {
 	---+${class}
-	["attach"] = function (buffer)
+	["attach"] = function (buffer, ignore_modes)
 		---+${class}
 		buffer = buffer or vim.api.nvim_get_current_buf();
 
@@ -254,6 +255,8 @@ markview.commands = {
 
 		if buf_attached(buffer) then
 			return;
+		elseif ignore_modes == true then
+			table.insert(markview.state.ignore_modes, buffer);
 		end
 
 		table.insert(markview.state.attached_buffers, buffer);
@@ -280,6 +283,8 @@ markview.commands = {
 				windows = vim.fn.win_findbuf(buffer)
 			}
 		});
+
+		markview.draw(buffer, ignore_modes ~= nil);
 		---_
 	end,
 	["detach"] = function (buffer)
