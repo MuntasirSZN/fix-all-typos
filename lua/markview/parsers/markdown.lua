@@ -179,12 +179,16 @@ markdown.list_item = function (_, _, text, range)
 	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
 	local marker, before, indent, checkbox;
 
-	if text[1]:match("^[%>%s]*([%-%+%*])%s") then
-		marker = text[1]:match("^[%>%s]*([%-%+%*])%s");
+	if text[1]:match("^[%>%s]*([%-%+%*])%s?") then
+		marker = text[1]:match("^[%>%s]*([%-%+%*])%s?");
 		checkbox = text[1]:match("^[%>%s]*[%-%+%*]%s+%[(.)%]")
-	elseif text[1]:match("^[%>%s]*(%d+[%.%)])%s") then
-		marker = text[1]:match("^[%>%s]*(%d+[%.%)])%s");
+	elseif text[1]:match("^[%>%s]*(%d+[%.%)])%s?") then
+		marker = text[1]:match("^[%>%s]*(%d+[%.%)])%s?");
 		checkbox = text[1]:match("^[%>%s]*%d+[%.%)]%s+%[(.)%]");
+	end
+
+	if not marker then
+		return;
 	end
 
 	before, indent = text[1]:match("^(.-)(%>?%s*)" .. utils.escape_string(marker));
