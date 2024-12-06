@@ -1,9 +1,13 @@
 local markview = require("markview");
 local spec = require("markview.spec");
 
+--- Sets up the highlight groups.
+--- Should be called AFTER loading
+--- colorschemes.
 require("markview.highlights").setup();
 
---- Patch for the broken (fenced_code_block) concealment
+--- Patch for the broken (fenced_code_block) concealment.
+--- Doesn't hide leading spaces before ```
 vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, predicate, metadata)
 	local id = predicate[2];
 	local node = match[id];
@@ -45,7 +49,7 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 			if spec.get({ "enable" }) == false or markview.state.enable == false then
 				--- Plugin is disabled.
 				return false;
-			elseif vim.list_contains(attach_ft, ft) == false  then
+			elseif vim.list_contains(attach_ft, ft) == false then
 				return false;
 			elseif vim.list_contains(ignore_bt, bt) == true then
 				return false;
@@ -60,108 +64,14 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	end
 });
 
---- Autocmd to listen to mode changes.
--- vim.api.nvim_create_autocmd({ "ModeChanged" }, {
--- 	group = markview.group,
--- 	callback = function ()
--- 		local renderer = require("markview.renderer");
---
--- 		local mode = vim.api.nvim_get_mode().mode;
---
--- 		local call = spec.get({ "preview", "callbacks", "on_mode_change" }, { fallback = nil, ignore_enable = true });
---
--- 		if markview.state.enable == false then
--- 			return;
--- 		elseif not preview_modes then
--- 			return;
--- 		end
---
--- 		for buf, state in ipairs(markview.state.buffer_states) do
--- 			---+${func, Buffer redrawing}
--- 			renderer.clear(buf);
--- 			if state == false then goto continue; end
---
--- 			if vim.list_contains(preview_modes, mode) then
--- 				-- markview.draw(buf);
--- 			else
--- 				renderer.clear(buf, {}, 0, -1);
--- 			end
---
--- 			if
--- 				call and
--- 				pcall(call, buf, vim.fn.win_findbuf(buf), mode)
--- 			then
--- 				call(
--- 					buf,
--- 					vim.fn.win_findbuf(buf),
--- 					mode
--- 				)
--- 			end
---
--- 			::continue::
--- 			---_
--- 		end
--- 	end
--- });
---
--- -- local events = spec.get({ "preview", "redraw_events" }, { fallback = {}, ignore_enable = true });
---
--- vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "TextChanged", "TextChangedI" }, {
--- 	group = markview.group,
--- 	callback = function (param)
--- 		--- Checks if decorations can be drawn on a buffer.
--- 		---@param buffer integer
--- 		---@return boolean
--- 		local buf_is_safe = function (buffer)
--- 			---+${func}
--- 			markview.clean();
---
--- 			if markview.state.enable == false then
--- 				return false;
--- 			elseif markview.state.buffer_states[buffer] == false then
--- 				return false;
--- 			end
---
--- 			return true;
--- 			---_
--- 		end
---
--- 		local can_render = function ()
--- 			local ev = param.event;
--- 			local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
---
--- 			if (ev == "CursorMoved" or ev == "TextChanged") and (vim.list_contains(modes, "n") or vim.list_contains(modes, "v")) then
--- 				return true;
--- 			elseif (ev == "CursorMovedI" or ev == "TextChangedI") and vim.list_contains(modes, "i") then
--- 				return true;
--- 			end
---
--- 			return false;
--- 		end
---
--- 		if can_render() == false then
--- 			return;
--- 		end
---
--- 		local attached_bufs = vim.tbl_keys(markview.state.buffer_states);
--- 		debounce:stop();
---
--- 		if vim.list_contains(attached_bufs, param.buf) == false then
--- 			return;
--- 		end
---
--- 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
--- 			--- Drawer function
--- 			if buf_is_safe(param.buf) == false then return; end
--- 		end));
---
--- 	end
--- });
-
-
 local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
 local debounce = vim.uv.new_timer();
 
+--- Like `vim.list_contains` but on a
+--- list of items.
+---@param list any[]
+---@param items any[]
+---@return boolean
 local list_contains = function (list, items)
 	for _, item in ipairs(items) do
 		if vim.list_contains(list, item) then
@@ -172,6 +82,12 @@ local list_contains = function (list, items)
 	return false;
 end
 
+--- All the events where the preview
+--- might be updated.
+---
+--- Note: I did this because `splitview`
+--- doesn't follow `modes`(otherwise it
+--- becomes kinda pointless to use).
 vim.api.nvim_create_autocmd({
 	"ModeChanged",
 	"CursorMoved", "TextChanged",
@@ -189,6 +105,8 @@ vim.api.nvim_create_autocmd({
 		debounce:stop();
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 
+		--- Is this an event where
+		--- we should render?
 		local render_event = function ()
 			if (event == "CursorMoved" or event == "TextChanged") and list_contains(preview_modes, { "n", "v" }) then
 				return true;
@@ -201,14 +119,23 @@ vim.api.nvim_create_autocmd({
 
 		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
 			if vim.list_contains(markview.state.ignore_modes, buf) == true then
+				--- This buffer ignores `modes` and
+				--- the events caused by them
 				markview.draw(buf, true);
 			elseif event == "ModeChanged" then
+				--- We should only toggle the preview
+				--- on the current buffer as otherwise
+				--- it gets distracting when multiple
+				--- windows are open.
 				if vim.list_contains(state.attached_buffers, buf) == false then
+					--- Not an attached buffer.
 					return;
 				elseif markview.buf_is_safe(buf) == false then
+					--- How do the buffer become invalid?
 					markview.clean();
 					return;
 				elseif buf == markview.state.splitview_source then
+					--- Update `splitview` buffer.
 					markview.commands.splitRedraw();
 				elseif vim.list_contains(preview_modes, mode) then
 					markview.draw(buf);
@@ -216,6 +143,7 @@ vim.api.nvim_create_autocmd({
 					markview.clear(buf);
 				end
 			elseif render_event() == true then
+				--- Cursor moved or text changed.
 				if buf == markview.state.splitview_source then
 					markview.commands.splitRedraw();
 				else
@@ -226,6 +154,7 @@ vim.api.nvim_create_autocmd({
 	end
 })
 
+--- The `:Markview` command.
 vim.api.nvim_create_user_command(
 	"Markview",
 	require("markview").exec,
@@ -236,11 +165,11 @@ vim.api.nvim_create_user_command(
 	}
 );
 
+--- Updates the highlight groups.
 vim.api.nvim_create_autocmd("ColorScheme", {
 	callback = function ()
 		local hls = require("markview.highlights");
-
 		hls.create(hls.groups)
 	end
-})
+});
 

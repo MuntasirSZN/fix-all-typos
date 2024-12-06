@@ -153,6 +153,7 @@ markview.draw = function (buffer, ignore_modes)
 
 	local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 	local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {}, ignore_enable = true });
+	local linewise_hybrid_mode = spec.get({ "preview", "linewise_hybrid_mode" }, { fallback = false, ignore_enable = true })
 
 	local mode = vim.api.nvim_get_mode().mode;
 
@@ -165,18 +166,17 @@ markview.draw = function (buffer, ignore_modes)
 
 	local parser = require("markview.parser");
 	local renderer = require("markview.renderer");
-	local content = {};
 
 	markview.clear(buffer);
 
 	if line_count <= line_limit then
-		content = parser.parse(buffer, 0, -1, true);
+		local content = parser.parse(buffer, 0, -1, true);
 		renderer.render(buffer, content);
 	else
 		for _, window in ipairs(vim.fn.win_findbuf(buffer)) do
 			local cursor = vim.api.nvim_win_get_cursor(window);
 
-			content = parser.init(
+			local content = parser.init(
 				buffer,
 				math.max(0, cursor[1] - draw_range),
 				math.min(
@@ -205,18 +205,24 @@ markview.draw = function (buffer, ignore_modes)
 
 	for _, window in ipairs(vim.fn.win_findbuf(buffer)) do
 		local cursor = vim.api.nvim_win_get_cursor(window);
+		local clear_from, clear_to;
 
-		content = parser.init(
-			buffer,
-			math.max(0, cursor[1] - edit_range[1]),
-			math.min(
-				vim.api.nvim_buf_line_count(buffer),
-				cursor[1] + edit_range[2]
-			),
-			false
-		);
+		if linewise_hybrid_mode == false then
+			local hidden_content = parser.init(
+				buffer,
+				math.max(0, cursor[1] - edit_range[1]),
+				math.min(
+					vim.api.nvim_buf_line_count(buffer),
+					cursor[1] + edit_range[2]
+				),
+				false
+			);
 
-		local clear_from, clear_to = renderer.range(content);
+			clear_from, clear_to = renderer.range(hidden_content);
+		else
+			clear_from = cursor[1] - edit_range[1];
+			clear_to = cursor[1] + edit_range[2];
+		end
 
 		if clear_from and clear_to then
 			renderer.clear(
