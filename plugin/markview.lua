@@ -159,7 +159,7 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 -- });
 
 
-local debounce_delay = 0 or spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
+local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
 local debounce = vim.uv.new_timer();
 
 local list_contains = function (list, items)
@@ -199,27 +199,30 @@ vim.api.nvim_create_autocmd({
 			return false;
 		end
 
-		if event == "ModeChanged" then
-			if vim.list_contains(state.attached_buffers, buf) == false then
-				return;
-			elseif markview.buf_is_safe(buf) == false then
-				markview.clean();
-				return;
-			elseif buf == markview.state.splitview_source then
-				markview.commands.splitRedraw();
-			elseif vim.list_contains(preview_modes, mode) then
-				markview.draw(buf);
-			else
-				markview.clear(buf);
+		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
+			if vim.list_contains(markview.state.ignore_modes, buf) == true then
+				markview.draw(buf, true);
+			elseif event == "ModeChanged" then
+				if vim.list_contains(state.attached_buffers, buf) == false then
+					return;
+				elseif markview.buf_is_safe(buf) == false then
+					markview.clean();
+					return;
+				elseif buf == markview.state.splitview_source then
+					markview.commands.splitRedraw();
+				elseif vim.list_contains(preview_modes, mode) then
+					markview.draw(buf);
+				else
+					markview.clear(buf);
+				end
+			elseif render_event() == true then
+				if buf == markview.state.splitview_source then
+					markview.commands.splitRedraw();
+				else
+					markview.draw(buf);
+				end
 			end
-		elseif render_event() == true then
-			if buf == markview.state.splitview_source then
-				markview.commands.splitRedraw();
-			else
-				markview.clear(buf);
-				markview.draw(buf);
-			end
-		end
+		end))
 	end
 })
 
