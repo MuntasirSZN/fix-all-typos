@@ -47,7 +47,7 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 		local bt, ft = vim.bo[buffer].buftype, vim.bo[buffer].filetype;
 
 		local attach_ft = spec.get({ "preview", "filetypes" }, { fallback = {}, ignore_enable = true });
-		local ignore_bt = spec.get({ "preview", "filetypes" }, { fallback = {}, ignore_enable = true });
+		local ignore_bt = spec.get({ "preview", "ignore_buftypes" }, { fallback = {}, ignore_enable = true });
 
 		--- Check if it's possible to attach to
 		--- the buffer.
@@ -150,7 +150,7 @@ vim.api.nvim_create_autocmd({
 				--- Cursor moved or text changed.
 				if buf == markview.state.splitview_source then
 					markview.commands.splitRedraw();
-				else
+				elseif vim.list_contains(markview.state.attached_buffers, buf) then
 					markview.draw(buf);
 				end
 			end
