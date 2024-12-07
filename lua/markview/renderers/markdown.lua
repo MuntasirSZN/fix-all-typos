@@ -926,20 +926,11 @@ markdown.block_quote = function (buffer, item)
 
 	---@type markdown.block_quotes?
 	local main_config = spec.get({ "markdown", "block_quotes" }, { fallback = nil });
-	---@type string[]
-	local keys = vim.tbl_keys(main_config);
 	local range = item.range;
 
 	if
 		not main_config or
 		not main_config.default
-	then
-		return;
-	elseif
-		item.callout and
-		not vim.list_contains(keys, string.lower(item.callout)) and
-		not vim.list_contains(keys, string.upper(item.callout)) and
-		not vim.list_contains(keys, item.callout)
 	then
 		return;
 	end
@@ -956,6 +947,9 @@ markdown.block_quote = function (buffer, item)
 			{ source = main_config }
 		) or spec.get(
 			{ item.callout },
+			{ source = main_config }
+		) or spec.get(
+			{ "default" },
 			{ source = main_config }
 		);
 	else
