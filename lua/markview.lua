@@ -145,6 +145,11 @@ end
 ---@param ignore_modes? boolean
 markview.draw = function (buffer, ignore_modes)
 	---+${func}
+	if markview.buf_is_safe(buffer) == false then
+		markview.clean();
+		return;
+	end
+
 	local line_limit = spec.get({ "preview", "max_file_length" }, { fallback = 1000, ignore_enable = true });
 	local draw_range = spec.get({ "preview", "render_distance" }, { fallback = vim.o.lines, ignore_enable = true });
 	local edit_range = spec.get({ "preview", "edit_distance" }, { fallback = { 1, 0 }, ignore_enable = true });
