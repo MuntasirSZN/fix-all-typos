@@ -491,8 +491,8 @@ markdown.parse = function (buffer, TSTree, from, to)
 			end
 		end
 
-		-- pcall(
-			markdown[capture_name:gsub("^markdown%.", "")](
+		pcall(
+			markdown[capture_name:gsub("^markdown%.", "")],
 
 			buffer,
 			capture_node,
