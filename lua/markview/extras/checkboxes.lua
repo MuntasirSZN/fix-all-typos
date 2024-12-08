@@ -6,8 +6,15 @@ checkboxes.config = {
 	remove_style = "list_item",
 
 	states = {
-		{ " ", "X" },
+		{ " ", "/", "X" },
 		{ "<", ">" },
+		{ "?", "!", "*" },
+		{ '"' },
+		{ "l", "b", "i" },
+		{ "S", "I" },
+		{ "p", "c" },
+		{ "f", "k", "w" },
+		{ "u", "d" }
 	}
 };
 
@@ -30,6 +37,10 @@ checkboxes.register_state = function (buffer, lnum, state)
 	checkboxes.cache[buffer][lnum] = state;
 end
 
+--- Gets the row, col coordinates for a given
+--- state
+---@param state string
+---@return [ integer, integer ]?
 checkboxes.get_state_coords = function (state)
 	for y, row in ipairs(checkboxes.config.states) do
 		for x, col in ipairs(row) do
@@ -370,6 +381,8 @@ end
 
 ---_
 
+---+${class, Interactive checkbox state changer}
+
 local interactive = {};
 
 interactive.ui_ns = vim.api.nvim_create_namespace("markview-extras-checkboxes");
@@ -380,7 +393,10 @@ interactive.ui_window = nil;
 interactive.keymaps = {};
 interactive.coordinate = nil;
 
+--- Draws the UI.
 interactive.__draw = function ()
+	---+${func}
+
 	if not interactive.ui_buffer or vim.api.nvim_buf_is_valid(interactive.ui_buffer) == false then
 		interactive.ui_buffer = vim.api.nvim_create_buf(false, true);
 	end
@@ -394,7 +410,7 @@ interactive.__draw = function ()
 	local set = checkboxes.config.states[interactive.coordinate[2]];
 	local x = interactive.coordinate[1];
 
-	if x - 1 < 1 then
+	if x - 1 < 1 or x - 1 > #set then
 		table.insert(_v, { " •", "MarkviewGradient4" });
 		table.insert(_v, { "⊘", "MarkviewGradient3" });
 		table.insert(_v, { "• ", "MarkviewGradient4" });
@@ -405,7 +421,7 @@ interactive.__draw = function ()
 	end
 
 	table.insert(_v, { "[", "MarkviewGradient6" });
-	table.insert(_v, { set[x], "MarkviewGradient9" })
+	table.insert(_v, { set[math.min(#set, x)], "MarkviewGradient9" })
 	table.insert(_v, { "]", "MarkviewGradient6" });
 
 	if x + 1 > #set then
@@ -447,7 +463,6 @@ interactive.__draw = function ()
 		});
 	end
 
-	local coord = interactive.coordinate;
 	local erange = interactive.edit_range;
 	local line = vim.api.nvim_buf_get_lines(interactive.source_buffer, erange[1], erange[1] + 1, false)[1];
 
@@ -457,10 +472,13 @@ interactive.__draw = function ()
 		#vim.fn.strcharpart(line, 0, erange[2]),
 		erange[1],
 		#vim.fn.strcharpart(line, 0, erange[3]),
-		{ checkboxes.config.states[coord[2]][coord[1]] }
+		{ set[math.min(#set, x)] }
 	);
+	---_
 end
 
+--- Closes the interactive state changer
+--- window and restores keymaps.
 interactive.__close = function ()
 	pcall(vim.api.nvim_win_close, interactive.ui_window, true);
 
@@ -482,7 +500,11 @@ interactive.__close = function ()
 	end
 end
 
+--- Caches keymaps for h, j, k & l.
+---@param buffer integer
 interactive.__cache_keymaps = function (buffer)
+	---+${func}
+
 	for _, keymap in ipairs(vim.api.nvim_buf_get_keymap(buffer, "n")) do
 		if vim.list_contains({ "h", "j", "k", "l" }, keymap.lhs) then
 			table.insert(interactive.keymaps, keymap);
@@ -512,45 +534,52 @@ interactive.__cache_keymaps = function (buffer)
 			interactive.__l();
 		end
 	});
+	---_
 end
 
+---+${class, Various movements}
 interactive.__h = function ()
+	local set = checkboxes.config.states[interactive.coordinate[2]];
+
 	interactive.coordinate = {
-		normalize(interactive.coordinate[1] - 1, #checkboxes.config.states),
+		normalize(interactive.coordinate[1] - 1, #set),
 		interactive.coordinate[2]
 	};
 	interactive.__draw();
 end
 
 interactive.__l = function ()
+	local set = checkboxes.config.states[interactive.coordinate[2]];
+
 	interactive.coordinate = {
-		normalize(interactive.coordinate[1] + 1, #checkboxes.config.states),
+		normalize(interactive.coordinate[1] + 1, #set),
 		interactive.coordinate[2]
 	};
 	interactive.__draw();
 end
 
 interactive.__j = function ()
-	local set = checkboxes.config.states[interactive.coordinate[1]];
-
 	interactive.coordinate = {
 		interactive.coordinate[1],
-		normalize(interactive.coordinate[2] + 1, #set),
+		normalize(interactive.coordinate[2] + 1, #checkboxes.config.states),
 	};
 	interactive.__draw();
 end
 
 interactive.__k = function ()
-	local set = checkboxes.config.states[interactive.coordinate[1]];
-
 	interactive.coordinate = {
 		interactive.coordinate[1],
-		normalize(interactive.coordinate[2] - 1, #set),
+		normalize(interactive.coordinate[2] - 1, #checkboxes.config.states),
 	};
 	interactive.__draw();
 end
+---_
 
+--- Initiates an interactive checkbox state
+--- changer.
 interactive.init = function ()
+	---+${func}
+
 	local buffer = vim.api.nvim_get_current_buf();
 	local cursor = vim.api.nvim_win_get_cursor(0);
 
@@ -594,12 +623,10 @@ interactive.init = function ()
 			interactive.__close();
 		end
 	end);
+	---_
 end
 
-
-
-
-
+---_
 
 checkboxes.toggler = toggler;
 checkboxes.change = changer;
