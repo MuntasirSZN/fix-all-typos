@@ -1,365 +1,608 @@
 local checkboxes = {};
+local spec = require("markview.spec");
 
-local escape_string = function (input)
-	if not input then
+checkboxes.config = {
+	default = "X",
+	remove_style = "list_item",
+
+	states = {
+		{ " ", "X" },
+		{ "<", ">" },
+	}
+};
+
+--- Holds checkbox states for different lines
+--- for each buffer.
+---@type { [integer]: { [integer]: string? } }
+checkboxes.cache = {};
+
+--- Cache the checkbox state of a specific line.
+---@param buffer integer
+---@param lnum integer
+---@param state string
+checkboxes.register_state = function (buffer, lnum, state)
+	if not checkboxes.cache[buffer] then
+		checkboxes.cache[buffer] = {};
+	elseif state == nil then
 		return;
 	end
 
-	input = input:gsub("%%", "%%%");
-
-	input = input:gsub("%(", "%%(");
-	input = input:gsub("%)", "%%)");
-
-	input = input:gsub("%.", "%%.");
-	input = input:gsub("%+", "%%+");
-	input = input:gsub("%-", "%%-");
-	input = input:gsub("%*", "%%*");
-	input = input:gsub("%?", "%%?");
-	input = input:gsub("%^", "%%^");
-	input = input:gsub("%$", "%%$");
-
-	input = input:gsub("%[", "%%[");
-	input = input:gsub("%]", "%%]");
-
-	return input;
+	checkboxes.cache[buffer][lnum] = state;
 end
 
-
-local str2bool = function (str)
-	if not str then
-		return false;
-	elseif str == "true" then
-		return true;
-	end
-
-	return false;
-end
-
-checkboxes.configuraton = {
-	remove_markers = true,
-	default_marker = "-",
-
-	default_state = "X",
-
-	states = {
-		{ "X", " " },
-		{ "o", "-" },
-	}
-}
-
----@class mkv.extra.checkboxes.state
----
----@field marker? string
----@field checkbox? string
-
----@type table<integer, mkv.extra.checkboxes.state[]>
-checkboxes.state = {};
-
-checkboxes.update = function (buffer, line, str, save)
-	if not checkboxes.state[buffer] then
-		checkboxes.state[buffer] = {};
-	end
-
-	local checkbox = str:match("^[%>%s]*[%-%+%*]%s*%[(.)%]");
-	local marker = str:match("^[%>%s]*([%-%+%*])")
-	local group, state;
-
-	if checkbox then
-		for g, grp in ipairs(checkboxes.configuraton.states) do
-			if vim.list_contains(grp, checkbox) then
-				for s, ste in ipairs(grp) do
-					if ste == checkbox then
-						group, state = g, s;
-						break;
-					end
-				end
+checkboxes.get_state_coords = function (state)
+	for y, row in ipairs(checkboxes.config.states) do
+		for x, col in ipairs(row) do
+			if col == state then
+				return { x, y };
 			end
 		end
 	end
 
-	if save ~= false then
-		checkboxes.state[buffer][line] = vim.tbl_extend("force", checkboxes.state[buffer][line] or {}, {
-			marker = marker,
-			checkbox = checkbox,
-
-			group = group, state = state
-		});
-	end
-
-	marker = escape_string(marker);
-	checkbox = escape_string(checkbox);
-
-	return {
-		marker = marker,
-		checkbox = checkbox,
-
-		group = group, state = state
-	};
+	return nil;
 end
 
-checkboxes.toggle = function (remove_markers, exit)
-	local buffer = vim.api.nvim_get_current_buf();
-	local from, to = vim.fn.getpos("v"), vim.fn.getpos(".");
-	local hasMarkers = false;
+--- Normalizes {num} between 0 & {max}
+---@param num number
+---@param max number
+---@return number
+local normalize = function (num, max)
+	if num > max then
+		num = num % max;
+	elseif num < 0 then
+		num = max + num;
 
-	if remove_markers == nil then
-		remove_markers = checkboxes.configuraton.remove_markers;
+		if num < 0 then
+			num = max - (math.abs(num) % max)
+		end
+
+	elseif num == 0 then
+		num = max;
 	end
 
-	if exit == nil then
-		exit = checkboxes.configuraton.exit;
+	return num == 0 and max or num;
+end
+
+
+---+${class, Checkbox toggle}
+
+--- Checkbox toggle sub-module.
+local toggler = {};
+
+--- Removes checkbox from a line.
+---@param buffer integer
+---@param lnum integer
+---@param line string
+---@return string
+---@return table
+toggler.__remove_checkbox = function (buffer, lnum, line)
+	---+${func}
+	local before, state, after;
+
+	--- Pattern should change based on the list
+	--- item style.
+	if line:match("^[%s%>]*[%-%+%*]") then
+		before, state, after = line:match("^([%s%>]*[%-%+%*]%s+%[)(.?)(%].*)$");
+	else
+		before, state, after = line:match("^([%s%>]*%d+[%.%)]%s+%[)(.?)(%].*)$");
 	end
 
-	from, to = math.min(from[2], to[2]), math.max(from[2], to[2])
+	--- Cache state.
+	checkboxes.register_state(buffer, lnum, state);
 
-	local text = vim.api.nvim_buf_get_lines(buffer, from - 1, to, false);
+	--- Remove different things based on the
+	--- option's value.
+	if checkboxes.config.remove_style == "disable" then
+		return before .. " " .. after, { before, state, after };
+	elseif checkboxes.config.remove_style == "checkbox" then
+		return before:gsub("%s+%[$", "") .. " " .. after:gsub("^%]%s", ""), { before, state, after };
+	elseif checkboxes.config.remove_style == "list_item" then
+		if before:match("[%-%+%*]%s+%[$") then
+			return before:gsub("[%-%+%*]%s+%[$", "") .. after:gsub("^%]%s", ""), { before, state, after };
+		else
+			return before:gsub("%d+[%.%)]%s+%[$", "") .. after:gsub("^%]%s", ""), { before, state, after };
+		end
+	end
 
-	for _, line in ipairs(text) do
-		if line:match("^[%>%s]*([%-%+%*])") then
-			hasMarkers = true;
+	return line, { before, state, after };
+	---_
+end
+
+--- Adds checkbox to lines
+---@param buffer integer
+---@param lnum integer
+---@param line string
+---@return string
+---@return string[]
+toggler.__add_checkbox = function (buffer, lnum, line)
+	---+${func}
+	local before, state, after;
+	local cached_state;
+
+	--- Get the cached state, if possible.
+	if checkboxes.cache[buffer] and checkboxes.cache[buffer][lnum] then
+		cached_state = checkboxes.cache[buffer][lnum];
+	end
+
+	--- Change the text differently depending on whether
+	--- it has [], [ ] or just the list item.
+	---
+	--- This is based on the assumption that the checker
+	--- function didn't fail.
+	if line:match("^[%s%>]*[%-%+%*]%s+%[%]") or line:match("^[%s%>]*%d+[%.%)]%s+%[%]") then
+		if line:match("^[%s%>]*[%-%+%*]") then
+			before, state, after = line:match("^([%s%>]*[%-%+%*]%s+%[)(.?)(%].*)$");
+		else
+			before, state, after = line:match("^([%s%>]*%d+[%.%)]%s+%[)(.?)(%].*)$");
+		end
+
+		return before .. (checkboxes.config.default or "") .. after, { before, state, after };
+	elseif line:match("^[%s%>]*[%-%+%*]%s+%[ %]") or line:match("^[%s%>]*%d+[%.%)]%s+%[ %]") then
+		if line:match("^[%s%>]*[%-%+%*]") then
+			before, state, after = line:match("^([%s%>]*[%-%+%*]%s+%[)( )(%].*)$");
+		else
+			before, state, after = line:match("^([%s%>]*%d+[%.%)]%s+%[)( )(%].*)$");
+		end
+
+		return before .. (cached_state or checkboxes.config.default or "") .. after, { before, state, after };
+	else
+		if line:match("^[%s%>]*[%-%+%*]") then
+			before, after = line:match("^([%s%>]*[%-%+%*])(.*)$");
+		else
+			before, after = line:match("^([%s%>]*%d+[%.%)])(.*)$");
+		end
+
+		return before .. string.format(" [%s]", cached_state or checkboxes.config.default or "") .. after, { before, state, after };
+	end
+	---_
+end
+
+--- Function to run if the text has list item markers.
+---@param buffer integer
+---@param from integer
+---@param to integer
+---@param lines string[]
+---@return string[]
+toggler.__has_markers = function (buffer, from, to, lines)
+	---+${func}
+	local state = "normal";
+	local tolerance = spec.get({ "experimental", "list_empty_line_tolerance" }, { fallback = 3 });
+	local empty_lines = 0;
+
+	--- Store the number of characters before the marker.
+	---
+	--- WARN, this is assuming `expandtab` is in use!
+	--- FIXME, Find a better way to check if a line is
+	--- part of a list item or not.
+	local col_start = 0;
+
+	--- Does this line have a checkbox? Do we remove it?
+	---@param line string
+	---@return boolean
+	local function should_remove_checkbox(line)
+		if line:match("^[%s%>]*[%-%+%*]%s+%[%]") or line:match("^[%s%>]*%d+[%.%)]%s+%[%]") then
+			if checkboxes.config.remove_style == "disable" then
+				return false;
+			else
+				return true;
+			end
+		elseif line:match("^[%s%>]*[%-%+%*]%s+%[ %]") or line:match("^[%s%>]*%d+[%.%)]%s+%[ %]") then
+			if checkboxes.config.remove_style == "disable" then
+				return false;
+			else
+				return true;
+			end
+		elseif line:match("^[%s%>]*[%-%+%*]%s+%[.%]") or line:match("^[%s%>]*%d+[%.%)]%s+%[.%]") then
+			return true;
+		end
+
+		return false;
+	end
+
+	--- Should this line have a checkbox?
+	---@param line string
+	---@return boolean
+	local function should_add_checkbox(line)
+		if checkboxes.config.remove_style == "disable" and line:match("^[%s%>]*[%-%+%*]%s+%[%]") or line:match("^[%s%>]*%d+[%.%)]%s+%[%]") then
+			return true;
+		elseif checkboxes.config.remove_style == "disable" and line:match("^[%s%>]*[%-%+%*]%s+%[ %]") or line:match("^[%s%>]*%d+[%.%)]%s+%[ %]") then
+			return true;
+		elseif line:match("^[%s%>]*[%-%+%*]%s+") or line:match("^[%s%>]*%d+[%.%)]%s+") then
+			--- Cache state here
+			return true;
+		end
+
+		return false;
+	end
+
+	for l, line in ipairs(lines) do
+		if should_remove_checkbox(line) then
+			empty_lines = 0;
+			state = "remove";
+
+			local replace, data = toggler.__remove_checkbox(buffer, from + (l - 1), line);
+			lines[l] = replace;
+
+			col_start = vim.fn.strchars(data[1]:gsub("[%-%+%*]%s+%[$", ""):gsub("%d+[%.%)]%s+%[$", ""));
+		elseif should_add_checkbox(line) then
+			empty_lines = 0;
+			state = "add"; --- This is for future use.
+
+			local replace, data = toggler.__add_checkbox(buffer, from + (l - 1), line);
+			lines[l] = replace;
+
+			col_start = vim.fn.strchars(data[1]:gsub("[%-%+%*]%s+%[$", ""):gsub("%d+[%.%)]%s+%[$", ""));
+		elseif line:match("^[%s%>]*$") then
+			--- This will mimic the behavior of how
+			--- list items are rendered by the plugin.
+			if empty_lines >= tolerance then
+				state = "normal";
+			else
+				empty_lines = empty_lines + 1;
+			end
+		elseif state == "remove" then
+			local before = vim.fn.strcharpart(line, 0, col_start + 2);
+
+			if before:match("^[%s%>]*$") and checkboxes.config.remove_style == "list_item" then
+				lines[l] = vim.fn.strcharpart(line, 0, math.max(0, col_start - 2)) .. vim.fn.strcharpart(line, col_start);
+			elseif before:match("^[%s%>]*$") == nil then
+				state = "normal";
+			end
+		end
+	end
+
+	return lines;
+	---_
+end
+
+--- Initializes the checkbox toggler on a specified
+--- range inside the given buffer.
+---@param buffer integer?
+---@param from integer?
+---@param to integer?
+toggler.init = function (buffer, from, to)
+	---+${func}
+	buffer = buffer or vim.api.nvim_get_current_buf();
+
+	local pos = vim.fn.getpos;
+	local row_start, row_end;
+
+	if from and to then
+		row_start = math.min(from, to);
+		row_end   = math.max(from, to);
+	elseif pos("v")[2] ~= pos(".")[2] then
+		row_start = math.min(pos("v")[2], pos(".")[2]) - 1;
+		row_end   = math.max(pos("v")[2], pos(".")[2]);
+	else
+		row_start = pos(".")[2] - 1;
+		row_end   = pos(".")[2];
+	end
+
+	local lines = vim.api.nvim_buf_get_lines(buffer, row_start, row_end, false);
+	local contains_markers = false;
+
+	for _, line in ipairs(lines) do
+		if line:match("^[%s%>]*[%-%+%*]") or line:match("^[%s%>]*%d+[%.%)]") then
+			contains_markers = true;
 			break;
 		end
 	end
 
-	local inside_item, removed_item, list_indent = false, false, "";
+	if contains_markers == true then
+		lines = toggler.__has_markers(buffer, row_start, row_end, lines);
+	else
+		return;
+	end
 
-	for l, line in ipairs(text) do
-		if hasMarkers == true then
-			local data = checkboxes.update(buffer, from + (l - 1), line, true);
-			local this = checkboxes.state[vim.api.nvim_get_current_buf()][from + l - 1];
+	vim.api.nvim_buf_set_lines(buffer, row_start, row_end, false, lines);
+	---_
+end
 
-			local indent = line:match("^([%>%s]*)");
+---_
+---+${class, Checkbox state changer}
 
-			if inside_item == true and line == "" then
-				inside_item = false;
-				list_indent = "";
-			end
+--- Checkbox state changer sub-module
+local changer = {};
 
-			if data.checkbox then
-				-- Checkbox exists,
-				-- Remove the checkbox
-				removed_item = true;
-				inside_item = false;
+changer.init = function (buffer, from, to, x, y)
+	---+${func}
 
-				if remove_markers == true then
-					text[l] = line:gsub(indent .. data.marker .. "%s+%[" .. data.checkbox .. "%]" .. "%s?", indent)
-				else
-					text[l] = line:gsub(indent .. data.marker .. "%s+%[" .. data.checkbox .. "%]", indent .. data.marker)
-				end
-			elseif data.marker then
-				-- List marker exists,
-				-- Add the checkbox
-				removed_item = false;
-				inside_item = true;
+	--- Set some default values
+	buffer = buffer or vim.api.nvim_get_current_buf();
+	x = x or 0;
+	y = y or 0;
 
-				if this.checkbox then
-					text[l] = line:gsub(indent .. "%" .. data.marker .. "%s*", indent .. data.marker .. " [" .. this.checkbox .. "] ")
-				else
-					text[l] = line:gsub(indent .. "%" .. data.marker .. "%s*", indent .. data.marker .. " [" .. checkboxes.configuraton.default_state .. "] ")
-				end
-			elseif this.marker and this.checkbox then
-				-- A previous marker existed
-				-- Restore the marker & checkbox
-				removed_item = false;
-				inside_item = true;
+	local pos = vim.fn.getpos;
+	local row_start, row_end;
 
-				text[l] = line:gsub("^" .. indent, indent .. this.marker .. " [" .. this.checkbox .. "] ")
-			elseif removed_item == true then
-				text[l] = line:gsub("^" .. list_indent .. "  ", "")
-			elseif inside_item == true then
-				text[l] = line:gsub("^" .. indent, list_indent .. "  ")
-			end
-		elseif not line:match("^([%>%s]*)$") then
-			checkboxes.update(buffer, from + l - 1, line, false);
+	if from and to then
+		row_start = math.min(from, to);
+		row_end   = math.max(from, to);
+	elseif pos("v")[2] ~= pos(".")[2] then
+		row_start = math.min(pos("v")[2], pos(".")[2]) - 1;
+		row_end   = math.max(pos("v")[2], pos(".")[2]);
+	else
+		row_start = pos(".")[2] - 1;
+		row_end   = pos(".")[2];
+	end
 
-			local this = checkboxes.state[vim.api.nvim_get_current_buf()][from + l - 1] or {};
-			local indent = line:match("^([%>%s]*)");
+	local lines = vim.api.nvim_buf_get_lines(buffer, row_start, row_end, false);
 
-			if this.checkbox then
-				text[l] = line:gsub("^" .. indent, indent .. this.marker .. " [" .. this.checkbox .. "] ")
-			else
-				text[l] = line:gsub("^" .. indent, indent .. checkboxes.configuraton.default_marker .. " [" .. checkboxes.configuraton.default_state .. "] ")
-			end
+	--- Changes the provided state and returns the
+	--- new state
+	---@param state string
+	---@param lnum integer
+	---@return string
+	local change_state = function (state, lnum)
+		local coords = checkboxes.get_state_coords(state);
+
+		if coords == nil then
+			checkboxes.register_state(buffer, lnum, state);
+			return state;
+		end
+
+		coords[2] = normalize(coords[2] + y, #checkboxes.config.states);
+
+		local set = checkboxes.config.states[coords[2]];
+		coords[1] = normalize(coords[1] + x, #set);
+
+		checkboxes.register_state(buffer, lnum, set[coords[1]]);
+		return set[coords[1]];
+	end
+
+	for l, line in ipairs(lines) do
+		if line:match("^[%s%>]*[%-%+%*]%s+%[.%]") then
+			local _, chk_e, state = line:find("^[%s%>]*[%-%+%*%)]%s+%[.%]");
+			local new_state = change_state(state, (l - 1) + row_start);
+
+			lines[l] = line:sub(0, chk_e - 2) .. new_state .. line:sub(chk_e);
+		elseif line:match("^[%s%>]*%d+[%.%)]%s+%[.%]") then
+			local _, chk_e, state = line:find("^[%s%>]*%d+[%.%)]%s+%[.%]");
+			local new_state = change_state(state, (l - 1) + row_start);
+
+			lines[l] = line:sub(0, chk_e - 2) .. new_state .. line:sub(chk_e);
 		end
 	end
 
-	vim.api.nvim_buf_set_lines(buffer, from - 1, to, false, text);
+	vim.api.nvim_buf_set_lines(buffer, row_start, row_end, false, lines);
+	---_
+end
 
-	if exit ~= false then
-		vim.api.nvim_input("<ESC>");
+---_
+
+local interactive = {};
+
+interactive.ui_ns = vim.api.nvim_create_namespace("markview-extras-checkboxes");
+interactive.source_buffer = nil;
+interactive.ui_buffer = vim.api.nvim_create_buf(false, true);
+interactive.ui_window = nil;
+
+interactive.keymaps = {};
+interactive.coordinate = nil;
+
+interactive.__draw = function ()
+	if not interactive.ui_buffer or vim.api.nvim_buf_is_valid(interactive.ui_buffer) == false then
+		interactive.ui_buffer = vim.api.nvim_create_buf(false, true);
+	end
+
+	vim.api.nvim_buf_clear_namespace(interactive.ui_buffer, interactive.ui_ns, 0, -1);
+	vim.api.nvim_buf_set_lines(interactive.ui_buffer, 0, -1, false, { "" });
+
+	local width = 14;
+	local _v = {};
+
+	local set = checkboxes.config.states[interactive.coordinate[2]];
+	local x = interactive.coordinate[1];
+
+	if x - 1 < 1 then
+		table.insert(_v, { " •", "MarkviewGradient4" });
+		table.insert(_v, { "⊘", "MarkviewGradient3" });
+		table.insert(_v, { "• ", "MarkviewGradient4" });
+	else
+		table.insert(_v, { " •", "MarkviewGradient4" });
+		table.insert(_v, { set[x - 1], "MarkviewGradient3" })
+		table.insert(_v, { "• ", "MarkviewGradient4" });
+	end
+
+	table.insert(_v, { "[", "MarkviewGradient6" });
+	table.insert(_v, { set[x], "MarkviewGradient9" })
+	table.insert(_v, { "]", "MarkviewGradient6" });
+
+	if x + 1 > #set then
+		table.insert(_v, { " •", "MarkviewGradient4" });
+		table.insert(_v, { "⊘", "MarkviewGradient3" });
+		table.insert(_v, { "• ", "MarkviewGradient4" });
+	else
+		table.insert(_v, { " •", "MarkviewGradient4" });
+		table.insert(_v, { set[x + 1], "MarkviewGradient3" })
+		table.insert(_v, { "• ", "MarkviewGradient4" });
+	end
+
+	vim.api.nvim_buf_set_extmark(interactive.ui_buffer, interactive.ui_ns, 0, 0, {
+		virt_text_pos = "inline",
+		virt_text = _v
+	});
+
+	if not interactive.ui_window or vim.api.nvim_win_is_valid(interactive.ui_window) == false then
+		interactive.ui_window = vim.api.nvim_open_win(interactive.ui_buffer, false, {
+			relative = "cursor",
+			row = 1,
+			col = -1 * math.floor(width / 2),
+
+			width = width,
+			height = 1,
+
+			-- focusable = false
+		});
+	else
+		vim.api.nvim_win_set_config(interactive.ui_window, {
+			relative = "cursor",
+			row = 1,
+			col = -1 * math.floor(width / 2),
+
+			width = width,
+			height = 1,
+
+			-- focusable = false
+		});
+	end
+
+	local coord = interactive.coordinate;
+	local erange = interactive.edit_range;
+	local line = vim.api.nvim_buf_get_lines(interactive.source_buffer, erange[1], erange[1] + 1, false)[1];
+
+	vim.api.nvim_buf_set_text(
+		interactive.source_buffer,
+		erange[1],
+		#vim.fn.strcharpart(line, 0, erange[2]),
+		erange[1],
+		#vim.fn.strcharpart(line, 0, erange[3]),
+		{ checkboxes.config.states[coord[2]][coord[1]] }
+	);
+end
+
+interactive.__close = function ()
+	pcall(vim.api.nvim_win_close, interactive.ui_window, true);
+
+	vim.api.nvim_buf_del_keymap(interactive.source_buffer, "n", "h");
+	vim.api.nvim_buf_del_keymap(interactive.source_buffer, "n", "j");
+	vim.api.nvim_buf_del_keymap(interactive.source_buffer, "n", "k");
+	vim.api.nvim_buf_del_keymap(interactive.source_buffer, "n", "l");
+
+	for _, keymap in ipairs(interactive.keymaps) do
+		vim.api.nvim_buf_set_keymap(
+			interactive.source_buffer,
+			keymap.mode,
+			keymap.lhs or "",
+			keymap.rhs or "",
+			{
+				callback = keymap.callback
+			}
+		);
 	end
 end
 
-local scroll = function (array, index, scroll_past_end)
-	if array[index] then
-		return array[index];
-	end
-
-	if scroll_past_end == true then
-		if index < 1 then
-			return array[#array - index]
-		elseif index > #array then
-			return array[index % #array];
+interactive.__cache_keymaps = function (buffer)
+	for _, keymap in ipairs(vim.api.nvim_buf_get_keymap(buffer, "n")) do
+		if vim.list_contains({ "h", "j", "k", "l" }, keymap.lhs) then
+			table.insert(interactive.keymaps, keymap);
 		end
 	end
 
-	if index < 1 then
-		return array[#array - index]
-	elseif index > #array then
-		return array[#array];
-	end
+	vim.api.nvim_buf_set_keymap(buffer, "n", "h", "", {
+		callback = function ()
+			interactive.__h();
+		end
+	});
+
+	vim.api.nvim_buf_set_keymap(buffer, "n", "j", "", {
+		callback = function ()
+			interactive.__j();
+		end
+	});
+
+	vim.api.nvim_buf_set_keymap(buffer, "n", "k", "", {
+		callback = function ()
+			interactive.__k();
+		end
+	});
+
+	vim.api.nvim_buf_set_keymap(buffer, "n", "l", "", {
+		callback = function ()
+			interactive.__l();
+		end
+	});
 end
 
-local tbl_clamp = function (tbl, index)
-	return tbl[math.min(math.max(1, index), #tbl)];
+interactive.__h = function ()
+	interactive.coordinate = {
+		normalize(interactive.coordinate[1] - 1, #checkboxes.config.states),
+		interactive.coordinate[2]
+	};
+	interactive.__draw();
 end
 
-checkboxes.forward = function (scroll_past_end)
+interactive.__l = function ()
+	interactive.coordinate = {
+		normalize(interactive.coordinate[1] + 1, #checkboxes.config.states),
+		interactive.coordinate[2]
+	};
+	interactive.__draw();
+end
+
+interactive.__j = function ()
+	local set = checkboxes.config.states[interactive.coordinate[1]];
+
+	interactive.coordinate = {
+		interactive.coordinate[1],
+		normalize(interactive.coordinate[2] + 1, #set),
+	};
+	interactive.__draw();
+end
+
+interactive.__k = function ()
+	local set = checkboxes.config.states[interactive.coordinate[1]];
+
+	interactive.coordinate = {
+		interactive.coordinate[1],
+		normalize(interactive.coordinate[2] - 1, #set),
+	};
+	interactive.__draw();
+end
+
+interactive.init = function ()
 	local buffer = vim.api.nvim_get_current_buf();
-	local from, to = vim.fn.getpos("v"), vim.fn.getpos(".");
+	local cursor = vim.api.nvim_win_get_cursor(0);
 
-	from, to = math.min(from[2], to[2]), math.max(from[2], to[2])
-	local text = vim.api.nvim_buf_get_lines(buffer, from - 1, to, false);
+	interactive.source_buffer = buffer;
 
-	for l, line in ipairs(text) do
-		local data = checkboxes.update(buffer, from + l - 1, line, false);
+	local line = vim.api.nvim_buf_get_lines(buffer, cursor[1] - 1, cursor[1], false)[1];
+	local state, col_start, col_end;
 
-		if data.checkbox then
-			local next = scroll(checkboxes.configuraton.states[data.group], data.state + 1, scroll_past_end)
+	if line:match("^[%s%>]*[%-%+%*]%s+%[.%]") then
+		local match = line:match("^[%s%>]*[%-%+%*]%s+%[.%]");
+		local len = vim.fn.strchars(match);
 
-			text[l] = line:gsub("%[" .. data.checkbox .. "%]", "[" .. next .. "]")
-		end
+		state = match:match("%[(.)%]$");
+		col_start = #vim.fn.strcharpart(match, 0, len - 2);
+		col_end = #vim.fn.strcharpart(match, 0, len - 1);
+	elseif line:match("^[%s%>]*%d+[%.%)]%s+%[.%]") then
+		local match = line:match("^[%s%>]*%d+[%.%)]%s+%[.%]");
+		local len = vim.fn.strchars(match);
+
+		state = match:match("%[(.)%]$");
+		col_start = #vim.fn.strcharpart(match, 0, len - 2);
+		col_end = #vim.fn.strcharpart(match, 0, len - 1);
+	else
+		return;
 	end
 
-	vim.api.nvim_buf_set_lines(buffer, from - 1, to, false, text);
-end
-
-checkboxes.backward = function (scroll_past_end)
-	local buffer = vim.api.nvim_get_current_buf();
-	local from, to = vim.fn.getpos("v"), vim.fn.getpos(".");
-
-	from, to = math.min(from[2], to[2]), math.max(from[2], to[2])
-	local text = vim.api.nvim_buf_get_lines(buffer, from - 1, to, false);
-
-	for l, line in ipairs(text) do
-		local data = checkboxes.update(buffer, from + l - 1, line, true);
-
-		if data.checkbox then
-			local next = scroll(checkboxes.configuraton.states[data.group], data.state - 1, scroll_past_end)
-
-			text[l] = line:gsub("%[" .. data.checkbox .. "%]", "[" .. next .. "]")
-		end
+	if state == nil or checkboxes.get_state_coords(state) == nil then
+		return;
 	end
 
-	vim.api.nvim_buf_set_lines(buffer, from - 1, to, false, text);
+	interactive.coordinate = checkboxes.get_state_coords(state)
+	interactive.edit_range = { cursor[1] - 1, col_start, col_end };
+	interactive.__draw();
+	interactive.__cache_keymaps(buffer);
+
+	local on_keypress;
+
+	on_keypress = vim.on_key(function (_, raw)
+		if not vim.list_contains({ "h", "j", "k", "l" }, raw) then
+			vim.on_key(nil, on_keypress);
+			interactive.__close();
+		end
+	end);
 end
 
 
-checkboxes.next = function (scroll_past_end)
-	local buffer = vim.api.nvim_get_current_buf();
-	local from, to = vim.fn.getpos("v"), vim.fn.getpos(".");
 
-	from, to = math.min(from[2], to[2]), math.max(from[2], to[2])
-	local text = vim.api.nvim_buf_get_lines(buffer, from - 1, to, false);
 
-	for l, line in ipairs(text) do
-		local data = checkboxes.update(buffer, from + l - 1, line, false);
 
-		if data.checkbox then
-			local next = tbl_clamp(scroll(checkboxes.configuraton.states, data.group + 1, scroll_past_end), data.state);
 
-			text[l] = line:gsub("%[" .. data.checkbox .. "%]", "[" .. next .. "]")
-		end
-	end
-
-	vim.api.nvim_buf_set_lines(buffer, from - 1, to, false, text);
-end
-
-checkboxes.previous = function (scroll_past_end)
-	local buffer = vim.api.nvim_get_current_buf();
-	local from, to = vim.fn.getpos("v"), vim.fn.getpos(".");
-
-	from, to = math.min(from[2], to[2]), math.max(from[2], to[2])
-	local text = vim.api.nvim_buf_get_lines(buffer, from - 1, to, false);
-
-	for l, line in ipairs(text) do
-		local data = checkboxes.update(buffer, from + l - 1, line, false);
-
-		if data.checkbox then
-			local next = tbl_clamp(scroll(checkboxes.configuraton.states, data.group - 1, scroll_past_end), data.state);
-
-			text[l] = line:gsub("%[" .. data.checkbox .. "%]", "[" .. next .. "]")
-		end
-	end
-
-	vim.api.nvim_buf_set_lines(buffer, from - 1, to, false, text);
-end
-
-checkboxes.setup = function ()
-	vim.api.nvim_create_user_command("CheckboxToggle", function (opts)
-		local remove_markers, exit_mode = true, true;
-		local fargs = opts.fargs;
-
-		if #fargs > 0 then
-			remove_markers = str2bool(fargs[1]);
-			exit_mode = str2bool(fargs[2]);
-		end
-
-		checkboxes.toggle(remove_markers, exit_mode)
-	end, {
-		nargs = "*",
-		desc = "Toggles checkboxes"
-	});
-
-	vim.api.nvim_create_user_command("CheckboxPrevSet", function (opts)
-		local scroll_past_end = true;
-		local fargs = opts.fargs;
-
-		if #fargs > 0 then
-			scroll_past_end = str2bool(fargs[1]);
-		end
-
-		checkboxes.previous(scroll_past_end);
-	end, {
-		desc = "Goes to the previous state state"
-	});
-	vim.api.nvim_create_user_command("CheckboxNextSet", function (opts)
-		local scroll_past_end = true;
-		local fargs = opts.fargs;
-
-		if #fargs > 0 then
-			scroll_past_end = str2bool(fargs[1]);
-		end
-
-		checkboxes.next(scroll_past_end);
-	end, {
-		desc = "Goes to the next state set"
-	});
-
-	vim.api.nvim_create_user_command("CheckboxNext", function (opts)
-		local scroll_past_end = true;
-		local fargs = opts.fargs;
-
-		if #fargs > 0 then
-			scroll_past_end = str2bool(fargs[1]);
-		end
-
-		checkboxes.forward(scroll_past_end);
-	end, {
-		desc = "Toggles checkboxes"
-	});
-	vim.api.nvim_create_user_command("CheckboxPrev", function (opts)
-		local scroll_past_end = true;
-		local fargs = opts.fargs;
-
-		if #fargs > 0 then
-			scroll_past_end = str2bool(fargs[1]);
-		end
-
-		checkboxes.backward(scroll_past_end);
-	end, {
-		desc = "Toggles checkboxes"
-	});
-end
+checkboxes.toggler = toggler;
+checkboxes.change = changer;
+checkboxes.interactive = interactive;
 
 return checkboxes;
