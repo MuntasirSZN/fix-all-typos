@@ -219,6 +219,7 @@ spec.default = {
 		ignore_node_classes = {
 			-- markdown = { "code_blocks" }
 		},
+		linewise_hybrid_mode = false,
 		max_file_length = 1000,
 		modes = { "n", "no", "c" },
 		render_distance = vim.o.lines,
