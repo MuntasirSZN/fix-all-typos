@@ -1,17 +1,12 @@
 local markview = require("markview");
 local spec = require("markview.spec");
 
-local has_cmp, cmp = pcall(require, "cmp");
+vim.g.setup_mkv_source = false;
 
 --- Sets up the highlight groups.
 --- Should be called AFTER loading
 --- colorschemes.
 require("markview.highlights").setup();
-
-if has_cmp == true then
-	local source = require("cmp-markview");
-	require('cmp').register_source("markview-cmp", source)
-end
 
 --- Patch for the broken (fenced_code_block) concealment.
 --- Doesn't hide leading spaces before ```
@@ -43,6 +38,15 @@ end)
 vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	group = markview.augroup,
 	callback = function (event)
+		local has_cmp, cmp = pcall(require, "cmp");
+
+		if vim.g.setup_mkv_source == false and has_cmp == true then
+			local source = require("cmp-markview");
+			require('cmp').register_source("markview-cmp", source);
+
+			vim.g.setup_mkv_source = true;
+		end
+
 		local buffer = event.buf or vim.api.nvim_get_current_buf();
 		local bt, ft = vim.bo[buffer].buftype, vim.bo[buffer].filetype;
 
@@ -166,53 +170,47 @@ vim.api.nvim_create_autocmd({
 }, {
 	group = markview.augroup,
 	callback = function (ev)
-		local event = ev.event;
 		local buf = ev.buf;
-
 		local state = markview.state;
 
 		--- Stop any active timers
-		mode_debounce:stop();
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local mode = vim.api.nvim_get_mode().mode;
 
-		mode_debounce:start(event == "ModeChange" and 0 or debounce_delay, 0, vim.schedule_wrap(function ()
-			local mode = vim.api.nvim_get_mode().mode;
+		--- We should only toggle the preview
+		--- on the current buffer as otherwise
+		--- it gets distracting when multiple
+		--- windows are open.
+		if vim.list_contains(state.attached_buffers, buf) == false then
+			--- Not an attached buffer.
+			return;
+		elseif markview.buf_is_safe(buf) == false then
+			--- How did the buffer become invalid?
+			markview.clean();
+			return;
+		elseif buf == markview.state.splitview_source then
+			--- Update `splitview` buffer.
+			markview.commands.splitRedraw();
+		elseif state.enable == false or state.buffer_states[buf] ~= true then
+			--- Disabled buffer.
+			---
+			--- Note, Check this after checking if
+			--- the buffer is a splitview source
+			--- as splitview also disables preview
+			--- of the source buffer.
+			return;
+		elseif vim.list_contains(preview_modes, mode) then
+			markview.draw(buf);
+		else
+			markview.clear(buf);
+		end
 
-			--- We should only toggle the preview
-			--- on the current buffer as otherwise
-			--- it gets distracting when multiple
-			--- windows are open.
-			if vim.list_contains(state.attached_buffers, buf) == false then
-				--- Not an attached buffer.
-				return;
-			elseif markview.buf_is_safe(buf) == false then
-				--- How did the buffer become invalid?
-				markview.clean();
-				return;
-			elseif buf == markview.state.splitview_source then
-				--- Update `splitview` buffer.
-				markview.commands.splitRedraw();
-			elseif state.enable == false or state.buffer_states[buf] ~= true then
-				--- Disabled buffer.
-				---
-				--- Note, Check this after checking if
-				--- the buffer is a splitview source
-				--- as splitview also disables preview
-				--- of the source buffer.
-				return;
-			elseif vim.list_contains(preview_modes, mode) then
-				markview.draw(buf);
-			else
-				markview.clear(buf);
-			end
+		--- Call mode change callbacks.
+		local callback = spec.get({ "preview", "callbacks", "on_mode_change" }, { default = nil, ignore_enable = true });
 
-			--- Call mode change callbacks.
-			local callback = spec.get({ "preview", "callbacks", "on_mode_change" }, { default = nil, ignore_enable = true });
-
-			if callback and pcall(callback, buf, vim.fn.win_findbuf(buf), mode) then
-				callback(buf, vim.fn.win_findbuf(buf), mode);
-			end
-		end))
+		if callback and pcall(callback, buf, vim.fn.win_findbuf(buf), mode) then
+			callback(buf, vim.fn.win_findbuf(buf), mode);
+		end
 	end
 })
 
