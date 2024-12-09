@@ -113,7 +113,6 @@ end
 --- doesn't follow `modes`(otherwise it
 --- becomes kinda pointless to use).
 vim.api.nvim_create_autocmd({
-	"ModeChanged",
 	"CursorMoved", "TextChanged",
 	"CursorMovedI", "TextChangedI"
 }, {
@@ -121,13 +120,15 @@ vim.api.nvim_create_autocmd({
 	callback = function (ev)
 		local event = ev.event;
 		local buf = ev.buf;
-		local mode = vim.api.nvim_get_mode().mode;
-
 		local state = markview.state;
 
 		--- Stop any active timers
 		debounce:stop();
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+
+		if state.enable == false or state.buffer_states[buf] ~= true then
+			return;
+		end
 
 		--- Is this an event where
 		--- we should render?
@@ -167,7 +168,6 @@ vim.api.nvim_create_autocmd({
 	callback = function (ev)
 		local event = ev.event;
 		local buf = ev.buf;
-		local mode = vim.api.nvim_get_mode().mode;
 
 		local state = markview.state;
 
@@ -176,6 +176,8 @@ vim.api.nvim_create_autocmd({
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 
 		mode_debounce:start(event == "ModeChange" and 0 or debounce_delay, 0, vim.schedule_wrap(function ()
+			local mode = vim.api.nvim_get_mode().mode;
+
 			--- We should only toggle the preview
 			--- on the current buffer as otherwise
 			--- it gets distracting when multiple
@@ -184,12 +186,20 @@ vim.api.nvim_create_autocmd({
 				--- Not an attached buffer.
 				return;
 			elseif markview.buf_is_safe(buf) == false then
-				--- How do the buffer become invalid?
+				--- How did the buffer become invalid?
 				markview.clean();
 				return;
 			elseif buf == markview.state.splitview_source then
 				--- Update `splitview` buffer.
 				markview.commands.splitRedraw();
+			elseif state.enable == false or state.buffer_states[buf] ~= true then
+				--- Disabled buffer.
+				---
+				--- Note, Check this after checking if
+				--- the buffer is a splitview source
+				--- as splitview also disables preview
+				--- of the source buffer.
+				return;
 			elseif vim.list_contains(preview_modes, mode) then
 				markview.draw(buf);
 			else
