@@ -1,4 +1,5 @@
 local headings = {};
+local utils = require("markview.utils");
 
 --- Gets the heading under the cursor
 ---@return boolean
@@ -137,7 +138,7 @@ headings.__completion = utils.create_user_command_class({
 		completion = function (arg_lead)
 			local comp = {};
 
-			for _, item in ipairs({ "decrease", "increase", "interactive" }) do
+			for _, item in ipairs({ "decrease", "increase" }) do
 				if item:match(arg_lead) then
 					table.insert(comp, item);
 				end
@@ -166,11 +167,11 @@ headings.__completion = utils.create_user_command_class({
 
 --- New command
 vim.api.nvim_create_user_command("Heading", function (params)
-	checkboxes.__completion:exec(params)
+	headings.__completion:exec(params)
 end, {
 	nargs = 1,
 	complete = function (...)
-		return checkboxes.__completion:comp(...)
+		return headings.__completion:comp(...)
 	end
 });
 
