@@ -56,7 +56,7 @@ function source:complete(params, callback)
 			end
 		end
 		---_
-	elseif before:match("^[ %>]*[%-%+%*] %[") then
+	elseif before:match("^[ %>]*[%-%+%*] %[$") then
 		---+${func, Checkbox state completion}
 		local items = spec.get({ "markdown_inline", "checkboxes" }, { fallback = {} });
 
