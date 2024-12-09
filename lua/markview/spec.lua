@@ -28,7 +28,7 @@ local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 
 				virt_text_pos = text_pos or "overlay",
 				virt_text = {
-					{ symbols.tostring("default", name), cmd_hl }
+					{ symbols.tostring("default", name), cmd_hl or "@keyword.function" }
 				},
 
 				hl_mode = "combine"
@@ -43,7 +43,7 @@ local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 
 						virt_text_pos = "overlay",
 						virt_text = {
-							{ "(", "italic" }
+							{ "(", "@punctuation.bracket" }
 						},
 
 						hl_mode = "combine"
@@ -60,7 +60,7 @@ local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 
 						virt_text_pos = "overlay",
 						virt_text = {
-							{ ")", "italic" }
+							{ ")", "@punctuation.bracket" }
 						},
 
 						hl_mode = "combine"
@@ -709,14 +709,12 @@ spec.default = {
 
 			default = {
 				icon = " ",
-				hl = "Icon4Fg"
+				hl = "Palette4Fg"
 			}
 		},
 
 		tables = {
 			---+ ${class, Tables}
-			enable = true,
-
 			parts = {
 				top = { "╭", "─", "╮", "┬" },
 				header = { "│", "│", "│" },
@@ -752,7 +750,7 @@ spec.default = {
 		},
 	},
 	markdown_inline = {
-		use_seperate_ns = false,
+		use_seperate_ns = true,
 
 		block_references = {
 			enable = true,
@@ -803,8 +801,8 @@ spec.default = {
 			enable = true,
 
 			default = {
-				icon = "󰽒",
-				hl = "MarkviewEmail"
+				icon = " ",
+				hl = "Hyperlink"
 			}
 		},
 
@@ -812,7 +810,7 @@ spec.default = {
 			enable = true,
 
 			default = {
-				hl = "MarkviewHeading1"
+				hl = "Palette1"
 			}
 		},
 
@@ -829,7 +827,7 @@ spec.default = {
 
 			default = {
 				icon = " ",
-				hl = "MarkviewEmail"
+				hl = "Email"
 			}
 		},
 
@@ -861,7 +859,7 @@ spec.default = {
 
 			default = {
 				icon = "󰠮 ",
-				hl = "Special"
+				hl = "Palette2Fg"
 			}
 		},
 
@@ -871,7 +869,7 @@ spec.default = {
 
 			default = {
 				icon = "󰌷 ",
-				hl = "MarkviewHyperlink",
+				hl = "Hyperlink",
 			},
 
 			patterns = {
@@ -968,7 +966,7 @@ spec.default = {
 
 								virt_text_pos = "inline",
 								virt_text = {
-									{ "(" }
+									{ "(", "@punctuation.bracket" }
 								},
 
 								hl_mode = "combine"
@@ -985,8 +983,8 @@ spec.default = {
 
 								virt_text_pos = "inline",
 								virt_text = {
-									{ ")" },
-									{ " ÷ " }
+									{ ")", "@punctuation.bracket" },
+									{ " ÷ ", "@keyword.function" }
 								},
 
 								hl_mode = "combine"
@@ -1001,7 +999,7 @@ spec.default = {
 
 								virt_text_pos = "inline",
 								virt_text = {
-									{ "(" }
+									{ "(", "@punctuation.bracket" }
 								},
 
 								hl_mode = "combine"
@@ -1018,7 +1016,7 @@ spec.default = {
 
 								virt_text_pos = "inline",
 								virt_text = {
-									{ ")" },
+									{ ")", "@punctuation.bracket" },
 								},
 
 								hl_mode = "combine"
@@ -1060,8 +1058,8 @@ spec.default = {
 			["lg"] = operator("lg"),
 
 			["lim"] = operator("lim"),
-			["liminf"] = operator("lim inf", "inline", 7, "@markup.math.latex"),
-			["limsup"] = operator("lim sup", "inline", 7, "@markup.math.latex"),
+			["liminf"] = operator("lim inf", "inline", 7),
+			["limsup"] = operator("lim sup", "inline", 7),
 
 			["ln"] = operator("ln"),
 			["log"] = operator("log"),
@@ -1069,22 +1067,22 @@ spec.default = {
 			["max"] = operator("max"),
 			["Pr"] = operator("Pr"),
 			["sup"] = operator("sup"),
-			["sqrt"] = operator(symbols.entries.sqrt, "inline", 5, "@markup.math.latex"),
-			["lvert"] = operator(symbols.entries.vert, "inline", 6, "@markup.math.latex"),
-			["lVert"] = operator(symbols.entries.Vert, "inline", 6, "@markup.math.latex"),
+			["sqrt"] = operator(symbols.entries.sqrt, "inline", 5),
+			["lvert"] = operator(symbols.entries.vert, "inline", 6),
+			["lVert"] = operator(symbols.entries.Vert, "inline", 6),
 		},
 		parenthesis = {
 			enable = true,
 			left = "(",
 			right = "(",
-			hl = "Special"
+			hl = "@punctuation.bracket"
 		},
 
 		escapes = { enable = true },
 		symbols = { enable = true, hl = "Comment" },
 		fonts = { enable = true, default = {}, patterns = {} },
-		subscripts = { enable = true, hl = "LatexSubscript" },
-		superscripts = { enable = true, hl = "LatexSuperscript" },
+		subscripts = { enable = true, hl = "Subscript" },
+		superscripts = { enable = true, hl = "Superscript" },
 		texts = { enable = true },
 
 		inlines = {
@@ -1098,7 +1096,7 @@ spec.default = {
 		blocks = {
 			enable = true,
 			hl = "Code",
-			text = "  LaTeX ",
+			text = " 󱥬 LaTeX ",
 			text_hl = "CodeInfo",
 
 			pad_amount = 3,
@@ -1271,8 +1269,8 @@ spec.default = {
 			patterns = {}
 		},
 
-		subscripts = { enable = true, hl = "LatexSubscript" },
-		superscripts = { enable = true, hl = "LatexSuperscript" },
+		subscripts = { enable = true, hl = "Subscript" },
+		superscripts = { enable = true, hl = "Superscript" },
 		symbols = {
 			enable = true,
 			hl = "Special"
@@ -1282,7 +1280,8 @@ spec.default = {
 			enable = true,
 
 			default = {
-				text = " "
+				text = " ",
+				hl = "Palette6Fg"
 			},
 			patterns = {}
 		}
@@ -1882,79 +1881,62 @@ spec.setup = function (config)
 	-- vim.print(config)
 end
 
---- Gets a configuration options value.
 ---@param keys string[]
----@param opts? { args: any[]?, eval: boolean, fallback: any, ignore_enable: boolean?, source: table? }
+---@param opts table
 ---@return any
 spec.get = function (keys, opts)
-	---+${func}
-	if not opts then opts = {}; end
+	opts = opts or {};
+	local source = opts.source or spec.config;
 
-	--- Gets the value from the entry.
-	---@param entry any
-	---@return any
-	local __val = function (entry)
+	local eval = function (val, args)
+		args = args or {};
+
 		---@diagnostic disable
-		if pcall(entry, unpack(opts.args or {})) then
-			return entry(unpack(opts.args or {}));
+		if type(val) == "function" and pcall(val, unpack(args)) then
+			return val(unpack(args));
 		end
 		---@diagnostic enable
 
-		return entry == nil and opts.fallback or entry;
+		return val;
 	end
 
-	local __k = 1;
-
-	local __meta;
-	local __tmp = opts.source or spec.config;
-
-	--- Meta table. Uses a proxy empty table to invoke
-	--- `__index`. Gets values from the `__tmp` cache
-	--- table.
-	__meta = {
-		__index = function (_, key)
-			if type(__tmp) ~= "table" then return; end
-			local _v = rawget(__tmp, key);
-
-			if __k ~= #keys then
-				return __val(_v);
-			elseif
-				__k == #keys and
-				opts.eval ~= true
-			then
-				return _v;
-			else
-				return __val(_v);
-			end
-		end
-	};
-
-	--- Proxy table. MUST BE EMPTY.
-	local __proxy = {};
-	setmetatable(__proxy, __meta);
-
-	--- Iterate over the keys and get their value.
-	for k, key in ipairs(keys) do
-		__k = k;
-
-		if __proxy[key] ~= nil then
-			__tmp = __proxy[key];
-
-			if
-				type(__tmp) == "table" and
-				keys[k + 1] ~= "enable" and
-				opts.ignore_enable == false and
-				__proxy.enable == false
-			then
-				return opts.fallback;
-			end
-		else
+	--- Iterate over the keys
+	for _, key in ipairs(keys) do
+		--- Do not evaluate the final result.
+		--- We may need the literal value.
+		if opts.ignore_enable ~= true and source.enable == false then
 			return opts.fallback;
 		end
+
+		source = source[key];
+		source = eval(source, opts.args)
 	end
 
-	return __val(__tmp);
-	---_
+	--- If it's not a table return it.
+	if type(source) ~= "table" then
+		return source;
+	elseif opts.return_static == false then
+		return source;
+	end
+
+	--- Convert the function values to literal
+	for key, val in pairs(source) do
+		if type(val) == "function" and pcall(eval, val, opts.aargs or opts.args) then
+			source[key] = eval(val, opts.aargs or opts.args)
+		elseif type(val) == "function" then
+			source[key] = nil;
+		end
+	end
+
+	if opts.enable ~= false then
+		if source.enable == false then
+			return opts.fallback;
+		else
+			return source;
+		end
+	else
+		return source;
+	end
 end
 
 return spec;
