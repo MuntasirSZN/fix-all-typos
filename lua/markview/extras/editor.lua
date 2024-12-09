@@ -202,12 +202,14 @@ editor.window = nil;
 editor.augroup = vim.api.nvim_create_augroup("markview_editor", { clear = true });
 
 --- Opens the editor with the node under the cursor
-editor.open = function ()
+editor.edit = function ()
 	editor.buffer = set_buf();
 
 	local buffer = vim.api.nvim_get_current_buf();
 
 	if buffer == editor.buffer then
+		return;
+	elseif pcall(vim.treesitter.get_parser) == false then
 		return;
 	end
 
@@ -495,24 +497,6 @@ editor.create = function ()
 	vim.wo[editor.window].relativenumber = false;
 end
 
---- Setup function
----@param config markview.editor.configuraton?
-editor.setup = function (config)
-	editor.configuraton = vim.tbl_deep_extend("force", editor.configuraton, config or {});
-
-	vim.api.nvim_create_user_command("CodeCreate", function ()
-		editor.create();
-	end, {
-		desc = "Creates a code block"
-	})
-
-	vim.api.nvim_create_user_command("CodeEdit", function ()
-		editor.open();
-	end, {
-		desc = "Opens the editor"
-	})
-end
-
 vim.api.nvim_create_autocmd("VimResized", {
 	group = editor.augroup,
 	callback = function ()
@@ -534,6 +518,78 @@ vim.api.nvim_create_autocmd("VimResized", {
 			height = height,
 		});
 	end
-})
+});
+
+editor.__completion = utils.create_user_command_class({
+	default = {
+		completion = function (arg_lead)
+			local comp = {};
+
+			for _, item in ipairs({ "create", "edit" }) do
+				if item:match(arg_lead) then
+					table.insert(comp, item);
+				end
+			end
+
+			table.sort(comp);
+			return comp;
+		end,
+		action = function ()
+			editor.edit();
+		end
+	},
+	sub_commands = {
+		["create"] = {
+			action = function ()
+				editor.create();
+			end
+		},
+		["edit"] = {
+			action = function ()
+				editor.edit();
+			end,
+		}
+	}
+});
+
+--- New command
+vim.api.nvim_create_user_command("Code", function (params)
+	editor.__completion:exec(params)
+end, {
+	nargs = 1,
+	complete = function (...)
+		return editor.__completion:comp(...)
+	end
+});
+
+---+${lua, v24 commands}
+vim.api.nvim_create_user_command("CodeCreate", function ()
+	require("markview.spec").notify({
+		{ " :CodeCreate ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use " },
+		{ " :Code create ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	editor.create();
+end, {});
+
+vim.api.nvim_create_user_command("CodeEdit", function ()
+	require("markview.spec").notify({
+		{ " :CodeEdit ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use " },
+		{ " :Code edit ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	editor.edit();
+end, {});
+---_
+
+--- Setup function
+---@param config markview.editor.configuraton?
+editor.setup = function (config)
+	editor.configuraton = vim.tbl_deep_extend("force", editor.configuraton, config or {});
+end
 
 return editor;

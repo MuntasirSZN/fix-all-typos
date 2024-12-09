@@ -691,7 +691,7 @@ checkboxes.__completion = utils.create_user_command_class({
 	}
 });
 
---- New keymaps
+--- New command
 vim.api.nvim_create_user_command("Checkbox", function (params)
 	checkboxes.__completion:exec(params)
 end, {
@@ -702,11 +702,11 @@ end, {
 	range = true
 });
 
----+${lua, v24 Keymaps}
+---+${lua, v24 commands}
 vim.api.nvim_create_user_command("CheckboxToggle", function (params)
 	require("markview.spec").notify({
 		{ " :CheckboxToggle ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use" },
+		{ " is deprecated! Use " },
 		{ " :Checkbox toggle ", "DiagnosticVirtualTextOk" },
 		{ " instead." }
 	}, { silent = true });
@@ -721,7 +721,7 @@ end, { range = true});
 vim.api.nvim_create_user_command("CheckboxPrevSet", function (params)
 	require("markview.spec").notify({
 		{ " :CheckboxPrevSet ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use" },
+		{ " is deprecated! Use " },
 		{ " :Checkbox change 0 -1 ", "DiagnosticVirtualTextOk" },
 		{ " instead." }
 	}, { silent = true });
@@ -736,7 +736,7 @@ end, { range = true});
 vim.api.nvim_create_user_command("CheckboxNextSet", function (params)
 	require("markview.spec").notify({
 		{ " :CheckboxNextSet ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use" },
+		{ " is deprecated! Use " },
 		{ " :Checkbox change 0 1 ", "DiagnosticVirtualTextOk" },
 		{ " instead." }
 	}, { silent = true });
@@ -751,7 +751,7 @@ end, { range = true});
 vim.api.nvim_create_user_command("CheckboxPrev", function (params)
 	require("markview.spec").notify({
 		{ " :CheckboxPrev ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use" },
+		{ " is deprecated! Use " },
 		{ " :Checkbox change -1 0 ", "DiagnosticVirtualTextOk" },
 		{ " instead." }
 	}, { silent = true });
@@ -766,7 +766,7 @@ end, { range = true});
 vim.api.nvim_create_user_command("CheckboxNext", function (params)
 	require("markview.spec").notify({
 		{ " :CheckboxNext ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use" },
+		{ " is deprecated! Use " },
 		{ " :Checkbox change 1 0 ", "DiagnosticVirtualTextOk" },
 		{ " instead." }
 	}, { silent = true });
