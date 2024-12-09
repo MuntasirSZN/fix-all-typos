@@ -1,9 +1,15 @@
 local checkboxes = {};
 local spec = require("markview.spec");
+local utils = require("markview.utils");
 
+---@class markcheck.config
+---
+---@field default string                                    Default checkbox state.
+---@field remove_style "disable" | "checkbox" | "list_item" Changes how toggling works.
+---@field states string[][]                                 List of sets containing various checkbox states.
 checkboxes.config = {
 	default = "X",
-	remove_style = "list_item",
+	remove_style = "disable",
 
 	states = {
 		{ " ", "/", "X" },
@@ -363,12 +369,12 @@ changer.init = function (buffer, from, to, x, y)
 
 	for l, line in ipairs(lines) do
 		if line:match("^[%s%>]*[%-%+%*]%s+%[.%]") then
-			local _, chk_e, state = line:find("^[%s%>]*[%-%+%*%)]%s+%[.%]");
+			local _, chk_e, state = line:find("^[%s%>]*[%-%+%*%)]%s+%[(.)%]");
 			local new_state = change_state(state, (l - 1) + row_start);
 
 			lines[l] = line:sub(0, chk_e - 2) .. new_state .. line:sub(chk_e);
 		elseif line:match("^[%s%>]*%d+[%.%)]%s+%[.%]") then
-			local _, chk_e, state = line:find("^[%s%>]*%d+[%.%)]%s+%[.%]");
+			local _, chk_e, state = line:find("^[%s%>]*%d+[%.%)]%s+%[(.)%]");
 			local new_state = change_state(state, (l - 1) + row_start);
 
 			lines[l] = line:sub(0, chk_e - 2) .. new_state .. line:sub(chk_e);
@@ -631,5 +637,155 @@ end
 checkboxes.toggler = toggler;
 checkboxes.change = changer;
 checkboxes.interactive = interactive;
+
+--- Commands for this module.
+checkboxes.__completion = utils.create_user_command_class({
+	default = {
+		completion = function (arg_lead)
+			local comp = {};
+
+			for _, item in ipairs({ "toggle", "change", "interactive" }) do
+				if item:match(arg_lead) then
+					table.insert(comp, item);
+				end
+			end
+
+			table.sort(comp);
+			return comp;
+		end,
+		action = function (params)
+			if params.line1 ~= params.line2 then
+				checkboxes.toggler.init(0, params.line1, params.line2);
+			else
+				checkboxes.toggler.init();
+			end
+		end
+	},
+	sub_commands = {
+		["toggle"] = {
+			action = function (params)
+				if params.line1 ~= params.line2 then
+					checkboxes.toggler.init(0, params.line1, params.line2);
+				else
+					checkboxes.toggler.init();
+				end
+			end
+		},
+		["change"] = {
+			action = function (params)
+				local x = tonumber(params.fargs[2]);
+				local y = tonumber(params.fargs[3]);
+
+				if params.line1 ~= params.line2 then
+					checkboxes.change.init(0, params.line1, params.line2, x, y);
+				else
+					checkboxes.change.init(0, nil, nil, x, y);
+				end
+			end
+		},
+		["interactive"] = {
+			action = function ()
+				checkboxes.interactive.init();
+			end
+		},
+	}
+});
+
+--- New keymaps
+vim.api.nvim_create_user_command("Checkbox", function (params)
+	checkboxes.__completion:exec(params)
+end, {
+	nargs = "*",
+	complete = function (...)
+		return checkboxes.__completion:comp(...)
+	end,
+	range = true
+});
+
+---+${lua, v24 Keymaps}
+vim.api.nvim_create_user_command("CheckboxToggle", function (params)
+	require("markview.spec").notify({
+		{ " :CheckboxToggle ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use" },
+		{ " :Checkbox toggle ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	if params.line1 ~= params.line2 then
+		checkboxes.toggler.init(0, params.line1, params.line2);
+	else
+		checkboxes.toggler.init();
+	end
+end, { range = true});
+
+vim.api.nvim_create_user_command("CheckboxPrevSet", function (params)
+	require("markview.spec").notify({
+		{ " :CheckboxPrevSet ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use" },
+		{ " :Checkbox change 0 -1 ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	if params.line1 ~= params.line2 then
+		checkboxes.change.init(0, params.line1, params.line2, 0, -1);
+	else
+		checkboxes.change.init(0, nil, nil, 0, -1);
+	end
+end, { range = true});
+
+vim.api.nvim_create_user_command("CheckboxNextSet", function (params)
+	require("markview.spec").notify({
+		{ " :CheckboxNextSet ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use" },
+		{ " :Checkbox change 0 1 ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	if params.line1 ~= params.line2 then
+		checkboxes.change.init(0, params.line1, params.line2, 0, 1);
+	else
+		checkboxes.change.init(0, nil, nil, 0, 1);
+	end
+end, { range = true});
+
+vim.api.nvim_create_user_command("CheckboxPrev", function (params)
+	require("markview.spec").notify({
+		{ " :CheckboxPrev ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use" },
+		{ " :Checkbox change -1 0 ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	if params.line1 ~= params.line2 then
+		checkboxes.change.init(0, params.line1, params.line2, -1, 0);
+	else
+		checkboxes.change.init(0, nil, nil, -1, 0);
+	end
+end, { range = true});
+
+vim.api.nvim_create_user_command("CheckboxNext", function (params)
+	require("markview.spec").notify({
+		{ " :CheckboxNext ", "DiagnosticVirtualTextError" },
+		{ " is deprecated! Use" },
+		{ " :Checkbox change 1 0 ", "DiagnosticVirtualTextOk" },
+		{ " instead." }
+	}, { silent = true });
+
+	if params.line1 ~= params.line2 then
+		checkboxes.change.init(0, params.line1, params.line2, 1, 0);
+	else
+		checkboxes.change.init(0, nil, nil, 1, 0);
+	end
+end, { range = true});
+---_
+
+---@param config markcheck.config?
+checkboxes.setup = function (config)
+	if not config then
+		return;
+	end
+
+	checkboxes.config = vim.tbl_deep_extend("force", checkboxes.config, config);
+end
 
 return checkboxes;

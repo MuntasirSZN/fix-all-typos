@@ -48,8 +48,6 @@ utils.escape_string = function (input)
 	return input;
 end
 
--- vim.print(utils.escape_string(table.concat({ "", "", "󰌷 ", "X[XXXXXX]", "", "" })))
-
 --- Clamps a value between a range
 ---@param val number
 ---@param min number
@@ -191,6 +189,91 @@ utils.match_pattern = function (main_config, txt, opts)
 	end
 
 	return utils.tostatic(main_config.default, opts);
+end
+
+utils.create_user_command_class = function (config)
+	local class = {};
+
+	class.config = config;
+
+	function class.exec (self, params)
+		local sub = params.fargs[1];
+
+		local function exec_subcommand ()
+			if config.sub_commands == nil then
+				return false;
+			elseif config.sub_commands[sub] == nil then
+				return false;
+			elseif config.sub_commands[sub].action == nil then
+				return false;
+			end
+
+			return true;
+		end
+
+		if sub == nil and self.config.default and self.config.default.action then
+			self.config.default.action(params);
+		elseif exec_subcommand() == true then
+			self.config.sub_commands[sub].action(params);
+		end
+	end
+
+	function class.comp (self, arg_lead, cmdline, cursor_pos)
+		---+${lua}
+
+		local is_subcommand = function (text)
+			local cmds = vim.tbl_keys(self.config.sub_commands or {});
+			return vim.list_contains(cmds, text);
+		end
+
+		local matches_subcommand = function (text)
+			if is_subcommand(text) then
+				return false;
+			end
+
+			for key, _ in pairs(self.config.sub_commands or {}) do
+				if key:match(text) then
+					return true;
+				end
+			end
+
+			return false;
+		end
+
+		local nargs = 0;
+		local args  = {};
+
+		local text = cmdline:sub(0, cursor_pos);
+
+		for arg in text:gmatch("(%S+)") do
+			nargs = nargs + 1;
+			table.insert(args, arg);
+		end
+
+		table.remove(args, 1);
+		nargs = nargs - 1;
+
+		local item;
+
+		if nargs == 0 or (nargs == 1 and matches_subcommand(args[1])) then
+			item = self.config.default;
+		elseif is_subcommand(args[1]) and self.config.sub_commands and self.config.sub_commands[args[1]] then
+			item = self.config.sub_commands[args[1]];
+		else
+			return {};
+		end
+
+		if vim.islist(item.completion) then
+			return item.completion --[[ @as string[] ]];
+		elseif pcall(item.completion, arg_lead, cmdline, cursor_pos) then
+			---@type string[]
+			return item.completion(arg_lead, cmdline, cursor_pos);
+		end
+		---_
+	end
+
+	-- class = setmetatable(class, class);
+	return class;
 end
 
 return utils;
