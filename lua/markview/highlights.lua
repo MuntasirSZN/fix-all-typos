@@ -1435,13 +1435,13 @@ highlights.dynamic = {
 	end,
 	---_
 	---+${hl, Latex}
-	["LatexSubscript"] = function ()
+	["Subscript"] = function ()
 		return {
 			default = true,
 			link = "MarkviewPalette3Fg"
 		};
 	end,
-	["LatexSuperscript"] = function ()
+	["Superscript"] = function ()
 		return {
 			default = true,
 			link = "MarkviewPalette6Fg"
