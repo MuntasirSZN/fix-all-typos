@@ -211,7 +211,7 @@ spec.default = {
 		},
 
 		debounce = 50,
-		edit_distance = { 1, 0 },
+		edit_range = { 1, 0 },
 
 		filetypes = { "markdown", "typst" },
 		hybrid_modes = {},
@@ -220,9 +220,9 @@ spec.default = {
 			-- markdown = { "code_blocks" }
 		},
 		linewise_hybrid_mode = false,
-		max_file_length = 1000,
+		max_buf_lines = 1000,
 		modes = { "n", "no", "c" },
-		render_distance = vim.o.lines,
+		draw_range = { vim.o.lines, vim.o.lines },
 		splitview_winopts = {
 			split = "right"
 		}
@@ -1439,7 +1439,7 @@ spec.__preview = function (config)
 	for opt, val in pairs(config) do
 		if opt == "buf_ignore" then
 			spec.notify({
-				{ " preview.buf_ignore ", "DiagnosticVirtualTextInfo" },
+				{ " buf_ignore ", "DiagnosticVirtualTextInfo" },
 				{ " is deprecated! Use " },
 				{ " preview.ignore_buftypes ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
@@ -1454,7 +1454,7 @@ spec.__preview = function (config)
 			config["buf_ignore"] = nil;
 		elseif opt == "debounce" then
 			spec.notify({
-				{ " preview.debounce ", "DiagnosticVirtualTextInfo" },
+				{ " debounce ", "DiagnosticVirtualTextInfo" },
 				{ " is deprecated! Use " },
 				{ " preview.debounce_delay ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
@@ -1469,7 +1469,7 @@ spec.__preview = function (config)
 			config["debounce"] = nil;
 		elseif opt == "ignore_nodes" then
 			spec.notify({
-				{ " preview.ignore_nodes ", "DiagnosticVirtualTextError" },
+				{ " ignore_nodes ", "DiagnosticVirtualTextError" },
 				{ " is deprecated! Use " },
 				{ " preview.ignore_node_classes ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
@@ -1485,7 +1485,7 @@ spec.__preview = function (config)
 			config["ignore_nodes"] = nil;
 		elseif opt == "initial_state" then
 			spec.notify({
-				{ " preview.initial_state ", "DiagnosticVirtualTextInfo" },
+				{ " initial_state ", "DiagnosticVirtualTextInfo" },
 				{ " is deprecated! Use " },
 				{ " preview.enable ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
@@ -1502,7 +1502,7 @@ spec.__preview = function (config)
 			config["initial_state"] = nil;
 		elseif opt == "split_conf" then
 			spec.notify({
-				{ " preview.split_conf ", "DiagnosticVirtualTextInfo" },
+				{ " split_conf ", "DiagnosticVirtualTextInfo" },
 				{ " is deprecated! Use " },
 				{ " preview.splitview_winopts ", "DiagnosticVirtualTextHint" },
 				{ " instead."},
@@ -1515,6 +1515,56 @@ spec.__preview = function (config)
 
 			config["splitview_winopts"] = val;
 			config["split_conf"] = nil;
+		elseif opt == "max_file_length" then
+			spec.notify({
+				{ " max_file_length ", "DiagnosticVirtualTextInfo" },
+				{ " is deprecated! Use " },
+				{ " preview.max_buf_lines ", "DiagnosticVirtualTextHint" },
+				{ " instead."},
+			}, {
+				class = "markview_opt_name_change",
+
+				old = "max_file_length",
+				new = "preview.max_buf_lines"
+			});
+
+			config["max_buf_lines"] = val;
+			config["max_file_length"] = nil;
+		elseif opt == "render_distance" then
+			spec.notify({
+				{ " render_distance ", "DiagnosticVirtualTextInfo" },
+				{ " is deprecated! Use " },
+				{ " preview.draw_range ", "DiagnosticVirtualTextHint" },
+				{ " instead."},
+			}, {
+				class = "markview_opt_name_change",
+
+				old = "render_distance",
+				new = "preview.draw_range"
+			});
+
+			if type(val) == "number" then
+				spec.notify({
+					{ " preview.draw_range ", "DiagnosticVirtualTextInfo" },
+					{ " should be a " },
+					{ "[ integer, integer ]", "DiagnosticOk" },
+					{ "! Got "},
+					{ "number", "DiagnosticWarn" },
+					{ ". "},
+				}, {
+					class = "markview_opt_invalid_type",
+					name = "preview.draw_range",
+
+					should_be = "table",
+					is = "number"
+				});
+
+				config["draw_range"] = { val, val };
+			else
+				config["draw_range"] = val;
+			end
+
+			config["render_distance"] = nil;
 		end
 	end
 
@@ -1525,18 +1575,15 @@ end
 spec.__markdown = function (config)
 	---+${func}
 	for opt, val in pairs(config) do
-		if
-			opt == "block_quotes" and
-			vim.islist(val.callouts)
-		then
+		if opt == "block_quotes" and vim.islist(val.callouts) then
 			spec.notify({
-				{ " markdown.block_quotes.callouts ", "DiagnosticVirtualTextError" },
+				{ " block_quotes.callouts ", "DiagnosticVirtualTextError" },
 				{ " is deprecated!" },
 			}, {
 				class = "markview_opt_deprecated",
 				level = vim.log.levels.ERROR,
 
-				name = "markdown.block_quotes.callouts"
+				name = "block_quotes.callouts"
 			});
 
 			local _n = {};
@@ -1559,13 +1606,20 @@ spec.__markdown = function (config)
 				enable = val.enable,
 				default = val.default or {}
 			}, _n);
-		elseif
-			opt == "tables" and
-			(
-				vim.islist(val.text) or
-				vim.islist(val.hl)
-			)
-		then
+		elseif opt == "code_blocks" and val.icon_provider then
+			spec.notify({
+				{ " code_blocks.icon_provider ", "DiagnosticVirtualTextError" },
+				{ " is deprecated!" },
+			}, {
+				class = "markview_opt_deprecated",
+				level = vim.log.levels.ERROR,
+
+				name = "code_blocks.icon_provider"
+			});
+
+			val.icon_provider = nil;
+			config["code_blocks"] = val;
+		elseif opt == "tables" and ( vim.islist(val.text) or vim.islist(val.hl) ) then
 			local _p, _h = val.text, val.hl;
 			local np, nh = {
 				top = {},
@@ -1723,14 +1777,13 @@ spec.__markdown_inline = function (config)
 			vim.islist(val.custom)
 		then
 			spec.notify({
-				{ " markdown_inline.checkboxes.custom ", "DiagnosticVirtualTextError" },
+				{ " checkboxes.custom ", "DiagnosticVirtualTextError" },
 				{ " is deprecated!" },
 			}, {
 				class = "markview_opt_deprecated",
 				level = vim.log.levels.ERROR,
 
-				old = "preview.buf_ignore",
-				new = "preview.ignore_buftypes"
+				name = "checkboxes.custom"
 			});
 
 			local _n = {};
@@ -1771,9 +1824,7 @@ spec.__markdown_inline = function (config)
 
 			config[opt] = nil;
 			config = spec.__markdown_inline(config);
-		elseif
-			vim.list_contains({ "footnotes", "emails", "uri_autolinks", "images", "embed_files", "internal_links", "hyperlinks" }, opt)
-		then
+		elseif vim.list_contains({ "footnotes", "emails", "uri_autolinks", "images", "embed_files", "internal_links", "hyperlinks" }, opt) then
 			if not val.default then val.default = {}; end
 
 			for k, v in pairs(val) do
@@ -1877,8 +1928,6 @@ end
 spec.setup = function (config)
 	config = spec.fix_config(config);
 	spec.config = vim.tbl_deep_extend("force", spec.default, config);
-
-	-- vim.print(config)
 end
 
 ---@param keys string[]
@@ -1921,8 +1970,8 @@ spec.get = function (keys, opts)
 
 	--- Convert the function values to literal
 	for key, val in pairs(source) do
-		if type(val) == "function" and pcall(eval, val, opts.aargs or opts.args) then
-			source[key] = eval(val, opts.aargs or opts.args)
+		if type(val) == "function" and pcall(eval, val, opts.eval_args or opts.args) then
+			source[key] = eval(val, opts.eval_args or opts.args)
 		elseif type(val) == "function" then
 			source[key] = nil;
 		end

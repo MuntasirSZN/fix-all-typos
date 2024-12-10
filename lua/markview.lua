@@ -150,9 +150,9 @@ markview.draw = function (buffer, ignore_modes)
 		return;
 	end
 
-	local line_limit = spec.get({ "preview", "max_file_length" }, { fallback = 1000, ignore_enable = true });
-	local draw_range = spec.get({ "preview", "render_distance" }, { fallback = vim.o.lines, ignore_enable = true });
-	local edit_range = spec.get({ "preview", "edit_distance" }, { fallback = { 1, 0 }, ignore_enable = true });
+	local line_limit = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
+	local draw_range = spec.get({ "preview", "draw_range" }, { fallback = { vim.o.lines, vim.o.lines }, ignore_enable = true });
+	local edit_range = spec.get({ "preview", "edit_range" }, { fallback = { 1, 0 }, ignore_enable = true });
 
 	local line_count = vim.api.nvim_buf_line_count(buffer);
 
@@ -183,10 +183,10 @@ markview.draw = function (buffer, ignore_modes)
 
 			local content = parser.init(
 				buffer,
-				math.max(0, cursor[1] - draw_range),
+				math.max(0, cursor[1] - draw_range[1]),
 				math.min(
 					vim.api.nvim_buf_line_count(buffer),
-					cursor[1] + draw_range
+					cursor[1] + draw_range[2]
 				)
 			);
 
