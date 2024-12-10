@@ -734,38 +734,125 @@ markdown.output = function (str, buffer)
 	end
 
 	return str, decorations;
-end
-
-markdown.concealed = function (str)
-	for code in str:gmatch("`(.-)`") do
-		str = str:gsub("`" .. utils.escape_string(code) .. "`", string.rep("X", vim.fn.strchars(code)));
-	end
-
-	for str_b, content, str_a in str:gmatch("([*]+)(.-)([*]+)") do
-		if content == "" then
-			goto continue
-		elseif #str_b ~= #str_a then
-			local min = math.min(#str_b, #str_a);
-			str_b = str_b:sub(0, min);
-			str_a = str_a:sub(0, min);
-		end
-
-		str_b = utils.escape_string(str_b);
-		content = utils.escape_string(content);
-		str_a = utils.escape_string(str_a);
-
-		str = str:gsub(str_b .. content .. str_a, content);
-
-	    ::continue::
-	end
-
-	for link in str:gmatch("%[(.-)%]") do
-		str = str:gsub("%[" .. utils.escape_string(link) .. "%]", utils.escape_string(link));
-	end
-
-	return str;
 	---_
 end
+
+markdown.get_visual_text = {
+	---+${class}
+	["Markdown"] = function (str)
+		str = str:gsub("\\%`", " ");
+
+		for inline_code in str:gmatch("`(.-)`") do
+			---+${custom, Handle inline codes}
+			str = str:gsub(concat({
+				"`",
+				inline_code,
+				"`"
+			}), concat({ content }));
+			---_
+		end
+
+		for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%%<%>$])") do
+			str = str:gsub(concat({
+				"\\",
+				escaped
+			}), " ");
+		end
+
+		for link, p_s, address, p_e in str:gmatch("%!%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+			---+${custom, Handle image links}
+			str = str:gsub(concat({
+				"![",
+				link,
+				"]",
+				address,
+			}), concat({ link }))
+			---_
+		end
+
+		for link in str:gmatch("%!%[([^%)]*)%]") do
+			---+${custom, Handle image links without address}
+			str = str:gsub(concat({
+				"![",
+				link,
+				"]",
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
+			---_
+		end
+
+		for link, _, address, _ in str:gmatch("%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+			---+${custom, Handle hyperlinks}
+			str = str:gsub(concat({
+				"[",
+				link,
+				"]",
+				address
+			}), concat({ utils.escape_string(link):gsub(".", "X") }))
+			---_
+		end
+
+		for link in str:gmatch("%[([^%)]+)%]") do
+			---+${custom, Handle shortcut links}
+			str = str:gsub(concat({
+				"[",
+				link,
+				"]",
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
+			---_
+		end
+
+		for str_b, content, str_a in str:gmatch("([*]+)(.-)([*]+)") do
+			---+${custom, Handle italics & bold text}
+			if content == "" then
+				goto continue;
+			elseif #str_b ~= #str_a then
+				local min = math.min(#str_b, #str_a);
+				str_b = str_b:sub(0, min);
+				str_a = str_a:sub(0, min);
+			end
+
+			str_b = utils.escape_string(str_b);
+			content = utils.escape_string(content);
+			str_a = utils.escape_string(str_a);
+
+			str = str:gsub(str_b .. content .. str_a, utils.escape_string(content):gsub(".", "X"))
+
+			::continue::
+			---_
+		end
+
+		for striked in str:gmatch("%~%~(.-)%~%~") do
+			---+${custom, Handle strike-through text}
+			str = str:gsub(concat({
+				"~~",
+				striked,
+				"~~"
+			}), concat({
+				utils.escape_string(striked):gsub(".", "X"),
+			}));
+			---_
+		end
+
+		return str;
+	end,
+	["JSON"] = function (str)
+		return str:gsub('"', "");
+	end,
+
+	init = function (self, ft, line)
+		vim.print(ft)
+		if ft == nil or self[ft] == nil then
+			return;
+		end
+
+		return self[ft](line);
+	end
+	---_
+}
 
 markdown.__ns = {
 	__call = function (self, key)
@@ -776,7 +863,7 @@ markdown.__ns = {
 markdown.ns = {
 	default = vim.api.nvim_create_namespace("markview/markdown"),
 };
-setmetatable(markdown.ns, markdown.__ns)
+setmetatable(markdown.ns, markdown.__ns);
 
 markdown.set_ns = function ()
 	local ns_pref = spec.get({ "markdown", "use_seperate_ns" }, { fallback = true });
@@ -810,21 +897,17 @@ markdown.atx_heading = function (buffer, item)
 	---+${func, Renders ATX headings}
 
 	---@type markdown.headings?
-	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil });
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not main_config then
 		return;
-	elseif not spec.get({ "heading_" .. #item.marker }, { source = main_config }) then
+	elseif not spec.get({ "heading_" .. #item.marker }, { source = main_config, eval_args = { buffer, item } }) then
 		return;
 	end
 
 	---@type headings.atx
-	local config = spec.get({ "heading_" .. #item.marker }, { source = main_config });
+	local config = spec.get({ "heading_" .. #item.marker }, { source = main_config, eval_args = { buffer, item } });
 	local range = item.range;
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -925,7 +1008,7 @@ markdown.block_quote = function (buffer, item)
 	---+${func, Renders Block quotes & Callouts/Alerts}
 
 	---@type markdown.block_quotes?
-	local main_config = spec.get({ "markdown", "block_quotes" }, { fallback = nil });
+	local main_config = spec.get({ "markdown", "block_quotes" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if
@@ -941,24 +1024,20 @@ markdown.block_quote = function (buffer, item)
 	if item.callout then
 		config = spec.get(
 			{ string.lower(item.callout) },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		) or spec.get(
 			{ string.upper(item.callout) },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		) or spec.get(
 			{ item.callout },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		) or spec.get(
 			{ "default" },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		);
 	else
-		config = spec.get({ "default" }, { source = main_config });
+		config = spec.get({ "default" }, { source = main_config, eval_args = { buffer, item } });
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	if item.callout then
 		if item.title and config.title == true then
@@ -1035,19 +1114,15 @@ markdown.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
 	---@type markdown.code_blocks?
-	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil });
+	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
 
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
-
 	local decorations = filetypes.get(item.language);
-	local label = { string.format(" %s%s ", decorations.icon, decorations.name), decorations.icon_hl };
+	local label = { string.format(" %s%s ", decorations.icon, decorations.name), config.language_hl or decorations.icon_hl };
 	local win = utils.buf_getwin(buffer);
 
 	if
@@ -1266,14 +1341,7 @@ markdown.code_block = function (buffer, item)
 
 		for l = range.row_start + 1, range.row_end - 2, 1 do
 			local line = item.text[(l + 1) - range.row_start];
-			local final = line;
-
-			if
-				item.language == "md" or
-				item.language == "markdown"
-			then
-				final = markdown.concealed(line);
-			end
+			local final = markdown.get_visual_text:init(decorations.name, line);
 
 			--- If the line inside the code block is somehow shorter than
 			--- the start column of this node.
@@ -2538,21 +2606,17 @@ markdown.__block_quote = function (buffer, item)
 	if item.callout then
 		config = spec.get(
 			{ string.lower(item.callout) },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		) or spec.get(
 			{ string.upper(item.callout) },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		) or spec.get(
 			{ item.callout },
-			{ source = main_config }
+			{ source = main_config, eval_args = { buffer, item } }
 		);
 	else
-		config = spec.get({ "default" }, { source = main_config });
+		config = spec.get({ "default" }, { source = main_config, eval_args = { buffer, item } });
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	local win = utils.buf_getwin(buffer);
 
@@ -2588,6 +2652,28 @@ markdown.__block_quote = function (buffer, item)
 	---_
 end
 
+
+markdown.__code_block = function (buffer, item)
+	vim.print("herw")
+	---@type markdown.code_blocks?
+	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil });
+
+	if not config then
+		return;
+	elseif config.style ~= "block" then
+		return;
+	end
+
+	local win = utils.buf_getwin(buffer);
+
+	local t = vim.fn.getwininfo(win)[1].textoff;
+	local p = vim.api.nvim_win_get_position(win);
+
+	for l = range.row_start + 1, range.row_end - 2, 1 do
+		local line = item.text[(l + 1) - range.row_start];
+		vim.print(vim.fn.screenpos(win, l + 1, #line).col)
+	end
+end
 
  -----------------------------------------------------------------------------------------
 
