@@ -132,7 +132,7 @@ end
 ---
 ---@param color number[]
 ---@return string
-highlights.hex = function (color)
+highlights.rgb_to_hex = function (color)
 	return string.format("#%02x%02x%02x", math.floor(color[1]), math.floor(color[2]), math.floor(color[3]))
 end
 
@@ -496,8 +496,8 @@ highlights.generate_heading = function (opts)
 	h_fg = highlights.lab_to_rgb(h_fg);
 
 	return {
-		bg = highlights.hex(res_bg),
-		fg = highlights.hex(h_fg)
+		bg = highlights.rgb_to_hex(res_bg),
+		fg = highlights.rgb_to_hex(h_fg)
 	};
 end
 
@@ -510,7 +510,7 @@ highlights.hl_generator = function (opts)
 	);
 
 	return vim.tbl_extend("force", {
-		[opts.output_opt or "fg"] = highlights.hex(hi)
+		[opts.output_opt or "fg"] = highlights.rgb_to_hex(hi)
 	}, opts.hl_opts or {})
 end
 
@@ -545,8 +545,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -554,7 +554,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -562,7 +562,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -571,7 +571,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -607,8 +607,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -616,7 +616,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -624,7 +624,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -633,7 +633,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -669,8 +669,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -678,7 +678,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -686,7 +686,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -695,7 +695,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -731,8 +731,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -740,7 +740,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -748,7 +748,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -757,7 +757,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -793,8 +793,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -802,7 +802,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -810,7 +810,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -819,7 +819,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -855,8 +855,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -864,7 +864,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -872,7 +872,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -881,7 +881,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -917,8 +917,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
-					fg = highlights.hex(h_fg)
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -926,7 +926,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -934,7 +934,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					bg = highlights.hex(res_bg),
+					bg = highlights.rgb_to_hex(res_bg),
 				}
 			},
 			{
@@ -943,7 +943,7 @@ highlights.dynamic = {
 					default = true,
 
 					bg = nr_bg,
-					fg = highlights.hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			}
 		};
@@ -1051,7 +1051,7 @@ highlights.dynamic = {
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
-			bg = highlights.hex(vim_bg)
+			bg = highlights.rgb_to_hex(vim_bg)
 		};
 		---@diagnostic enable
 	end,
@@ -1079,8 +1079,8 @@ highlights.dynamic = {
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
-			bg = highlights.hex(vim_bg),
-			fg = highlights.hex(code_fg)
+			bg = highlights.rgb_to_hex(vim_bg),
+			fg = highlights.rgb_to_hex(code_fg)
 		};
 		---@diagnostic enable
 	end,
@@ -1102,7 +1102,7 @@ highlights.dynamic = {
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
-			fg = highlights.hex(vim_bg)
+			fg = highlights.rgb_to_hex(vim_bg)
 		};
 		---@diagnostic enable
 	end,
@@ -1124,7 +1124,7 @@ highlights.dynamic = {
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
-			bg = highlights.hex(vim_bg)
+			bg = highlights.rgb_to_hex(vim_bg)
 		};
 		---@diagnostic enable
 	end,
@@ -1296,7 +1296,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex(from);
+			fg = highlights.rgb_to_hex(from);
 		};
 	end,
 	["Gradient1"] = function ()
@@ -1305,7 +1305,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 1 / 9),
 				lerp(from[2], to[2], 1 / 9),
 				lerp(from[3], to[3], 1 / 9),
@@ -1318,7 +1318,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 2 / 9),
 				lerp(from[2], to[2], 2 / 9),
 				lerp(from[3], to[3], 2 / 9),
@@ -1331,7 +1331,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 3 / 9),
 				lerp(from[2], to[2], 3 / 9),
 				lerp(from[3], to[3], 3 / 9),
@@ -1344,7 +1344,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 4 / 9),
 				lerp(from[2], to[2], 4 / 9),
 				lerp(from[3], to[3], 4 / 9),
@@ -1357,7 +1357,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 5 / 9),
 				lerp(from[2], to[2], 5 / 9),
 				lerp(from[3], to[3], 5 / 9),
@@ -1370,7 +1370,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 6 / 9),
 				lerp(from[2], to[2], 6 / 9),
 				lerp(from[3], to[3], 6 / 9),
@@ -1383,7 +1383,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 7 / 9),
 				lerp(from[2], to[2], 7 / 9),
 				lerp(from[3], to[3], 7 / 9),
@@ -1396,7 +1396,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex({
+			fg = highlights.rgb_to_hex({
 				lerp(from[1], to[1], 8 / 9),
 				lerp(from[2], to[2], 8 / 9),
 				lerp(from[3], to[3], 8 / 9),
@@ -1408,7 +1408,7 @@ highlights.dynamic = {
 
 		return {
 			default = true,
-			fg = highlights.hex(to);
+			fg = highlights.rgb_to_hex(to);
 		};
 	end,
 
