@@ -72,12 +72,12 @@
 ---@field enable boolean
 ---@field callbacks { [string]: function }
 ---@field debounce integer
----@field edit_distance [integer, integer]
+---@field draw_range [ integer, integer ]
+---@field edit_range [integer, integer]
 ---@field hybrid_modes string[]
 ---@field ignore_buftypes string[]
 ---@field ignore_node_classes table
----@field max_file_length integer
----@field render_distance integer
+---@field max_buf_lines integer
 ---@field splitview_winopts table
 
 
