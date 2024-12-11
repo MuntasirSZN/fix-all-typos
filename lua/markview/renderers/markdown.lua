@@ -844,7 +844,6 @@ markdown.get_visual_text = {
 	end,
 
 	init = function (self, ft, line)
-		vim.print(ft)
 		if ft == nil or self[ft] == nil then
 			return;
 		end
@@ -907,6 +906,8 @@ markdown.atx_heading = function (buffer, item)
 
 	---@type headings.atx
 	local config = spec.get({ "heading_" .. #item.marker }, { source = main_config, eval_args = { buffer, item } });
+	local shift_width = spec.get({ "shift_width" }, { source = main_config, fallback = 1, eval_args = { buffer, item } });
+
 	local range = item.range;
 
 	if config.style == "simple" then
@@ -942,7 +943,7 @@ markdown.atx_heading = function (buffer, item)
 				space = string.rep(" ", w_wid - wid);
 			end
 		else
-			space = string.rep(" ", #item.marker * spec.get({ "shift_width" }, { source = main_config, fallback = 1 }) );
+			space = string.rep(" ", #item.marker * shift_width);
 		end
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -990,7 +991,7 @@ markdown.atx_heading = function (buffer, item)
 			sign_hl_group = utils.set_hl(config.sign_hl),
 			virt_text_pos = "inline",
 			virt_text = {
-				{ string.rep(" ", #item.marker * spec.get({ "shift_width" }, { source = main_config, fallback = 1 })) },
+				{ string.rep(" ", #item.marker * shift_width) },
 				{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
 			},
 			line_hl_group = utils.set_hl(config.hl),
@@ -1395,7 +1396,7 @@ markdown.hr = function (buffer, item)
 	---+${func, Horizontal rules}
 
 	---@type markdown.horizontal_rules?
-	local config = spec.get({ "markdown", "horizontal_rules" }, { fallback = nil });
+	local config = spec.get({ "markdown", "horizontal_rules" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
@@ -1407,12 +1408,17 @@ markdown.hr = function (buffer, item)
 	});
 
 	local virt_text = {};
-	local function val(opt, index)
+	local function val(opt, index, wrap)
 		if vim.islist(opt) == false then
 			return opt;
 		elseif #opt < index then
-			return opt[#opt];
-		elseif 0 > index then
+			if wrap == true then
+				local mod = index % #opt;
+				return mod == 0 and opt[#opt] or opt[mod];
+			else
+				return opt[#opt];
+			end
+		elseif index < 0 then
 			return opt[1];
 		end
 
@@ -1423,18 +1429,20 @@ markdown.hr = function (buffer, item)
 		if part.type == "text" then
 			table.insert(virt_text, { part.text, utils.set_hl(part.hl) });
 		elseif part.type == "repeating" then
-			local rep = spec.get({ "repeat_amount" }, { source = part, args = { buffer, item } });
+			local rep     = spec.get({ "repeat_amount" }, { source = part, fallback = 1, args = { buffer, item } });
+			local hl_rep  = spec.get({ "repeat_hl" }, { source = part, fallback = false, args = { buffer, item } });
+			local txt_rep = spec.get({ "repeat_text" }, { source = part, fallback = false, args = { buffer, item } });
 
 			for r = 1, rep, 1 do
 				if part.direction == "right" then
 					table.insert(virt_text, {
-						val(part.text, (rep - r) + 1),
-						val(part.hl, (rep - r) + 1)
+						val(part.text, (rep - r) + 1, txt_rep),
+						val(part.hl, (rep - r) + 1, hl_rep)
 					});
 				else
 					table.insert(virt_text, {
-						val(part.text, r),
-						val(part.hl, r)
+						val(part.text, r, txt_rep),
+						val(part.hl, r, hl_rep)
 					});
 				end
 			end
@@ -1844,6 +1852,8 @@ markdown.setext_heading = function (buffer, item)
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
+			sign_text = config.sign,
+			sign_hl_group = utils.set_hl(config.sign_hl),
 			end_row = range.row_end,
 			end_col = range.col_end,
 			line_hl_group = utils.set_hl(config.hl)
@@ -1859,6 +1869,8 @@ markdown.setext_heading = function (buffer, item)
 				then
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start + (l - 1), math.min(#line, range.col_start), {
 						undo_restore = false, invalidate = true,
+						sign_text = config.sign,
+						sign_hl_group = utils.set_hl(config.sign_hl),
 						line_hl_group = utils.set_hl(config.hl),
 						virt_text_pos = "inline",
 						virt_text = {
@@ -2652,28 +2664,6 @@ markdown.__block_quote = function (buffer, item)
 	---_
 end
 
-
-markdown.__code_block = function (buffer, item)
-	vim.print("herw")
-	---@type markdown.code_blocks?
-	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil });
-
-	if not config then
-		return;
-	elseif config.style ~= "block" then
-		return;
-	end
-
-	local win = utils.buf_getwin(buffer);
-
-	local t = vim.fn.getwininfo(win)[1].textoff;
-	local p = vim.api.nvim_win_get_position(win);
-
-	for l = range.row_start + 1, range.row_end - 2, 1 do
-		local line = item.text[(l + 1) - range.row_start];
-		vim.print(vim.fn.screenpos(win, l + 1, #line).col)
-	end
-end
 
  -----------------------------------------------------------------------------------------
 
