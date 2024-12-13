@@ -43,11 +43,11 @@ yaml.property = function (buffer, item)
 		return;
 	end
 
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.key,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -57,16 +57,9 @@ yaml.property = function (buffer, item)
 			{ "data_types", item.type },
 			{
 				source = main_config,
-				args = { buffer, item }
+				eval_args = { buffer, item }
 			}
 		) or config;
-
-		config = utils.tostatic(
-			config,
-			{
-				args = { buffer, item }
-			}
-		);
 	end
 
 	vim.api.nvim_buf_set_extmark(buffer, yaml.ns("properties"), range.row_start, range.col_start, {

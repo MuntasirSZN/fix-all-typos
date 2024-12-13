@@ -72,22 +72,17 @@ inline.link_block_ref = function (buffer, item)
 	end
 
 	---@type inline.item_config?
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
 	if not config then
 		return;
 	end
-
-	---@type inline.item_config
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	});
 
 	---+${custom, Draw the parts for the embed file links}
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("block_references"), range.row_start, range.col_start, {
@@ -145,30 +140,15 @@ inline.checkbox = function (buffer, item)
 	local config;
 	local range = item.range;
 
-	if
-		(
-			item.text == "X" or
-			item.text == "x"
-		) and
-		spec.get({ "checked" }, { source = main_config })
-	then
-		config = spec.get({ "checked" }, { source = main_config });
-	elseif
-		item.text == " " and
-		spec.get({ "unchecked" }, { source = main_config })
-	then
-		config = spec.get({ "unchecked" }, { source = main_config });
-	elseif
-		spec.get({ item.text }, { source = main_config })
-	then
-		config = spec.get({ item.text }, { source = main_config });
+	if ( item.text == "X" or item.text == "x" ) and spec.get({ "checked" }, { source = main_config, eval_args = { buffer, item } }) then
+		config = spec.get({ "checked" }, { source = main_config, eval_args = { buffer, item } });
+	elseif item.text == " " and spec.get({ "unchecked" }, { source = main_config, eval_args = { buffer, item } }) then
+		config = spec.get({ "unchecked" }, { source = main_config, eval_args = { buffer, item } });
+	elseif spec.get({ item.text }, { source = main_config, eval_args = { buffer, item } }) then
+		config = spec.get({ item.text }, { source = main_config, eval_args = { buffer, item } });
 	else
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	});
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("checkboxes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -189,16 +169,12 @@ inline.code_span = function (buffer, item)
 	---+${func, Render Inline codes}
 
 	---@type inline.item_config?
-	local config = spec.get({ "markdown_inline", "inline_codes" }, { fallback = nil });
+	local config = spec.get({ "markdown_inline", "inline_codes" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	});
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -250,11 +226,11 @@ inline.highlight = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.text,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -312,11 +288,11 @@ inline.link_email = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -374,11 +350,11 @@ inline.link_image = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -436,11 +412,11 @@ inline.link_hyperlink = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -498,11 +474,11 @@ inline.link_shortcut = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -560,11 +536,11 @@ inline.link_uri_autolink = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -622,11 +598,11 @@ inline.link_internal = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -684,11 +660,11 @@ inline.link_embed_file = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -793,11 +769,11 @@ inline.footnote = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 

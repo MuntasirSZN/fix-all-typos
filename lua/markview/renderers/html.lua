@@ -48,14 +48,7 @@ html.heading = function (buffer, item)
 	end
 
 	local range = item.range;
-	local config = spec.get({ "heading_" .. item.level }, { source = main_config });
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
+	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
 
 	vim.api.nvim_buf_set_extmark(
 		buffer,
@@ -79,36 +72,19 @@ end
 html.container_element = function (buffer, item)
 	---+${func}
 	local main_config = spec.get({ "html", "container_elements" }, { fallback = nil });
-	local keys = vim.tbl_keys(main_config);
 
-	if not config then
-		return;
-	elseif item.name == "enable" then
-		return;
-	elseif
-		not vim.list_contains(keys, string.lower(item.name)) and
-		not vim.list_contains(keys, string.upper(item.name)) and
-		not vim.list_contains(keys, item.name)
-	then
+	if not main_config then
 		return;
 	end
 
 	---@type html.container_opts
-	local config = spec.get(
-		{ string.lower(item.name) },
-		{ source = main_config }
-	) or spec.get(
-		{ string.upper(item.name) },
-		{ source = main_config }
-	) or spec.get(
-		{ item.name },
-		{ source = main_config }
-	);
+	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
 
-	if
-		item.opening_tag and
-		config.on_opening_tag
-	then
+	if not config then
+		return;
+	end
+
+	if item.opening_tag and config.on_opening_tag then
 		local open_conf = spec.get({ "on_opening_tag" }, { source = config, args = { item.opening_tag } });
 		local range = item.opening_tag.range;
 
@@ -151,10 +127,7 @@ html.container_element = function (buffer, item)
 		)
 	end
 
-	if
-		item.closing_tag and
-		config.on_closing_tag
-	then
+	if item.closing_tag and config.on_closing_tag then
 		local close_conf = spec.get({ "on_closing_tag" }, { source = config, args = { item.closing_tag } });
 		local range = item.closing_tag.range;
 
@@ -182,31 +155,17 @@ end
 html.void_element = function (buffer, item)
 	---+${func}
 	local main_config = spec.get({ "html", "void_elements" }, { fallback = nil });
-	local keys = vim.tbl_keys(config);
 
-	if not config then
-		return;
-	elseif item.name == "enable" then
-		return;
-	elseif
-		not vim.list_contains(keys, string.lower(item.name)) and
-		not vim.list_contains(keys, string.upper(item.name)) and
-		not vim.list_contains(keys, item.name)
-	then
+	if not main_config then
 		return;
 	end
 
-	---@type html.void_opts
-	local config = spec.get(
-		{ string.lower(item.name) },
-		{ source = main_config }
-	) or spec.get(
-		{ string.upper(item.name) },
-		{ source = main_config }
-	) or spec.get(
-		{ item.name },
-		{ source = main_config }
-	);
+	---@type html.container_opts
+	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
+
+	if not main_config then
+		return;
+	end
 
 	if config.on_node then
 		local node_conf = spec.get({ "on_node" }, { source = config, args = { item } });

@@ -87,8 +87,10 @@ markdown.output = function (str, buffer)
 				"`"
 			}), concat({ content }));
 		else
-			local _codes = utils.tostatic(codes, {
-				args = {
+			local _codes = spec.get({}, {
+				source = codes,
+				fallback = {},
+				eval_args = {
 					buffer,
 					{
 						class = "inline_code_span",
@@ -147,7 +149,7 @@ markdown.output = function (str, buffer)
 	for ref in str:gmatch("%!%[%[([^%]]+)%]%]") do
 		---+${custom, Handle embed files & block references}
 		if ref:match("%#%^(.+)") and blref then
-			local _blref = utils.match_pattern(
+			local _blref = utils.pattern(
 				blref,
 				ref,
 				{
@@ -185,7 +187,7 @@ markdown.output = function (str, buffer)
 				_blref.corner_right or ""
 			}));
 		elseif embed then
-			local _embed = utils.match_pattern(
+			local _embed = utils.pattern(
 				embed,
 				ref,
 				{
@@ -230,7 +232,7 @@ markdown.output = function (str, buffer)
 		---+${custom, Handle block references}
 		if not blref then goto continue; end
 
-		local _blref = utils.match_pattern(
+		local _blref = utils.pattern(
 			blref,
 			ref,
 			{
@@ -286,7 +288,7 @@ markdown.output = function (str, buffer)
 			}));
 		else
 			local alias = link:match("%|(.+)$");
-			local _int = utils.match_pattern(
+			local _int = utils.pattern(
 				int,
 				link,
 				{
@@ -338,7 +340,7 @@ markdown.output = function (str, buffer)
 				address,
 			}), concat({ link }))
 		else
-			local _image = utils.match_pattern(
+			local _image = utils.pattern(
 				image,
 				address,
 				{
@@ -394,7 +396,7 @@ markdown.output = function (str, buffer)
 				utils.escape_string(link):gsub(".", "X"),
 			}))
 		else
-			local _image = utils.match_pattern(
+			local _image = utils.pattern(
 				image,
 				address,
 				{
@@ -446,7 +448,7 @@ markdown.output = function (str, buffer)
 				address
 			}), concat({ utils.escape_string(link):gsub(".", "X") }))
 		else
-			local _hyper = utils.match_pattern(
+			local _hyper = utils.pattern(
 				hyper,
 				address,
 				{
@@ -502,7 +504,7 @@ markdown.output = function (str, buffer)
 				utils.escape_string(link):gsub(".", "X"),
 			}))
 		else
-			local _hyper = utils.match_pattern(
+			local _hyper = utils.pattern(
 				hyper,
 				link,
 				{
@@ -549,7 +551,7 @@ markdown.output = function (str, buffer)
 			break;
 		end
 
-		local _email = utils.match_pattern(
+		local _email = utils.pattern(
 			email,
 			string.format("%s@%s", address, domain),
 			{
@@ -595,7 +597,7 @@ markdown.output = function (str, buffer)
 			goto continue;
 		end
 
-		local _uri = utils.match_pattern(
+		local _uri = utils.pattern(
 			uri,
 			address,
 			{
@@ -673,7 +675,7 @@ markdown.output = function (str, buffer)
 		---+${custom, Handle highlighted text}
 		if not hls then goto continue; end
 
-		local _hls = utils.match_pattern(
+		local _hls = utils.pattern(
 			hls,
 			highlight,
 			{
@@ -845,7 +847,7 @@ markdown.get_visual_text = {
 
 	init = function (self, ft, line)
 		if ft == nil or self[ft] == nil then
-			return;
+			return line;
 		end
 
 		return self[ft](line);
@@ -1403,10 +1405,6 @@ markdown.hr = function (buffer, item)
 		return;
 	end
 
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	});
-
 	local virt_text = {};
 	local function val(opt, index, wrap)
 		if vim.islist(opt) == false then
@@ -1474,7 +1472,7 @@ markdown.link_ref_definition = function (buffer, item)
 	end
 
 	---@type inline.item_config
-	local config = utils.match_pattern(
+	local config = utils.pattern(
 		main_config,
 		item.label,
 		{
@@ -1541,6 +1539,18 @@ markdown.list_item = function (buffer, item)
 		return;
 	end
 
+	--- Evaluation arguments for checkboxes.
+	--- Used for turning function values into static values.
+	local eval_args = {
+		buffer,
+		{
+			class = "inline_checkbox",
+
+			text = item.checkbox,
+			range = {}
+		}
+	};
+
 	if
 		not item.checkbox or
 		not spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil })
@@ -1553,33 +1563,21 @@ markdown.list_item = function (buffer, item)
 			item.checkbox == "X" or
 			item.checkbox == "x"
 		) and
-		spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil })
+		spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil, eval_args = eval_args })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil });
+		checkbox = spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil, eval_args = eval_args });
 	elseif
 		item.checkbox == " " and
-		spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil })
+		spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil, eval_args = eval_args })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil });
+		checkbox = spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil, eval_args = eval_args });
 	elseif
-		spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil })
+		spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil, eval_args = eval_args })
 	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil });
+		checkbox = spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil, eval_args = eval_args });
 	elseif item.checkbox then
 		return;
 	end
-
-	checkbox = utils.tostatic(checkbox, {
-		args = {
-			buffer,
-			{
-				class = "inline_checkbox",
-
-				text = item.checkbox,
-				range = {}
-			}
-		}
-	});
 
 	::continue::
 
@@ -1590,37 +1588,33 @@ markdown.list_item = function (buffer, item)
 	if item.marker == "-" then
 		config = spec.get({ "marker_minus" }, {
 			source = main_config,
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		});
 	elseif item.marker == "+" then
 		config = spec.get({ "marker_plus" }, {
 			source = main_config,
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		});
 	elseif item.marker == "*" then
 		config = spec.get({ "marker_star" }, {
 			source = main_config,
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		});
 	elseif item.marker:match("%d+%.") then
 		config = spec.get({ "marker_dot" }, {
 			source = main_config,
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		});
 	elseif item.marker:match("%d+%)") then
 		config = spec.get({ "marker_parenthesis" }, {
 			source = main_config,
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		});
 	end
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	});
 
 	if config.add_padding then
 		for _, l in ipairs(item.candidates) do
@@ -1698,16 +1692,12 @@ markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
 	---@type markdown.metadata?
-	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil });
+	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil, args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_minus"), range.row_start, 0, {
 		undo_restore = false, invalidate = true,
@@ -1765,16 +1755,12 @@ markdown.metadata_plus = function (buffer, item)
 	---+${func, Renders TOML metadata blocks}
 
 	---@type markdown.metadata?
-	local config = spec.get({ "markdown", "metadata_plus" }, { fallback = nil });
+	local config = spec.get({ "markdown", "metadata_plus" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("metadata_plus"), range.row_start, 0, {
 		undo_restore = false, invalidate = true,
@@ -1832,7 +1818,7 @@ markdown.setext_heading = function (buffer, item)
 	---+${func, Renders Setext headings}
 
 	---@type markdown.headings?
-	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil });
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil, eval_args = { buffer, item } });
 	local lvl = item.marker:match("%=") and 1 or 2;
 
 	if not main_config then
@@ -1844,10 +1830,6 @@ markdown.setext_heading = function (buffer, item)
 	---@type headings.setext
 	local config = spec.get({ "setext_" .. lvl }, { source = main_config });
 	local range = item.range;
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	if config.style == "simple" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
@@ -1928,16 +1910,12 @@ markdown.table = function (buffer, item)
 	---+${func, Renders Tables}
 
 	---@type markdown.tables?
-	local config = spec.get({ "markdown", "tables" }, { fallback = nil });
+	local config = spec.get({ "markdown", "tables" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(config, {
-		args = { buffer, item }
-	})
 
 	local col_widths = {};
 	local visible_texts = {

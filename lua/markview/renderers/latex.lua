@@ -67,15 +67,8 @@ latex.block = function (buffer, item)
 	local range = item.range;
 
 	if item.inline then
-		local config = spec.get({ "latex", "inlines" }, { fallback = nil });
+		local config = spec.get({ "latex", "inlines" }, { fallback = nil, eval_args = { buffer, item } });
 		if not config then return; end
-
-		config = utils.tostatic(
-			config,
-			{
-				args = { buffer, item }
-			}
-		);
 
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -152,15 +145,8 @@ latex.block = function (buffer, item)
 		end
 	else
 		---@type latex.blocks?
-		local config = spec.get({ "latex", "blocks" }, { fallback = nil });
+		local config = spec.get({ "latex", "blocks" }, { fallback = nil, eval_args = { buffer, item } });
 		if not config then return; end
-
-		config = utils.tostatic(
-			config,
-			{
-				args = { buffer, item }
-			}
-		);
 
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -298,7 +284,7 @@ latex.escaped = function (buffer, item)
 	---+${func}
 
 	---@type latex.escapes?
-	local config = spec.get({ "latex", "escapes" }, { fallback = nil });
+	local config = spec.get({ "latex", "escapes" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
 		return;
@@ -311,13 +297,6 @@ latex.escaped = function (buffer, item)
 		end_col = range.col_start + 1,
 		conceal = ""
 	});
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
 
 	if not config.hl then
 		return;
@@ -375,19 +354,12 @@ latex.inline = function (buffer, item)
 	---+${func}
 
 	---@type latex.inlines?
-	local config = spec.get({ "latex", "inlines" }, { fallback = nil });
+	local config = spec.get({ "latex", "inlines" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -505,18 +477,11 @@ latex.subscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = spec.get({ "latex", "subscripts" }, { fallback = nil });
+	local config = spec.get({ "latex", "subscripts" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
 
 	local range = item.range;
 
@@ -572,18 +537,11 @@ latex.superscript = function (buffer, item)
 	---+${func}
 
 	---@type latex.styles?
-	local config = spec.get({ "latex", "superscripts" }, { fallback = nil });
+	local config = spec.get({ "latex", "superscripts" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
 		return;
 	end
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
 
 	local range = item.range;
 
@@ -639,23 +597,13 @@ latex.symbol = function (buffer, item)
 	---+${func}
 
 	---@type latex.symbols?
-	local config = spec.get({ "latex", "symbols" }, { fallback = nil });
+	local config = spec.get({ "latex", "symbols" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
 		return;
-	elseif
-		not item.name or
-		not symbols.entries[item.name]
-	then
+	elseif not item.name or not symbols.entries[item.name] then
 		return;
 	end
-
-	config = utils.tostatic(
-		config,
-		{
-			args = { buffer, item }
-		}
-	);
 
 	local range = item.range;
 	local within_font, font;
@@ -684,7 +632,7 @@ latex.symbol = function (buffer, item)
 	then
 		_o = symbols.fonts[font][item.name];
 
-		_h = utils.match_pattern(
+		_h = utils.pattern(
 			spec.get({ "latex", "fonts" }, { fallback = nil }),
 			font,
 			{
@@ -702,7 +650,7 @@ latex.symbol = function (buffer, item)
 	elseif symbols.entries[item.name] then
 		_o = symbols.entries[item.name];
 
-		_h = config.hl or utils.match_pattern(
+		_h = config.hl or utils.pattern(
 			spec.get({ "latex", "fonts" }, { fallback = nil }),
 			font,
 			{
@@ -832,7 +780,7 @@ latex.word = function (buffer, item)
 			end
 		end
 
-		_h = utils.match_pattern(
+		_h = utils.pattern(
 			spec.get({ "latex", "fonts" }, { fallback = nil }),
 			font,
 			{
@@ -856,7 +804,7 @@ latex.word = function (buffer, item)
 			end
 		end
 
-		_h = utils.match_pattern(
+		_h = utils.pattern(
 			spec.get({ "latex", "fonts" }, { fallback = nil }),
 			"default",
 			{

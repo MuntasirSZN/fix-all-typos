@@ -166,29 +166,45 @@ utils.tostatic = function (tbl, opts)
 	return _o;
 end
 
-utils.match_pattern = function (main_config, txt, opts)
-	if
-		not main_config or
-		(
-			not main_config.patterns and
-			not opts.patterns
-		) or
-		not txt
-	then
-		return utils.tostatic(main_config.default, opts);
+utils.pattern = function (main_config, txt, opts)
+	--- Checks if we can do pattern matching
+	---@return boolean
+	local has_pattern = function ()
+		if type(main_config) ~= "table" then
+			return false;
+		elseif vim.islist(main_config.patterns) == false then
+			return false;
+		elseif type(opts.pattern) ~= "string" then
+			return false;
+		elseif txt == nil then
+			return false;
+		end
+
+		return true;
 	end
 
-	for _, pattern in ipairs(opts.patterns or main_config.patterns) do
-		if pattern.match_string and txt:match(pattern.match_string) then
-			return vim.tbl_deep_extend(
-				"force",
-				utils.tostatic(main_config.default, opts),
-				utils.tostatic(pattern)
-			);
+	local spec = require("markview.spec");
+	local default  = spec.get({ "default" }, { source = main_config, fallback = {}, eval_args = opts.eval_args });
+	--- NOTE, Pattern items can also be dynamic.
+	local patterns = spec.get({ "patterns" }, { source = main_config, fallback = {}, eval_args = opts.eval_args });
+	local custom = {};
+
+	if has_pattern() == false then
+		return default;
+	end
+
+	--- Iterate over the items
+	for _, entry in ipairs(patterns) do
+		if entry.match_string and txt:match(entry.match_string) then
+			--- FIXME, Do we remove the `match_string` entry?
+			custom = entry;
+			break;
 		end
 	end
 
-	return utils.tostatic(main_config.default, opts);
+	--- Oh yeah, the entry can also be dynamic.
+	custom = spec.get({}, { source = custom, eval_args = opts.eval_args });
+	return vim.tbl_deep_extend("force", default, custom);
 end
 
 utils.create_user_command_class = function (config)
@@ -274,6 +290,30 @@ utils.create_user_command_class = function (config)
 
 	-- class = setmetatable(class, class);
 	return class;
+end
+
+--- Gets a config from a list of config tables.
+--- NOTE, {name} will be used to index the config.
+---@param config table
+---@param name string
+---@param opts { eval_args: any[], ignore_keys?: any[] }
+---@return any
+utils.match = function (config, name, opts)
+	local spec = require("markview.spec");
+	local keys = vim.tbl_keys(config or {});
+	local _o;
+
+	if vim.list_contains(opts.ignore_keys or {}, name) then
+		_o = spec.get({ "default" }, { source = config, eval_args = opts.eval_args })
+	elseif vim.list_contains(keys, string.lower(name)) then
+		_o = spec.get({ string.lower(name) }, { source = config, eval_args = opts.eval_args })
+	elseif vim.list_contains(keys, string.upper(name)) then
+		_o = spec.get({ string.upper(name) }, { source = config, eval_args = opts.eval_args })
+	elseif vim.list_contains(keys, name) then
+		_o = spec.get({ name }, { source = config, eval_args = opts.eval_args })
+	end
+
+	return _o;
 end
 
 return utils;
