@@ -1532,54 +1532,11 @@ markdown.list_item = function (buffer, item)
 
 	---@type markdown.list_items?
 	local main_config = spec.get({ "markdown", "list_items" }, { fallback = nil });
-	local checkbox;
 	local range = item.range;
 
 	if not main_config then
 		return;
 	end
-
-	--- Evaluation arguments for checkboxes.
-	--- Used for turning function values into static values.
-	local eval_args = {
-		buffer,
-		{
-			class = "inline_checkbox",
-
-			text = item.checkbox,
-			range = {}
-		}
-	};
-
-	if
-		not item.checkbox or
-		not spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil })
-	then
-		goto continue;
-	end
-
-	if
-		(
-			item.checkbox == "X" or
-			item.checkbox == "x"
-		) and
-		spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil, eval_args = eval_args })
-	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "checked" }, { fallback = nil, eval_args = eval_args });
-	elseif
-		item.checkbox == " " and
-		spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil, eval_args = eval_args })
-	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", "unchecked" }, { fallback = nil, eval_args = eval_args });
-	elseif
-		spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil, eval_args = eval_args })
-	then
-		checkbox = spec.get({ "markdown_inline", "checkboxes", item.checkbox }, { fallback = nil, eval_args = eval_args });
-	elseif item.checkbox then
-		return;
-	end
-
-	::continue::
 
 	---@type list_items.ordered | list_items.unordered
 	local config;
@@ -1637,6 +1594,39 @@ markdown.list_item = function (buffer, item)
 			});
 		end
 	end
+
+	--- Evaluation arguments for checkboxes.
+	--- Used for turning function values into static values.
+	local chk_args = {
+		buffer,
+		{
+			class = "inline_checkbox",
+
+			text = item.checkbox,
+			range = {}
+		}
+	};
+
+	--- Gets checkbox state
+	---@param state string?
+	---@return __inline.checkbox?
+	local function get_state (state)
+		local checkboxes = spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil });
+
+		if state == nil or checkboxes == nil then
+			return;
+		end
+
+		if state == "x" or state == "X" then
+			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+		elseif state == " " then
+			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+		end
+
+		return utils.match(checkboxes, state, { eval_args = chk_args });
+	end
+
+	local checkbox = get_state(item.checkbox);
 
 	if checkbox and config.conceal_on_checkboxes == true then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("list_items"), range.row_start, range.col_start, {
