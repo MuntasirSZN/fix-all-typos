@@ -1069,6 +1069,7 @@ markdown.block_quote = function (buffer, item)
 				end_col = range.callout_end,
 				conceal = "",
 				undo_restore = false, invalidate = true,
+			right_gravity = false,
 				virt_text_pos = "inline",
 				virt_text = {
 					{ " " },
@@ -1088,19 +1089,38 @@ markdown.block_quote = function (buffer, item)
 	end
 
 	for l = range.row_start, range.row_end - 1, 1  do
-		local line_len = #item.text[(l + 1) - range.row_start];
+		local line = item.text[(l - range.row_start) + 1];
+		local line_len = #line;
 
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, range.col_start, {
-			end_col = range.col_start + math.min(1, line_len),
-			conceal = "",
-			undo_restore = false, invalidate = true,
-			virt_text_pos = "inline",
-			virt_text = {
-				{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) }
-			},
+		if line:match("^%>") then
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, range.col_start, {
+				undo_restore = false, invalidate = true,
+				right_gravity = false,
 
-			hl_mode = "combine",
-		});
+				end_col = range.col_start + math.min(1, line_len),
+				conceal = "",
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) }
+				},
+
+				hl_mode = "combine",
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, range.col_start, {
+				undo_restore = false, invalidate = true,
+				right_gravity = false,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) },
+					{ " " }
+				},
+
+				hl_mode = "combine",
+			});
+		end
 	end
 	---_
 end
@@ -1484,10 +1504,12 @@ markdown.link_ref_definition = function (buffer, item)
 		return;
 	end
 
+	local r_label = range.label;
+
 	---+${class}
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), r_label[1], r_label[2], {
 		undo_restore = false, invalidate = true,
-		end_col = range.desc_start or (range.col_start + 1),
+		end_col = r_label[2] + 1,
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -1501,15 +1523,17 @@ markdown.link_ref_definition = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start + 1, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), r_label[1], r_label[2], {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 1 + #item.label,
+		end_row = r_label[3],
+		end_col = r_label[4],
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), range.row_start, range.col_start + #item.label + 1, {
+	vim.api.nvim_buf_set_extmark(buffer, markdown.ns("links"), r_label[3], r_label[4] - 1, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + #item.label + 2,
+		end_row = r_label[3],
+		end_col = r_label[4],
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -1677,7 +1701,7 @@ end
 
 --- Renders - metadatas.
 ---@param buffer integer
----@param item __markdown.metadata_minus
+---@param item __markdown.metadata
 markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
@@ -1740,7 +1764,7 @@ end
 
 --- Renders + metadatas.
 ---@param buffer integer
----@param item __markdown.metadata_plus
+---@param item __markdown.metadata
 markdown.metadata_plus = function (buffer, item)
 	---+${func, Renders TOML metadata blocks}
 
@@ -2616,6 +2640,8 @@ markdown.__block_quote = function (buffer, item)
 
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns("block_quotes"), l, c - 1, {
 					undo_restore = false, invalidate = true,
+					right_gravity = false,
+
 					virt_text_pos = "inline",
 					virt_text = {
 						{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) },
