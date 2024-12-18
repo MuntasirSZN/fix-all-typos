@@ -933,10 +933,11 @@ spec.default = {
 		},
 		container_elements = {
 			enable = true,
-			-- ["i"] = {
-			-- 	on_opening_tag = { conceal = "" },
-			-- 	on_closing_tag = { conceal = "" },
-			-- }
+			["u"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "Underlined" },
+				on_closing_tag = { conceal = "" },
+			}
 		},
 		void_elements = {
 			enable = true,
@@ -1951,9 +1952,15 @@ spec.get = function (keys, opts)
 
 	--- Iterate over the keys
 	for _, key in ipairs(keys) do
+		if type(source) ~= "table" then
+			--- Reached unusual value.
+			--- Should be a table.
+			return opts.fallback;
+		end
+
 		--- Do not evaluate the final result.
 		--- We may need the literal value.
-		if opts.ignore_enable ~= true and source.enable == false then
+		if opts.ignore_enable ~= true and ( type(source) == "table" and source.enable == false ) then
 			return opts.fallback;
 		end
 
