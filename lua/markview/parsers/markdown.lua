@@ -150,26 +150,39 @@ markdown.checkbox = function (_, TSNode, text, range)
 end
 
 ---@type markview.parsers.function
-markdown.link_ref = function (_, TSNode, text, range)
-	local label = text[1]:match("^%[(.-)%]%:");
-	local desc = text[1]:match("^%[.-%]%:%s*(.+)$");
+markdown.link_ref = function (buffer, TSNode, text, range)
+	--- [link]: destination
+	---   0   1   2
+	--- These 3 nodes always exist.
 
-	if not desc and text[2] then
-		desc = text[2];
+	local n_label = TSNode:child(0);
+	local n_desc  = TSNode:child(2);
+
+	local label, desc;
+
+	if n_label then
+		label = vim.treesitter.get_node_text(n_label, buffer):gsub("^%[", ""):gsub("%]$", "");
+		range.label = { n_label:range() };
+	end
+
+	if n_desc then
+		desc = vim.treesitter.get_node_text(n_desc, buffer);
+		range.description = { n_desc:range() };
 	end
 
 	markdown.insert({
 		class = "markdown_link_ref_definition",
-		node = TSNode,
 
-		text = text[1]:sub(range.col_start, range.col_end),
+		text = text,
 		label = label,
 		description = desc,
 
 		range = range
 	});
 
-	inline.cache.link_ref[label] = desc;
+	if label and desc then
+		inline.cache.link_ref[label] = desc;
+	end
 end
 
 --- List item parser.

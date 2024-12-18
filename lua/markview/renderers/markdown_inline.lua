@@ -192,11 +192,12 @@ inline.code_span = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start, range.col_start + 1, {
 		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
 		end_col = range.col_end - 1,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -209,6 +210,59 @@ inline.code_span = function (buffer, item)
 
 		hl_mode = "combine"
 	});
+
+	if range.row_start == range.row_end then
+		return;
+	end
+
+	for l, line in ipairs(item.text) do
+		if l == 1 then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start + (l - 1), range.col_start + #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		elseif l == #item.text then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start + (l - 1), 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start + (l - 1), 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("inline_codes"), range.row_start + (l - 1), #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		end
+	end
 	---_
 end
 
@@ -338,11 +392,11 @@ end
 
 ---@param buffer integer
 ---@param item __inline.link
-inline.link_image = function (buffer, item)
-	---+${func, Render Image links}
+inline.link_embed_file = function (buffer, item)
+	---+${func, Render Obsidian's embed file links}
 
 	---@type inline.item?
-	local main_config = spec.get({ "markdown_inline", "images" }, { fallback = nil });
+	local main_config = spec.get({ "markdown_inline", "embed_files" }, { fallback = nil });
 	local range = item.range;
 
 	if not main_config then
@@ -358,10 +412,10 @@ inline.link_image = function (buffer, item)
 		}
 	);
 
-	---+${custom, Draw the parts for the image}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.col_start, {
+	---+${custom, Draw the parts for the embed file links}
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
-		end_col = range.desc_start or (range.col_start + 1),
+		end_col = range.col_start + 2,
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -375,13 +429,13 @@ inline.link_image = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.desc_start or range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
-		end_col = range.desc_end or range.col_end,
+		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), range.row_start, range.desc_end or (range.col_end - 3), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_end - 2, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -420,10 +474,12 @@ inline.link_hyperlink = function (buffer, item)
 		}
 	);
 
-	---+${custom, Draw the parts for the image}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.col_start, {
+	local r_label = range.label;
+
+	---+${custom, Draw the parts for the shortcut links}
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), r_label[1], r_label[2] - 1, {
 		undo_restore = false, invalidate = true,
-		end_col = range.desc_start or (range.col_start + 1),
+		end_col = r_label[2],
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -437,14 +493,16 @@ inline.link_hyperlink = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.desc_start or range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), r_label[1], r_label[2], {
 		undo_restore = false, invalidate = true,
-		end_col = range.desc_end or range.col_end,
+		end_row = r_label[3],
+		end_col = r_label[4],
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("links"), range.row_start, range.desc_end or (range.col_end - 3), {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), r_label[3], r_label[4], {
 		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
 		end_col = range.col_end,
 		conceal = "",
 
@@ -456,7 +514,185 @@ inline.link_hyperlink = function (buffer, item)
 
 		hl_mode = "combine"
 	});
-	--_
+	---_
+
+	if r_label[1] == r_label[3] then
+		return;
+	end
+
+	for l = r_label[1], r_label[3] do
+		local line = item.text[(l - range.row_start) + 1];
+
+		if l == r_label[1] then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), l, range.col_start + #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		elseif l == r_label[3] then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), l, #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+
+		end
+	end
+	---_
+end
+
+---@param buffer integer
+---@param item __inline.link
+inline.link_image = function (buffer, item)
+	---+${func, Render Image links}
+
+	---@type inline.item?
+	local main_config = spec.get({ "markdown_inline", "images" }, { fallback = nil });
+	local range = item.range;
+
+	if not main_config then
+		return;
+	end
+
+	---@type inline.item_config
+	local config = utils.pattern(
+		main_config,
+		item.label,
+		{
+			eval_args = { buffer, item }
+		}
+	);
+
+	local r_label = range.label;
+
+	---+${custom, Draw the parts for the image links}
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), r_label[1], r_label[2] - 1, {
+		undo_restore = false, invalidate = true,
+		end_col = r_label[2],
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+
+			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), r_label[1], r_label[2], {
+		undo_restore = false, invalidate = true,
+		end_row = r_label[3],
+		end_col = r_label[4],
+		hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), r_label[3], r_label[4], {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+	---_
+
+	if r_label[1] == r_label[3] then
+		return;
+	end
+
+	for l = r_label[1], r_label[3] do
+		local line = item.text[(l - range.row_start) + 1];
+
+		if l == r_label[1] then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), l, range.col_start + #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		elseif l == r_label[3] then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("images"), l, #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+
+		end
+	end
 	---_
 end
 
@@ -501,11 +737,12 @@ inline.link_shortcut = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start, range.col_start + 1, {
 		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
 		end_col = range.col_end - 1,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -519,6 +756,59 @@ inline.link_shortcut = function (buffer, item)
 		hl_mode = "combine"
 	});
 	---_
+
+	if range.row_start == range.row_end then
+		return;
+	end
+
+	for l, line in ipairs(item.text) do
+		if l == 1 then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start + (l - 1), range.col_start + #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		elseif l == #item.text then
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start + (l - 1), 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start + (l - 1), 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, inline.ns("hyperlinks"), range.row_start + (l - 1), #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		end
+	end
 	---_
 end
 
@@ -544,10 +834,12 @@ inline.link_uri_autolink = function (buffer, item)
 		}
 	);
 
+	local r_label = range.label;
+
 	---+${custom, Draw the parts for the autolinks}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), r_label[1], r_label[2], {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 1,
+		end_col = r_label[2] + 1,
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -563,13 +855,14 @@ inline.link_uri_autolink = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
 		end_col = range.col_end,
 		hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), range.row_start, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns("uri_autolinks"), r_label[3], r_label[4] - 1, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
+		end_col = r_label[4],
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -630,68 +923,6 @@ inline.link_internal = function (buffer, item)
 	});
 
 	vim.api.nvim_buf_set_extmark(buffer, inline.ns("internal_links"), range.row_start, range.alias_end or (range.col_end - 2), {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-	---_
-	---_
-end
-
----@param buffer integer
----@param item __inline.link
-inline.link_embed_file = function (buffer, item)
-	---+${func, Render Obsidian's embed file links}
-
-	---@type inline.item?
-	local main_config = spec.get({ "markdown_inline", "embed_files" }, { fallback = nil });
-	local range = item.range;
-
-	if not main_config then
-		return;
-	end
-
-	---@type inline.item_config
-	local config = utils.pattern(
-		main_config,
-		item.label,
-		{
-			eval_args = { buffer, item }
-		}
-	);
-
-	---+${custom, Draw the parts for the embed file links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 2,
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-
-			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		hl_group = utils.set_hl(config.hl)
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns("embed_files"), range.row_start, range.alias_end or (range.col_end - 2), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
