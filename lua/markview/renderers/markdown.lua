@@ -950,7 +950,7 @@ markdown.atx_heading = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + #item.marker + (#item.text[1] > 1 and 1 or 0),
+			end_col = range.col_start + #item.marker + (#item.text[1] > #item.marker and 1 or 0),
 			conceal = "",
 			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl),
@@ -987,7 +987,7 @@ markdown.atx_heading = function (buffer, item)
 	elseif config.style == "icon" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + #item.marker + (#item.text[1] > 1 and 1 or 0),
+			end_col = range.col_start + #item.marker + (#item.text[1] > #item.marker and 1 or 0),
 			conceal = "",
 			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl),
@@ -1126,7 +1126,8 @@ markdown.block_quote = function (buffer, item)
 end
 
 markdown.checkbox = function (buffer, item)
-	--- Wrapper for the inline checkbox renderer function
+	--- Wrapper for the inline checkbox renderer function.
+	--- Used for [ ] & [X] checkboxes.
 	inline.checkbox(buffer, item)
 end
 
@@ -2668,8 +2669,7 @@ markdown.render = function (buffer, content)
 	markdown.set_ns();
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
-		markdown[item.class:gsub("^markdown_", "")](buffer, item);
+		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
 	end
 
 	return { markdown = markdown.cache };
@@ -2678,7 +2678,6 @@ end
 markdown.post_render = function (buffer, content)
 	for _, item in ipairs(content or {}) do
 		pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
-		-- markdown["__" .. item.class:gsub("^markdown_", "")](buffer, item);
 	end
 end
 
