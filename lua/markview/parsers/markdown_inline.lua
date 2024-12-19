@@ -325,7 +325,11 @@ inline.shortcut_link = function (buffer, TSNode, text, range)
 	elseif before:match("^[%s%>]*%d+[%.%)]%s+$") and text[1]:match("^%[.%]$") then
 		--- Checkbox (ordered list item)
 		return;
+	elseif before:match("%>%s*$") then
+		--- Callout
+		return;
 	elseif before:match("%!%[$") and after:match("^%]") then
+		--- Embed file
 		return;
 	elseif before:match("%[$") and after:match("^%]") then
 		if range.row_start ~= range.row_end then
