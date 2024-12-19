@@ -1,9 +1,10 @@
---- Checkbox & callout completion for `markview.nvim_lsp`.
+--- Completion for `markview.nvim`.
 local source = {}
 
 ---@return boolean
 function source:is_available()
-	return vim.o.ft == "markdown";
+	local fts = require("markview.spec").get({ "preview", "filetypes" }, { fallback = {}  });
+	return vim.list_contains(fts, vim.bo.ft);
 end
 
 ---@return string
@@ -11,13 +12,13 @@ function source:get_debug_name()
 	return "markview-cmp";
 end
 
----Return trigger characters for triggering completion (optional).
+--- Characters that trigger the completion.
 ---@return string[]
 function source:get_trigger_characters()
 	return { "[", "!" }
 end
 
----Invoke completion (required).
+--- Completion items.
 function source:complete(params, callback)
 	local spec = require("markview.spec");
 
@@ -25,6 +26,10 @@ function source:complete(params, callback)
 	local after = params.context.cursor_after_line or "";
 
 	local comp = {};
+
+	if vim.bo.ft ~= "markdown" then
+		goto not_md;
+	end
 
 	if before:match("^[ %>]+%s*%[%!%a*$") then
 		---+${func, Callout completion}
@@ -90,6 +95,8 @@ function source:complete(params, callback)
 	else
 		return;
 	end
+
+	::not_md::
 
 	callback(comp);
 end
