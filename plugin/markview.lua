@@ -1,16 +1,31 @@
+--- Functionality provider for `markview.nvim`.
+--- Functionalities that are implementated,
+---
+---   + Buffer registration.
+---   + Command.
+---   + Dynamic highlight groups.
+---
+--- **Author**: MD. Mouinul Hossain Shawon (OXY2DEV)
+
 local markview = require("markview");
 local spec = require("markview.spec");
 
-vim.g.setup_mkv_source = false;
+--- Was the completion source loaded?
+if vim.g.markview_cmp_loaded == nil then
+	vim.g.markview_cmp_loaded = false;
+end
+
+ ------------------------------------------------------------------------------------------
 
 --- Sets up the highlight groups.
 --- Should be called AFTER loading
 --- colorschemes.
 require("markview.highlights").setup();
 
---- Patch for the broken (fenced_code_block) concealment.
---- Doesn't hide leading spaces before ```
+--- FIX, Patch for the broken (fenced_code_block) concealment.
+--- Doesn't hide leading spaces before ```.
 vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, predicate, metadata)
+	---+${lua}
 	local id = predicate[2];
 	local node = match[id];
 
@@ -32,198 +47,182 @@ vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, 
 	metadata[id].range[4] = c_e;
 
 	metadata[id].conceal = "";
+	---_
 end)
 
---- Autocmd for attaching to a buffer.
+ ------------------------------------------------------------------------------------------
+
+--- Registers completion sources for `markview.nvim`.
+local function register_source()
+	---+${lua}
+
+	---@type boolean, table
+	local has_cmp, cmp = pcall(require, "cmp");
+
+	if has_cmp == false then
+		return;
+	elseif vim.g.markview_cmp_loaded == false then
+		--- Completion source for `markview.nvim`.
+		local mkv_src = require("cmp-markview");
+		cmp.register_source("cmp-markview", mkv_src);
+
+		vim.g.markview_cmp_loaded = true;
+	end
+
+	local old_src = cmp.get_config().sources or {};
+
+	if vim.list_contains(old_src, "cmp-markview") then
+		return;
+	end
+
+	cmp.setup.buffer({
+		sources = vim.list_extend(old_src, {
+			{
+				name = "cmp-markview",
+				keyword_length = 1,
+				options = {}
+			}
+		})
+	});
+	---_
+end
+
+--- Registers buffers.
 vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	group = markview.augroup,
 	callback = function (event)
-		local has_cmp, cmp = pcall(require, "cmp");
+		---+${lua}
+		local buffer = event.buf;
 
-		if vim.g.setup_mkv_source == false and has_cmp == true then
-			local source = require("cmp-markview");
-			require('cmp').register_source("markview-cmp", source);
-
-			vim.g.setup_mkv_source = true;
+		if markview.actions.__is_attached(buffer) == true then
+			--- Already attached to this buffer!
+			return;
 		end
 
-		local buffer = event.buf or vim.api.nvim_get_current_buf();
+		---@type string, string
 		local bt, ft = vim.bo[buffer].buftype, vim.bo[buffer].filetype;
-
 		local attach_ft = spec.get({ "preview", "filetypes" }, { fallback = {}, ignore_enable = true });
 		local ignore_bt = spec.get({ "preview", "ignore_buftypes" }, { fallback = {}, ignore_enable = true });
 
-		--- Check if it's possible to attach to
-		--- the buffer.
-		---@return boolean
-		local can_attach = function ()
-			if spec.get({ "enable" }) == false or markview.state.enable == false then
-				--- Plugin is disabled.
-				return false;
-			elseif vim.list_contains(attach_ft, ft) == false then
-				return false;
-			elseif vim.list_contains(ignore_bt, bt) == true then
-				return false;
-			end
-
-			return true;
-		end
-
-		if can_attach() == false then
+		if vim.list_contains(ignore_bt, bt) == true then
+			--- Ignored buffer type.
+			return;
+		elseif vim.list_contains(attach_ft, ft) == false then
+			--- Ignored file type.
 			return;
 		end
 
-		markview.commands.attach(event.buf);
-
-		if has_cmp == true then
-			local new_sources = {};
-
-			for _, source in ipairs(cmp.get_config().sources) do
-				if source.name == "markview-cmp" then
-					return;
-				else
-					table.insert(new_sources, source);
-				end
-			end
-
-			table.insert(new_sources, { name = "markview-cmp", keyword_length = 1, option = {} });
-			cmp.setup.buffer { sources = new_sources }
-		end
+		markview.actions.attach(buffer);
+		register_source();
+		---_
 	end
 });
 
-local debounce_delay = spec.get({ "preview", "debounce" }, { fallback = 50, ignore_enable = true });
-local debounce = vim.uv.new_timer();
-
---- Like `vim.list_contains` but on a
---- list of items.
----@param list any[]
----@param items any[]
----@return boolean
-local list_contains = function (list, items)
-	for _, item in ipairs(items) do
-		if vim.list_contains(list, item) then
-			return true;
-		end
-	end
-
-	return false;
-end
-
---- All the events where the preview
---- might be updated.
----
---- Note: I did this because `splitview`
---- doesn't follow `modes`(otherwise it
---- becomes kinda pointless to use).
-vim.api.nvim_create_autocmd({
-	"CursorMoved", "TextChanged",
-	"CursorMovedI", "TextChangedI"
-}, {
+--- Mode changes.
+vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 	group = markview.augroup,
-	callback = function (ev)
-		local event = ev.event;
-		local buf = ev.buf;
-		local state = markview.state;
+	callback = function (event)
+		---+${lua}
+		local buffer = event.buf;
+		local mode = vim.api.nvim_get_mode().mode;
 
-		--- Stop any active timers
-		debounce:stop();
-		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-
-		if state.enable == false or state.buffer_states[buf] ~= true then
+		if markview.actions.__is_attached(buffer) == false then
+			--- Buffer isn't attached!
+			return;
+		elseif buffer == markview.state.splitview_source then
+			markview.splitview_render();
 			return;
 		end
 
-		--- Is this an event where
-		--- we should render?
-		local render_event = function ()
-			if (event == "CursorMoved" or event == "TextChanged") and list_contains(preview_modes, { "n", "v" }) then
+		---@type string[] List of modes where preview is shown.
+		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+
+		if markview.state.enable == false then
+			markview.clear(buffer);
+		elseif markview.state.buffer_states[buffer] and markview.state.buffer_states[buffer].enable == false then
+			markview.clear(buffer);
+		elseif vim.list_contains(modes, mode) then
+			markview.draw(buffer);
+		else
+			markview.clear(buffer);
+		end
+
+		markview.actions.__exec_callback("on_mode_change", buffer, vim.fn.win_findbuf(buffer), mode)
+		---_
+	end
+});
+
+local timer = vim.uv.new_timer();
+
+--- Preview updates.
+vim.api.nvim_create_autocmd({
+	"CursorMoved",  "TextChanged",
+	"CursorMovedI", "TextChangedI"
+}, {
+	group = markview.augroup,
+	callback = function (event)
+		---+${lua}
+		timer:stop();
+		local buffer = event.buf;
+		local name = event.event;
+
+		if markview.actions.__is_attached(buffer) == false then
+			return;
+		end
+
+		local delay = spec.get({ "preview", "debounce" }, { fallback = 25, ignore_enable = true });
+
+		--- Like `vim.list_contains` but on a
+		--- list of items.
+		---@param list any[]
+		---@param items any[]
+		---@return boolean
+		local list_contains = function (list, items)
+			---+${lua}
+			for _, item in ipairs(items) do
+				if vim.list_contains(list, item) then
+					return true;
+				end
+			end
+
+			return false;
+			---_
+		end
+
+		--- Should we render things?
+		---@return boolean
+		local function should_draw()
+			---+${lua}
+			local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+
+			if markview.actions.__is_attached(buffer) == false then
+				return false;
+			elseif markview.state.enable == false then
+				return false;
+			elseif markview.state.buffer_states[buffer] and markview.state.buffer_states[buffer].enable == false then
+				return false;
+			elseif vim.list_contains({ "CursorMoved", "TextChanged" }, name) and list_contains(modes, { "n", "v" }) then
 				return true;
-			elseif (event == "CursorMovedI" or event == "TextChangedI") and list_contains(preview_modes, { "i" }) then
+			elseif vim.list_contains({ "CursorMovedI", "TextChangedI" }, name) and list_contains(modes, { "i" }) then
 				return true;
 			end
 
 			return false;
+			---_
 		end
 
-		debounce:start(debounce_delay, 0, vim.schedule_wrap(function ()
-			if vim.list_contains(markview.state.ignore_modes, buf) == true then
-				--- This buffer ignores `modes` and
-				--- the events caused by them
-				markview.draw(buf, true);
-			elseif render_event() == true then
-				--- Cursor moved or text changed.
-				if buf == markview.state.splitview_source then
-					markview.commands.splitRedraw();
-				elseif vim.list_contains(markview.state.attached_buffers, buf) then
-					markview.draw(buf);
-				end
+		timer:start(delay, 0, vim.schedule_wrap(function ()
+			if buffer == markview.state.splitview_source then
+				markview.splitview_render();
+			elseif should_draw() == true then
+				markview.render(buffer);
+			else
+				markview.clear(buffer);
 			end
-		end))
+		end));
+		---_
 	end
 });
-
-local mode_debounce = vim.uv.new_timer();
-
-vim.api.nvim_create_autocmd({
-	"ModeChanged",
-}, {
-	group = markview.augroup,
-	callback = function (ev)
-		local buf = ev.buf;
-		local state = markview.state;
-
-		--- Stop any active timers
-		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-		local mode = vim.api.nvim_get_mode().mode;
-
-		--- We should only toggle the preview
-		--- on the current buffer as otherwise
-		--- it gets distracting when multiple
-		--- windows are open.
-		if vim.list_contains(state.attached_buffers, buf) == false then
-			--- Not an attached buffer.
-			return;
-		elseif markview.buf_is_safe(buf) == false then
-			--- How did the buffer become invalid?
-			markview.clean();
-			return;
-		elseif buf == markview.state.splitview_source then
-			--- Update `splitview` buffer.
-			markview.commands.splitRedraw();
-		elseif state.enable == false or state.buffer_states[buf] ~= true then
-			--- Disabled buffer.
-			---
-			--- Note, Check this after checking if
-			--- the buffer is a splitview source
-			--- as splitview also disables preview
-			--- of the source buffer.
-			return;
-		elseif vim.list_contains(preview_modes, mode) then
-			markview.draw(buf);
-		else
-			markview.clear(buf);
-		end
-
-		--- Call mode change callbacks.
-		local callback = spec.get({ "preview", "callbacks", "on_mode_change" }, { default = nil, ignore_enable = true });
-
-		if callback and pcall(callback, buf, vim.fn.win_findbuf(buf), mode) then
-			callback(buf, vim.fn.win_findbuf(buf), mode);
-		end
-	end
-})
-
---- The `:Markview` command.
-vim.api.nvim_create_user_command(
-	"Markview",
-	require("markview").exec,
-	{
-		desc = "Main command for `markview.nvim`. Toggles preview by default.",
-		nargs = "*", bang = true,
-		complete = markview.completion
-	}
-);
 
 --- Updates the highlight groups.
 vim.api.nvim_create_autocmd("ColorScheme", {
@@ -233,3 +232,317 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 	end
 });
 
+ ------------------------------------------------------------------------------------------
+
+---@type mkv.cmd_completion
+local get_complete_items = {
+	default = function (str)
+		---+${lua}
+		if str == nil then
+			local _o = vim.tbl_keys(markview.commands);
+			table.sort(_o);
+
+			return _o;
+		end
+
+		local _o = {};
+
+		for _, key in ipairs(vim.tbl_keys(markview.commands)) do
+			if string.match(key, "^" .. str) then
+				table.insert(_o, key);
+			end
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+
+	attach = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+			if markview.buf_is_safe(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+	detach = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+
+	enable = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false or markview.actions.__is_enabled(buffer) == true then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+	disable = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false or markview.actions.__is_enabled(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+
+	splitOpen = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+
+	render = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+			if markview.buf_is_safe(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+	clear = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(vim.api.nvim_list_bufs()) do
+			if markview.buf_is_safe(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end
+};
+
+--- User command.
+vim.api.nvim_create_user_command("Markview", function (cmd)
+	---+${lua}
+
+	local function exec(fun, args)
+		args = args or {};
+		local fargs = {};
+
+		for _, arg in ipairs(args) do
+			if tonumber(arg) then
+				table.insert(fargs, tonumber(arg));
+			elseif arg == "true" or arg == "false" then
+				table.insert(fargs, arg == "true");
+			else
+				--- BUG, is this used by any functions?
+				-- table.insert(fargs, arg);
+			end
+		end
+
+		---@diagnostic disable-next-line
+		pcall(fun, unpack(fargs));
+	end
+
+	---@type string[] Command arguments.
+	local args = cmd.fargs;
+
+	if #args == 0 then
+		markview.commands.toggle();
+	elseif type(markview.commands[args[1]]) == "function" then
+		--- FIXME, Change this if `vim.list_slice` becomes deprecated.
+		exec(markview.commands[args[1]], vim.list_slice(args, 2))
+	end
+	---_
+end, {
+	---+${lua}
+	nargs = "*",
+	desc = "User command for `markview.nvim`",
+	complete = function (_, cmd, cursorpos)
+		local function is_subcommand(str)
+			return markview.commands[str] ~= nil;
+		end
+
+		local before = string.sub(cmd, 0, cursorpos);
+		local parts = {};
+
+		for part in string.gmatch(before, "%S+") do
+			table.insert(parts, part);
+		end
+
+		if #parts == 1 then
+			return get_complete_items.default();
+		elseif #parts == 2 and is_subcommand(parts[2]) == false then
+			return get_complete_items.default(parts[2]);
+		elseif is_subcommand(parts[2]) == true and get_complete_items[parts[2]] ~= nil then
+			return get_complete_items[parts[2]](parts, before);
+		end
+	end
+	---_
+});
