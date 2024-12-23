@@ -165,8 +165,14 @@ vim.api.nvim_create_autocmd({
 		timer:stop();
 		local buffer = event.buf;
 		local name = event.event;
+		local mode = vim.api.nvim_get_mode().mode;
+
+		---@type string[] List of modes where preview is shown.
+		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 
 		if markview.actions.__is_attached(buffer) == false then
+			return;
+		elseif vim.list_contains(modes, mode) == false then
 			return;
 		end
 
