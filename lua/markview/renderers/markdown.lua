@@ -968,18 +968,18 @@ markdown.atx_heading = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
+			end_row = range.row_start,
+			end_col = range.col_start + #(item.text[1] or ""),
 			hl_group = utils.set_hl(config.hl)
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_end, {
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns("headings"), range.row_start, range.col_start + #(item.text[1] or ""), {
 			undo_restore = false, invalidate = true,
 			conceal = "",
 			virt_text_pos = "inline",
 			virt_text = {
-				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
 			},
 
 			hl_mode = "combine"
