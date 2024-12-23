@@ -554,7 +554,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -616,7 +617,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -678,7 +680,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -740,7 +743,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -802,7 +806,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -864,7 +869,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -926,7 +932,8 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg)
+					fg = highlights.rgb_to_hex(h_fg),
+					bg = highlights.rgb_to_hex(vim_bg)
 				}
 			},
 			{
@@ -1509,7 +1516,7 @@ highlights.dynamic = {
 highlights.groups = highlights.dynamic;
 
 highlights.setup = function (opt)
-	if vim.islist(opt) then
+	if type(opt) == "table" then
 		highlights.groups = vim.tbl_extend("force", highlights.groups, opt);
 	end
 
