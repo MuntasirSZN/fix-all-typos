@@ -260,7 +260,7 @@ typst.heading = function (buffer, item)
 	end
 
 	local range = item.range;
-	---@type heading.typst
+	---@type headings.typst
 	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
 
 	if config.style == "simple" then
@@ -294,7 +294,20 @@ typst.label = function (buffer, item)
 	---+${func}
 
 	---@type typst.labels?
-	local config = spec.get({ "typst", "labels" }, { fallback = nil, eval_args = { buffer, item } });
+	local main_config = spec.get({ "typst", "labels" }, { fallback = nil, eval_args = { buffer, item } });
+
+	if not main_config then
+		return;
+	end
+
+	---@type config.inline_generic?
+	local config = utils.pattern(
+		main_config,
+		string.sub(item.text[1], 1, #item.text[1] - 1),
+		{
+			eval_args = { buffer, item }
+		}
+	);
 
 	if not config then
 		return;
@@ -346,13 +359,14 @@ end
 typst.link_ref = function (buffer, item)
 	---+${func}
 
-	---@type typst.links?
+	---@type typst.reference_links?
 	local main_config = spec.get({ "typst", "reference_links" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not main_config then
 		return;
 	end
 
+	---@type config.inline_generic?
 	local config = utils.pattern(
 		main_config,
 		string.sub(item.text[1], 2),
@@ -360,6 +374,10 @@ typst.link_ref = function (buffer, item)
 			eval_args = { buffer, item }
 		}
 	);
+
+	if not config then
+		return;
+	end
 
 	local range = item.range;
 
@@ -412,7 +430,7 @@ typst.link_url = function (buffer, item)
 		return;
 	end
 
-	local range = item.range;
+	---@type config.inline_generic?
 	local config = utils.pattern(
 		main_config,
 		item.label,
@@ -421,6 +439,11 @@ typst.link_url = function (buffer, item)
 		}
 	);
 
+	if not config then
+		return;
+	end
+
+	local range = item.range;
 
 	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -463,7 +486,7 @@ typst.list_item = function (buffer, item)
 
 	---@type typst.list_items?
 	local main_config = spec.get({ "typst", "list_items" }, { fallback = nil });
-	---@type list_items.typst
+	---@type list_items.ordered | list_items.unordered | nil
 	local config;
 
 	if not main_config then return; end
@@ -536,7 +559,10 @@ typst.math = function (buffer, item)
 	if item.inline then
 		---@type typst.math_spans?
 		local config = spec.get({ "typst", "math_spans" }, { fallback = nil, eval_args = { buffer, item } });
-		if not config then return; end
+
+		if not config then
+			return;
+		end
 
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -616,7 +642,10 @@ typst.math = function (buffer, item)
 	else
 		---@type typst.math_blocks?
 		local config = spec.get({ "typst", "math_blocks" }, { fallback = nil, eval_args = { buffer, item } });
-		if not config then return; end
+
+		if not config then
+			return;
+		end
 
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
@@ -672,24 +701,18 @@ typst.raw_block = function (buffer, item)
 	local lbl_w = utils.virt_len({ label });
 	local win = utils.buf_getwin(buffer);
 
-	if
-		config.style == "simple" or
-		(
-			vim.o.wrap == true or
-			vim.wo[win].wrap == true
-		)
-	then
+	if config.style == "simple" or ( vim.o.wrap == true or vim.wo[win].wrap == true ) then
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 3 + vim.fn.strdisplaywidth(item.language or ""),
 			conceal = "",
 
-			virt_text_pos = config.language_direction == "left" and "right_align" or "inline",
-			virt_text = { label },
+			virt_text_pos = config.label_direction == "left" and "right_align" or "inline",
+			virt_text = { label, config.label_hl or config.hl },
 
 			hl_mode = "combine",
 
-			sign_text = icon,
+			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl or sign_hl)
 		});
 
@@ -743,7 +766,7 @@ typst.raw_block = function (buffer, item)
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
-			virt_text = config.language_direction == "left" and {
+			virt_text = config.label_direction == "left" and {
 				label,
 				{ string.rep(config.pad_char or " ", block_width - lbl_w), utils.set_hl(config.hl) },
 				{ string.rep(config.pad_char or " ", (2 * pad_amount)), utils.set_hl(config.hl) },
@@ -755,7 +778,7 @@ typst.raw_block = function (buffer, item)
 
 			hl_mode = "combine",
 
-			sign_text = icon,
+			sign_text = config.sign,
 			sign_hl_group = utils.set_hl(config.sign_hl or sign_hl)
 		});
 
@@ -891,7 +914,7 @@ end
 typst.superscript = function (buffer, item)
 	---+${func}
 
-	---@type latex.styles?
+	---@type typst.superscripts?
 	local config = spec.get({ "typst", "superscripts" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
@@ -1071,6 +1094,10 @@ typst.term = function (buffer, item)
 			eval_args = { buffer, item }
 		}
 	);
+
+	if not config then
+		return;
+	end
 
 	local range = item.range;
 
