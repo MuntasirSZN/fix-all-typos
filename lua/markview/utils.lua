@@ -1,13 +1,23 @@
 local utils = {};
 
-local ts_available, treesitter_parsers = pcall(require, "nvim-treesitter.parsers");
-local ts_utils = require("nvim-treesitter.ts_utils");
-
 --- Checks if a parser is available or not
 ---@param parser_name string
 ---@return boolean
 utils.parser_installed = function (parser_name)
-	return (ts_available and treesitter_parsers.has_parser(parser_name)) or pcall(vim.treesitter.query.get, parser_name, "highlights")
+	local has_ts, parsers = pcall(require, "nvim-treesitter.parsers");
+
+	if has_ts == false then
+		--- `nvim-treesitter` not available.
+		return false;
+	elseif parsers.has_parser(parser_name) == true then
+		--- Parser installed via `nvim-treesitter`.
+		return true;
+	elseif pcall(vim.treesitter.query.get, parser_name, "highlights") ~= nil then
+		--- Parser installed manually.
+		return true;
+	end
+
+	return false;
 end
 
 utils.within_range = function (range, pos)
