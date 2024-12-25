@@ -825,6 +825,7 @@ markview.setup = function (config)
 
 	spec.setup(config);
 	highlights.setup(spec.get({ "highlight_groups" }, { fallback = {} }));
+	markview.commands.Render();
 end
 
 return markview;
