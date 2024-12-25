@@ -34,50 +34,20 @@ html.set_ns = function ()
 	end
 end
 
---- Renders headings.
----@param buffer integer
----@param item __html.heading_item
-html.heading = function (buffer, item)
-	---+${func}
-	local main_config = spec.get({ "html", "headings" }, { fallback = nil });
-
-	if not main_config then
-		return;
-	elseif not spec.get({ "heading_" .. item.level }, { source = main_config }) then
-		return;
-	end
-
-	local range = item.range;
-	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
-
-	vim.api.nvim_buf_set_extmark(
-		buffer,
-		html.ns("headings"),
-
-		range.row_start,
-		range.col_start,
-		vim.tbl_extend("force", {
-			undo_restore = false, invalidate = true,
-
-			end_row = range.row_end,
-			end_col = range.col_end,
-		}, config)
-	);
-	---_
-end
-
 --- Renders container elements
 ---@param buffer integer
----@param item __html.container_item
+---@param item __html.container_elements
 html.container_element = function (buffer, item)
 	---+${func}
+
+	---@type html.container_elements
 	local main_config = spec.get({ "html", "container_elements" }, { fallback = nil });
 
 	if not main_config then
 		return;
 	end
 
-	---@type html.container_opts
+	---@type container_elements.opts
 	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
 
 	if not config then
@@ -149,18 +119,56 @@ html.container_element = function (buffer, item)
 	---_
 end
 
+--- Renders headings.
+---@param buffer integer
+---@param item __html.headings
+html.heading = function (buffer, item)
+	---+${func}
+
+	---@type html.headings
+	local main_config = spec.get({ "html", "headings" }, { fallback = nil });
+
+	if not main_config then
+		return;
+	elseif not spec.get({ "heading_" .. item.level }, { source = main_config }) then
+		return;
+	end
+
+	local range = item.range;
+
+	---@type heading_elements.opts
+	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
+
+	vim.api.nvim_buf_set_extmark(
+		buffer,
+		html.ns("headings"),
+
+		range.row_start,
+		range.col_start,
+		vim.tbl_extend("force", {
+			undo_restore = false, invalidate = true,
+
+			end_row = range.row_end,
+			end_col = range.col_end,
+		}, config)
+	);
+	---_
+end
+
 --- Renders void elements
 ---@param buffer integer
----@param item __html.void_item
+---@param item __html.void_elements
 html.void_element = function (buffer, item)
 	---+${func}
+
+	---@type html.void_elements
 	local main_config = spec.get({ "html", "void_elements" }, { fallback = nil });
 
 	if not main_config then
 		return;
 	end
 
-	---@type html.container_opts
+	---@type void_elements.opts
 	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
 
 	if not main_config then
