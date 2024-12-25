@@ -51,8 +51,9 @@ yaml.property = function (buffer, item)
 		}
 	);
 
-
-	if config.use_types == true then
+	if config == nil then
+		return;
+	elseif config.use_types == true then
 		config = spec.get(
 			{ "data_types", item.type },
 			{
@@ -66,8 +67,8 @@ yaml.property = function (buffer, item)
 		virt_text_pos = "inline",
 		virt_text = {
 			{
-				config.text,
-				utils.set_hl(config.hl and config.hl[item.type] or nil)
+				config.text or "",
+				utils.set_hl(config.hl)
 			}
 		}
 	});
@@ -75,16 +76,10 @@ yaml.property = function (buffer, item)
 	for l = range.row_start + 1, range.row_end do
 		local border, border_hl;
 
-		if
-			l == range.row_end and
-			config.border_bottom
-		then
+		if l == range.row_end and config.border_bottom then
 			border = config.border_bottom;
 			border_hl = config.border_bottom_hl or config.border_hl or config.hl;
-		elseif
-			l == range.row_start + 1 and
-			config.border_top
-		then
+		elseif l == range.row_start + 1 and config.border_top then
 			border = config.border_top;
 			border_hl = config.border_top_hl or config.border_hl or config.hl;
 		elseif config.border_middle then
@@ -98,7 +93,7 @@ yaml.property = function (buffer, item)
 		vim.api.nvim_buf_set_extmark(buffer, yaml.ns("properties"), l, math.min(range.col_start, #item.text[(l - range.row_start) + 1]), {
 			virt_text_pos = "inline",
 			virt_text = {
-				{ border, utils.set_hl(border_hl) }
+				{ border or "", utils.set_hl(border_hl) }
 			}
 		});
 	end
@@ -109,8 +104,8 @@ yaml.render = function (buffer, content)
 	yaml.cache = {};
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
-		yaml[item.class:gsub("^yaml_", "")](buffer, item);
+		pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
+		-- yaml[item.class:gsub("^yaml_", "")](buffer, item);
 	end
 end
 
