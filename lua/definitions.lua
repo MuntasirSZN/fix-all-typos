@@ -199,6 +199,28 @@ M.inline_generic = {
 	hl = "MarkviewCode"
 };
 
+---@class node.range
+---
+---@field row_start integer
+---@field row_end integer
+---@field col_start integer
+---@field col_end integer
+M.range = {
+	col_end = 1,
+	row_end = 1,
+	col_start = 0,
+	row_start = 0
+};
+
+---@class tag.properties
+---
+---@field text string
+---@field range integer[]
+M.tag_properties = {
+	text = "<p>hi</p>",
+	range = { 0, 0, 0, 9 }
+};
+
  ------------------------------------------------------------------------------------------
 
 --- Configuration table for HTML preview.
@@ -1357,6 +1379,86 @@ M.properties_opts = {
 	match_string = "^hi",
 	text = "π",
 	hl = "Title"
+};
+
+
+ ------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------
+ ------------------------------------------------------------------------------------------
+
+
+---@class __html.headings
+---
+---@field class "html_heading"
+---@field level integer
+---@field range node.range
+---@field text string[]
+M.__html_headings = {
+	class = "html_heading",
+	level = 1,
+	text = {
+		"<h1>",
+		"heading text",
+		"</h1>"
+	},
+	range = {
+		row_start = 0,
+		col_start = 0,
+		row_end = 2,
+		col_end = 5
+	}
+};
+
+---@class __html.container_elements
+---
+---@field class "html_container_element"
+---@field opening_tag tag.properties
+---@field closing_tag tag.properties
+---@field name string
+---@field text string[]
+---@field range node.range
+M.__html_container_elements = {
+	class = "html_container_element",
+	name = "p",
+	text = {
+		"<p>",
+		"text</p>"
+	},
+
+	opening_tag = {
+		text = "<p>",
+		range = { 0, 0, 0, 3 }
+	},
+	closing_tag = {
+		text = "</p>",
+		range = { 1, 5, 1, 8 }
+	},
+	range = {
+		row_start = 0,
+		row_end = 1,
+		col_start = 0,
+		col_end = 8
+	}
+};
+
+---@class __html.void_elements
+---
+---@field class "html_container_element"
+---@field name string
+---@field text string[]
+---@field range node.range
+M.__html_void_elements = {
+	class = "html_container_element",
+	name = "img",
+	text = {
+		"<img src = './markview.jpg'>"
+	},
+	range = {
+		row_start = 0,
+		row_end = 0,
+		col_start = 0,
+		col_end = 27
+	}
 };
 
 return M;

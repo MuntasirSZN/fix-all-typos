@@ -27,11 +27,14 @@ end
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range table
+---@param range node.range
 html.heading = function (buffer, TSNode, text, range)
 	---+${func}
+
+	---@type table The opening tag.
 	local tag = vim.treesitter.get_node_text(TSNode:named_child(0):named_child(0), buffer);
 
+	---@type __html.headings
 	html.insert({
 		class = "html_heading",
 		level = tonumber(tag:match("^h(%d)$")),
@@ -46,7 +49,7 @@ end
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range table
+---@param range node.range
 html.element = function (buffer, TSNode, text, range)
 	---+${func}
 	local opening_tag, closing_tag;
@@ -65,8 +68,12 @@ html.element = function (buffer, TSNode, text, range)
 		end
 	end
 
-	if not opening_tag then return; end
+	if not opening_tag then
+		--- Broken elements should be skipped.
+		return;
+	end
 
+	---@type __html.container_elements
 	html.insert({
 		class = "html_container_element",
 		name = vim.treesitter.get_node_text(opening_tag:child(1), buffer),
@@ -90,11 +97,12 @@ end
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range table
+---@param range node.range
 html.element_void = function (buffer, TSNode, text, range)
 	---+${func}
 	local opening_tag = TSNode:child(0);
 
+	---@type __html.void_elements
 	html.insert({
 		class = "html_void_element",
 		name = vim.treesitter.get_node_text(opening_tag:child(1), buffer),
