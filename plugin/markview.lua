@@ -520,7 +520,7 @@ vim.api.nvim_create_user_command("Markview", function (cmd)
 	local args = cmd.fargs;
 
 	if #args == 0 then
-		markview.commands.toggle();
+		markview.commands.Toggle();
 	elseif type(markview.commands[args[1]]) == "function" then
 		--- FIXME, Change this if `vim.list_slice` becomes deprecated.
 		exec(markview.commands[args[1]], vim.list_slice(args, 2))
