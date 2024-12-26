@@ -1,8 +1,11 @@
 --- HTML parser for `markview.nvim`
 local latex = {};
-
 local utils = require("markview.utils")
 
+--- `string.gsub()` with support for multiple patterns.
+---@param text string
+---@param gsubs string[]
+---@return string
 local function bulk_gsub (text, gsubs)
 	local _o = text or "";
 
@@ -14,6 +17,9 @@ local function bulk_gsub (text, gsubs)
 	return _o;
 end
 
+--- Checks if the given node is inside of `\text{}`.
+---@param TSNode table
+---@return boolean
 local function within_text_mode(TSNode)
 	while TSNode do
 		if TSNode:type() == "text_mode" then
@@ -26,13 +32,16 @@ local function within_text_mode(TSNode)
 	return false;
 end
 
---- Queried contents
+--- Queried content.
 ---@type table[]
 latex.content = {};
 
---- Queried contents, but sorted
-latex.sorted = {}
+--- Sorted queried content.
+---@type { [string]: table[] }
+latex.sorted = {};
 
+--- Custom `table.insert()` function.
+---@param data any
 latex.insert = function (data)
 	table.insert(latex.content, data);
 
@@ -46,25 +55,24 @@ end
 --- LaTeX block parser.
 ---@param buffer integer
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.block = function (buffer, _, text, range)
+	---+${lua}
+
 	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
 	local inline, closed = false, true;
 
-	if
-		not from:match("^(%s*)$") or not to:match("^(%s*)%$%$$")
-	then
+	if from:match("^(%s*)$") == nil or to:match("^(%s*)%$%$$") == nil then
 		inline = true;
-	elseif
-		not text[1]:match("%$%$$")
-	then
+	elseif text[1]:match("%$%$$") == nil then
 		inline = true;
 	end
 
-	if not text[#text]:match("%$%$$") then
+	if text[#text]:match("%$%$$") == nil then
 		closed = false;
 	end
 
+	---@class __latex.blocks
 	latex.insert({
 		class = "latex_block",
 		inline = inline,
@@ -72,15 +80,18 @@ latex.block = function (buffer, _, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- LaTeX command parser.
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.command = function (buffer, TSNode, text, range)
+	---+${lua}
+
 	local args = {};
 	local nodes = TSNode:field("arg");
 
@@ -103,88 +114,106 @@ latex.command = function (buffer, TSNode, text, range)
 		});
 	end
 
+	---@type __latex.commands
 	latex.insert({
 		class = "latex_command",
 
-		text = text,
 		command = {
 			name = (command_name or ""):sub(2),
 			range = command_node and { command_node:range() }
 		},
 		args = args,
 
+		text = text,
 		range = range
 	});
+	---_
 end
 
 --- LaTeX escaped character parser.
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.escaped = function (_, TSNode, text, range)
-	if within_text_mode(TSNode) then return; end
+	---+${lua}
+	if within_text_mode(TSNode) then
+		return;
+	end
 
+	---@type __latex.escapes
 	latex.insert({
 		class = "latex_escaped",
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- LaTeX font parser.
 ---@param TSNode table
 ---@param text string[]
----@param range font.range
+---@param range node.range
 latex.font = function (buffer, TSNode, text, range)
-	local cmd = TSNode:field("command")[1];
-	if within_text_mode(TSNode) then return; end
-
-	if not cmd then
+	---+${lua}
+	if within_text_mode(TSNode) then
 		return;
 	end
 
-	_, range.font_start, _, range.font_end = cmd:range();
+	local cmd = TSNode:field("command")[1];
 
+	if cmd == nil then
+		return;
+	end
+
+	range.font = { cmd:range() };
+
+	---@class __latex.fonts
 	latex.insert({
 		class = "latex_font",
 		name = vim.treesitter.get_node_text(cmd, buffer):gsub("\\", ""),
 
 		text = text,
-
 		range = range
-	})
+	});
+	---_
 end
 
 --- Inline LaTeX parser.
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.inline = function (_, _, text, range)
+	---+${lua}
+
 	local closed = true;
 
 	if not text[#text]:match("%$$") then
 		closed = false;
 	end
 
+	---@type __latex.inlines
 	latex.insert({
 		class = "latex_inline",
 		closed = closed,
 
 		text = text,
-
 		range = range
-	})
+	});
+	---_
 end
 
 --- {} parser.
 ---@param buffer integer
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.parenthesis = function (buffer, TSNode, text, range)
+	---+${lua}
+	if within_text_mode(TSNode) then
+		return;
+	end
+
 	local line = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1];
 	local before = line:sub(0, range.col_start);
-
-	if within_text_mode(TSNode) then return; end
 
 	if before:match("%^$") or before:match("%_$") then
 		return;
@@ -192,19 +221,23 @@ latex.parenthesis = function (buffer, TSNode, text, range)
 		return;
 	end
 
+	---@type __latex.parenthesis
 	latex.insert({
 		class = "latex_parenthesis",
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- Subscript parser.
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.subscript = function (_, TSNode, text, range)
+	---+${lua}
+
 	local node = TSNode;
 	local level, preview = 0, true;
 
@@ -241,16 +274,18 @@ latex.subscript = function (_, TSNode, text, range)
 		level = level,
 
 		text = text,
-
 		range = range
-	})
+	});
+	---_
 end
 
 --- Superscript parser.
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.superscript = function (_, TSNode, text, range)
+	---+${lua}
+
 	local node = TSNode;
 	local level, preview = 0, true;
 
@@ -293,14 +328,17 @@ latex.superscript = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- Symbol parser.
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.symbol = function (_, TSNode, text, range)
+	---+${lua}
+
 	local node = TSNode;
 	local style;
 
@@ -315,6 +353,7 @@ latex.symbol = function (_, TSNode, text, range)
 		node = node:parent();
 	end
 
+	---@type __latex.symbols
 	latex.insert({
 		class = "latex_symbol",
 		name = text[1]:sub(2),
@@ -322,37 +361,56 @@ latex.symbol = function (_, TSNode, text, range)
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- Text mode parser.
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.text = function (_, _, text, range)
+	---+${lua}
+
+	---@type __latex.text
 	latex.insert({
 		class = "latex_text",
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
 --- Word parser.
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 latex.word = function (_, TSNode, text, range)
-	if within_text_mode(TSNode) then return; end
+	---+${lua}
+	if within_text_mode(TSNode) then
+		return;
+	end
 
+	---@type __latex.word
 	latex.insert({
 		class = "latex_word",
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
+--- LaTeX parser function.
+---@param buffer integer
+---@param TSTree table
+---@param from integer?
+---@param to integer?
+---@return table[]
+---@return table
 latex.parse = function (buffer, TSTree, from, to)
-	-- Clear the previous contents
+	---+${lua}
+
+	--- Clear the previous contents
 	latex.sorted = {};
 	latex.content = {};
 
@@ -408,19 +466,26 @@ latex.parse = function (buffer, TSTree, from, to)
 	]]);
 
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do
+		---@type string
 		local capture_name = scanned_queries.captures[capture_id];
 		local r_start, c_start, r_end, c_end = capture_node:range();
 
+		--- Capture groups used internally.
+		--- Do not parse them.
 		if not capture_name:match("^latex%.") then
 			goto continue
 		end
 
+		---@type string
 		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
 
+		--- If a node doesn't end with \n, Add it.
 		if not capture_text:match("\n$") then
 			capture_text = capture_text .. "\n";
 		end
 
+		--- Turn the texts into list of lines.
+		---@type string[]
 		local lines = {};
 
 		for line in capture_text:gmatch("(.-)\n") do
@@ -446,6 +511,7 @@ latex.parse = function (buffer, TSTree, from, to)
 	end
 
 	return latex.content, latex.sorted;
+	---_
 end
 
 return latex;

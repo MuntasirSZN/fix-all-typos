@@ -205,6 +205,8 @@ M.inline_generic = {
 ---@field row_end integer
 ---@field col_start integer
 ---@field col_end integer
+---
+---@field font? integer[]
 M.range = {
 	col_end = 1,
 	row_end = 1,
@@ -1458,6 +1460,283 @@ M.__html_void_elements = {
 		row_end = 0,
 		col_start = 0,
 		col_end = 27
+	}
+};
+
+ ------------------------------------------------------------------------------------------
+
+--- LaTeX blocks(typically made with `$$...$$`)
+---@class __latex.blocks
+---
+---@field class "latex_block"
+---@field inline boolean Is this block within text?
+---@field closed boolean Is there a closing `$$`?
+---@field text string[]
+---@field range node.range
+M.__latex_blocks = {
+	class = "latex_block",
+	inline = true,
+	closed = true,
+	text = { "$$1 + 2 = 3$$" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+		col_start = 0,
+		col_end = 13
+	}
+};
+
+--- LaTeX commands(must have at least 1 argument).
+---@class __latex.commands
+---
+---@field class "latex_command"
+---@field command { name: string, range: integer[] } Command name(without `\`) and it's range.
+---@field args { text: string, range: integer[] }[] List of arguments(inside `{...}`) with their text & range.
+---@field text string[]
+---@field range node.range
+M.__latex_commands = {
+	class = "latex_command",
+	command = {
+		name = "frac",
+		range = { 0, 0, 0, 5 }
+	},
+	args = {
+		{
+			text = "{1}",
+			range = { 0, 5, 0, 8 }
+		},
+		{
+			text = "{2}",
+			range = { 0, 8, 0, 11 }
+		}
+	},
+	text = { "\\frac{1}{2}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 11
+	}
+};
+
+--- Escaped characters.
+---@class __latex.escapes
+---
+---@field class "latex_escaped"
+---@field text string[]
+---@field range node.range
+M.__latex_escapes = {
+	class = "latex_escaped",
+	text = { "\\|" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 2
+	}
+};
+
+--- Math fonts
+---@class __latex.fonts
+---
+---@field class "latex_font"
+---@field name string Font name.
+---@field text string[]
+---@field range node.range
+M.__latex_fonts = {
+	class = "latex_font",
+	name = "mathtt",
+	text = { "\\mathtt{abcd}" },
+	range = {
+		font = { 0, 0, 0, 7 },
+		row_start = 0,
+		row_end = 0,
+		col_start = 0,
+		col_end = 13
+	}
+};
+
+--- Inline LaTeX(typically made using `$...$`).
+---@class __latex.inlines
+---
+---@field class "latex_inlines"
+---@field closed boolean Is there a closing `$`?
+---@field text string[]
+---@field range node.range
+M.__latex_inlines = {
+	class = "latex_inlines",
+	closed = true,
+
+	text = { "$1 + 1 = 2$" },
+	range = {
+		row_start = 0,
+		col_start = 0,
+
+		row_end = 0,
+		col_end = 11
+	}
+};
+
+--- {} in LaTeX.
+---@class __latex.parenthesis
+---
+---@field class "latex_parenthesis"
+---@field text string[]
+---@field range node.range
+M.__latex_parenthesis = {
+	class = "latex_parenthesis",
+	text = { "{1+2}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+--- Subscript text(e.g. _h, _{hi}, _{+} etc.).
+---@class __latex.subscripts
+---
+---@field class "latex_subscript"
+---@field parenthesis boolean Is the text within `{...}`?
+---@field level integer Level of the subscript text. Used for handling nested subscript text.
+---@field preview boolean Can the text be previewed?
+---@field text string[]
+---@field range node.range
+M.__latex_subscripts = {
+	class = "latex_subscript",
+	parenthesis = true,
+	preview = true,
+	level = 1,
+
+	text = { "_{hi}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+--- Superscript text(e.g. ^h, ^{hi}, ^{+} etc.).
+---@class __latex.superscripts
+---
+---@field class "latex_superscript"
+---@field parenthesis boolean Is the text within `{...}`?
+---@field level integer Level of the superscript text. Used for handling nested superscript text.
+---@field preview boolean Can the text be previewed?
+---@field text string[]
+---@field range node.range
+M.__latex_superscripts = {
+	class = "latex_superscript",
+	parenthesis = true,
+	preview = true,
+	level = 1,
+
+	text = { "^{hi}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+--- Math symbols in LaTeX(e.g. \Alpha).
+---@class __latex.symbols
+---
+---@field class "latex_symbols"
+---@field name string Symbol name(without the `\`).
+---@field style "superscripts" | "subscripts" | nil Text styles to apply(if possible).
+---@field text string[]
+---@field range node.range
+M.__latex_symbols = {
+	class = "latex_symbols",
+	name = "pi",
+	style = nil,
+
+	text = { "\\pi" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 3
+	}
+};
+
+--- `\text{}` nodes.
+---@class __latex.text
+---
+---@field class "latex_text"
+---@field text string[]
+---@field range node.range
+M.__latex_word = {
+	class = "latex_text",
+	text = { "word" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 5,
+		col_end = 9
+	}
+};
+
+--- Groups of characters(without any spaces between them).
+--- Used for applying fonts & text styles.
+---@class __latex.word
+---
+---@field class "latex_word"
+---@field text string[]
+---@field range node.range
+M.__latex_word = {
+	class = "latex_word",
+	text = { "word" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 5,
+		col_end = 9
+	}
+};
+
+ ------------------------------------------------------------------------------------------
+
+--- Cached data. Used for applying text styles & fonts.
+--- Also used for filtering nodes.
+---@class __latex.cache
+---
+---@field font_regions { name: string, row_start: integer, row_end: integer, col_start: integer, col_end: integer }
+---@field style_regions { superscripts: node.range[], subscripts: node.range[] }
+M.__latex_cache = {
+	font_regions = {
+		{
+			name = "mathtt",
+			row_start = 0,
+			row_end = 0,
+
+			col_start = 0,
+			col_end = 5
+		}
+	},
+	style_regions = {
+		subscripts = {
+			{
+				row_start = 1,
+				row_end = 1,
+
+				col_start = 0,
+				col_end = 6
+			}
+		},
+		superscripts = {}
 	}
 };
 

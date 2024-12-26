@@ -4,6 +4,8 @@ local symbols = require("markview.symbols");
 local spec = require("markview.spec");
 local utils = require("markview.utils");
 
+--- Cached values.
+---@type __latex.cache
 latex.cache = {
 	font_regions = {},
 	style_regions = {
@@ -12,56 +14,12 @@ latex.cache = {
 	},
 };
 
-latex.__ns = {
-	__call = function (self, key)
-		return self[key] or self.default;
-	end
-}
-
-latex.ns = {
-	default = vim.api.nvim_create_namespace("markview/latex"),
-};
-setmetatable(latex.ns, latex.__ns)
-
-latex.set_ns = function ()
-	local ns_pref = spec.get({ "latex", "use_seperate_ns" }, { fallback = true });
-	if not ns_pref then ns_pref = true; end
-
-	local available = vim.api.nvim_get_namespaces();
-	local ns_list = {
-		["parenthesis"] = "markview/latex/parenthesis",
-		["commands"] = "markview/latex/commands",
-		["styles"] = "markview/latex/styles",
-		["fonts"] = "markview/latex/fonts",
-		["injections"] = "markview/latex/injections",
-		["symbols"] = "markview/latex/symbols",
-	};
-
-	if ns_pref == true then
-		for ns, name in pairs(ns_list) do
-			if vim.list_contains(available, ns) == false then
-				latex.ns[ns] = vim.api.nvim_create_namespace(name);
-			end
-		end
-	end
-end
-
-latex.custom_config = function (config, value)
-	if not config.custom or not value then
-		return config;
-	end
-
-	for _, custom in ipairs(config.custom) do
-		if custom.match_string and value:match(custom.match_string) then
-			return vim.tbl_deep_extend("force", config, custom);
-		end
-	end
-
-	return config;
-end
+--- Namespace for LaTeX previews.
+---@type integer
+latex.ns = vim.api.nvim_create_namespace("markview/latex");
 
 ---@param buffer integer
----@param item __latex.block
+---@param item __latex.blocks
 latex.block = function (buffer, item)
 	---+${func}
 	local range = item.range;
@@ -70,7 +28,7 @@ latex.block = function (buffer, item)
 		local config = spec.get({ "latex", "inlines" }, { fallback = nil, eval_args = { buffer, item } });
 		if not config then return; end
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 2,
 			conceal = "",
@@ -84,7 +42,7 @@ latex.block = function (buffer, item)
 			hl_mode = "combine"
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + #item.text[1], {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -93,7 +51,7 @@ latex.block = function (buffer, item)
 			}
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_row = range.row_end,
 			end_col = range.col_end,
@@ -101,7 +59,7 @@ latex.block = function (buffer, item)
 			hl_group = utils.set_hl(config.hl),
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, range.col_end - (item.closed and 2 or 0), {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and 2 or 0), {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -115,7 +73,7 @@ latex.block = function (buffer, item)
 			hl_mode = "combine"
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, 0, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, 0, {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -125,7 +83,7 @@ latex.block = function (buffer, item)
 		});
 
 		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], 0), {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], 0), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -134,7 +92,7 @@ latex.block = function (buffer, item)
 				}
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, #item.text[l + 1], {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, #item.text[l + 1], {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -148,7 +106,7 @@ latex.block = function (buffer, item)
 		local config = spec.get({ "latex", "blocks" }, { fallback = nil, eval_args = { buffer, item } });
 		if not config then return; end
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 2,
 			conceal = "",
@@ -160,7 +118,7 @@ latex.block = function (buffer, item)
 			line_hl_group = utils.set_hl(config.hl)
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, math.max(0, range.col_end - 2), {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, math.max(0, range.col_end - 2), {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -169,7 +127,7 @@ latex.block = function (buffer, item)
 		});
 
 		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -185,7 +143,7 @@ latex.block = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.command
+---@param item __latex.commands
 latex.command = function (buffer, item)
 	--+${func}
 
@@ -198,12 +156,11 @@ latex.command = function (buffer, item)
 		return;
 	end
 
-	---@type command.opts
+	---@type commands.opts
 	local config = spec.get({ item.command.name }, { source = main_config });
 
-	if
-		spec.get({ "condition" }, { source = config, args = { item } }) == false
-	then
+	--- Check if this command is valid.
+	if spec.get({ "condition" }, { source = config, args = { item } }) == false then
 		return;
 	end
 
@@ -215,9 +172,11 @@ latex.command = function (buffer, item)
 			goto invalid_extmark;
 		end
 
-		if pcall(config.command_offset, range) then range = config.command_offset(range) end
+		if pcall(config.command_offset, range) then
+			range = config.command_offset(range);
+		end
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("commands"), range[1], range[2], vim.tbl_extend("force", {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range[1], range[2], vim.tbl_extend("force", {
 			undo_restore = false, invalidate = true,
 			end_row = range[3],
 			end_col = range[4]
@@ -235,40 +194,46 @@ latex.command = function (buffer, item)
 			goto continue;
 		end
 
-		---@type command.arg_opts
+		---@type commands.arg_opts
 		local arg_conf = on_args[a];
 
-		if arg_conf.before then
-			local b_conf = spec.get({ "before" }, { source = arg_conf, fallback = {}, args = { arg } });
+		if arg_conf.on_before then
+			local b_conf = spec.get({ "on_before" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
-			if pcall(arg_conf.before_offset, range) then range = arg_conf.before_offset(range) end
+			if pcall(arg_conf.before_offset, range) then
+				range = arg_conf.before_offset(range);
+			end
 
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("commands"), range[1], range[2], vim.tbl_extend("force", {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range[1], range[2], vim.tbl_extend("force", {
 				undo_restore = false, invalidate = true,
 			}, b_conf));
 		end
 
-		if arg_conf.content then
-			local c_conf = spec.get({ "content" }, { source = arg_conf, fallback = {}, args = { arg } });
+		if arg_conf.on_content then
+			local c_conf = spec.get({ "on_content" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
-			if pcall(arg_conf.content_offset, range) then range = arg_conf.content_offset(range) end
+			if pcall(arg_conf.content_offset, range) then
+				range = arg_conf.content_offset(range);
+			end
 
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("commands"), range[1], range[2], vim.tbl_extend("force", {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range[1], range[2], vim.tbl_extend("force", {
 				undo_restore = false, invalidate = true,
 				end_row = arg.range[3],
 				end_col = arg.range[4]
 			}, c_conf));
 		end
 
-		if arg_conf.after then
-			local a_conf = spec.get({ "after" }, { source = arg_conf, fallback = {}, args = { arg } });
+		if arg_conf.on_after then
+			local a_conf = spec.get({ "on_after" }, { source = arg_conf, fallback = {}, args = { arg } });
 			local range = arg.range;
 
-			if pcall(arg_conf.after_offset, range) then range = arg_conf.after_offset(range) end
+			if pcall(arg_conf.after_offset, range) then
+				range = arg_conf.after_offset(range);
+			end
 
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("commands"), range[3], range[4], vim.tbl_extend("force", {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range[3], range[4], vim.tbl_extend("force", {
 				undo_restore = false, invalidate = true,
 			}, a_conf));
 		end
@@ -279,7 +244,7 @@ latex.command = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.escaped
+---@param item __latex.escapes
 latex.escaped = function (buffer, item)
 	---+${func}
 
@@ -292,7 +257,7 @@ latex.escaped = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = ""
@@ -302,7 +267,7 @@ latex.escaped = function (buffer, item)
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
@@ -315,7 +280,7 @@ latex.escaped = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.font
+---@param item __latex.fonts
 latex.font = function (buffer, item)
 	---+${func}
 
@@ -324,23 +289,23 @@ latex.font = function (buffer, item)
 
 	if not config then
 		return;
-	elseif
-		not symbols.fonts[item.name] or
-		spec.get({ "latex", "fonts", item.name, "enable" }, { fallback = true }) == false
-	then
+	elseif symbols.fonts[item.name] == nil or spec.get({ "latex", "fonts", item.name, "enable" }, { fallback = true }) == false then
 		return;
 	end
 
 	local range = item.range;
+	---@type integer[]
+	local font = range.font;
 	table.insert(latex.cache.font_regions, vim.tbl_extend("force", item.range, { name = item.name }));
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, font[1], font[2], {
 		undo_restore = false, invalidate = true,
-		end_col = math.min(#item.text[1], range.font_end + 1),
+		end_row = font[3],
+		end_col = font[4] + 1,
 		conceal = "",
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -349,7 +314,7 @@ latex.font = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.inline
+---@param item __latex.inlines
 latex.inline = function (buffer, item)
 	---+${func}
 
@@ -361,7 +326,7 @@ latex.inline = function (buffer, item)
 		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -376,7 +341,7 @@ latex.inline = function (buffer, item)
 	});
 
 	if #item.text > 1 then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + #item.text[1], {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -386,7 +351,7 @@ latex.inline = function (buffer, item)
 		});
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
@@ -394,7 +359,7 @@ latex.inline = function (buffer, item)
 		hl_group = utils.set_hl(config.hl),
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, range.col_end - (item.closed and 1 or 0), {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and 1 or 0), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -409,7 +374,7 @@ latex.inline = function (buffer, item)
 	});
 
 	if #item.text > 1 then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_end, 0, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, 0, {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -420,7 +385,7 @@ latex.inline = function (buffer, item)
 	end
 
 	for l = 1, #item.text - 2 do
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, 0, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, 0, {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -429,7 +394,7 @@ latex.inline = function (buffer, item)
 			}
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("injections"), range.row_start + l, #item.text[l + 1], {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, #item.text[l + 1], {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -456,14 +421,14 @@ latex.parenthesis = function (buffer, item)
 	local range = item.range;
 
 	--- Left parenthesis
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = ""
 	});
 
 	--- Right parenthesis
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("parenthesis"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = ""
@@ -472,11 +437,11 @@ latex.parenthesis = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.style
+---@param item __latex.subscripts
 latex.subscript = function (buffer, item)
 	---+${func}
 
-	---@type latex.styles?
+	---@type latex.subscripts?
 	local config = spec.get({ "latex", "subscripts" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
@@ -485,7 +450,7 @@ latex.subscript = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + (item.parenthesis and 2 or 1),
 		conceal = "",
@@ -500,7 +465,7 @@ latex.subscript = function (buffer, item)
 		if item.preview then
 			table.insert(latex.cache.style_regions.subscripts, item.range);
 		else
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 				end_row = range.row_end,
 				end_col = range.col_end,
@@ -509,7 +474,7 @@ latex.subscript = function (buffer, item)
 			});
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -520,7 +485,7 @@ latex.subscript = function (buffer, item)
 			hl_mode = "combine"
 		});
 	elseif symbols.subscripts[item.text[1]:sub(2)] then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + 1, {
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "overlay",
 			virt_text = { { symbols.subscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
@@ -532,11 +497,11 @@ latex.subscript = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.style
+---@param item __latex.superscripts
 latex.superscript = function (buffer, item)
 	---+${func}
 
-	---@type latex.styles?
+	---@type latex.superscripts?
 	local config = spec.get({ "latex", "superscripts" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
@@ -545,7 +510,7 @@ latex.superscript = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + (item.parenthesis and 2 or 1),
 		conceal = "",
@@ -560,7 +525,7 @@ latex.superscript = function (buffer, item)
 		if item.preview then
 			table.insert(latex.cache.style_regions.superscripts, item.range);
 		else
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 				end_row = range.row_end,
 				end_col = range.col_end,
@@ -569,7 +534,7 @@ latex.superscript = function (buffer, item)
 			});
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_end, range.col_end - 1, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -580,7 +545,7 @@ latex.superscript = function (buffer, item)
 			hl_mode = "combine"
 		});
 	elseif symbols.superscripts[item.text[1]:sub(2)] then
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns("specials"), range.row_start, range.col_start + 1, {
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + 1, {
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "overlay",
 			virt_text = { { symbols.superscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
@@ -592,7 +557,7 @@ latex.superscript = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __latex.symbol
+---@param item __latex.symbols
 latex.symbol = function (buffer, item)
 	---+${func}
 
@@ -670,7 +635,7 @@ latex.symbol = function (buffer, item)
 	end
 
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -696,13 +661,13 @@ latex.text = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + #"\\text{",
 		conceal = ""
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = ""
@@ -821,7 +786,7 @@ latex.word = function (buffer, item)
 		).hl;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns("fonts"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
@@ -833,7 +798,11 @@ latex.word = function (buffer, item)
 	---_
 end
 
+--- Renders LaTeX preview.
+---@param buffer integer
+---@param content table[]
 latex.render = function (buffer, content)
+	--- Clean up previous caches.
 	latex.cache = {
 		font_regions = {},
 		style_regions = {
@@ -844,16 +813,16 @@ latex.render = function (buffer, content)
 
 	for _, item in ipairs(content or {}) do
 		pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
-		-- latex[item.class:gsub("^latex_", "")](buffer, item);
 	end
 end
 
+--- Clears LaTeX previews.
+---@param buffer integer
+---@param ignore_ns any
+---@param from integer?
+---@param to integer!
 latex.clear = function (buffer, ignore_ns, from, to)
-	for name, ns in pairs(latex.ns) do
-		if ignore_ns and vim.list_contains(ignore_ns, name) == false then
-			vim.api.nvim_buf_clear_namespace(buffer, ns, from or 0, to or -1);
-		end
-	end
+	vim.api.nvim_buf_clear_namespace(buffer, latex.ns, from or 0, to or -1);
 end
 
 return latex;
