@@ -724,6 +724,7 @@ M.list_items_ordered = {
 ---@field border_bottom_hl? string
 ---@field border_hl? string
 ---@field border_top? string
+---@field border_top_hl? string
 ---@field hl? string
 M.markdown_metadata_minus = {
 	enable = true,
@@ -738,6 +739,7 @@ M.markdown_metadata_minus = {
 ---@field border_bottom_hl? string
 ---@field border_hl? string
 ---@field border_top? string
+---@field border_top_hl? string
 ---@field hl? string
 M.markdown_metadata_plus = {
 	enable = true,
@@ -1738,6 +1740,459 @@ M.__latex_cache = {
 		},
 		superscripts = {}
 	}
+};
+
+ ------------------------------------------------------------------------------------------
+
+---@class __markdown.atx
+---
+---@field class "markdown_atx_heading"
+---@field marker "#" | "##" | "###" | "####" | "#####" | "######" Heading marker.
+---@field text string[]
+---@field range node.range
+M.__markdown_atx = {
+	class = "markdown_atx_heading",
+	marker = "#",
+
+	text = { "# Heading 1" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 11
+	}
+};
+
+
+---@class __markdown.setext
+---
+---@field class "markdown_setext_heading"
+---@field marker "---" | "===" Heading marker.
+---@field text string[]
+---@field range node.range
+M.__markdown_setext = {
+	class = "markdown_setext_heading",
+	marker = "---",
+	text = {
+		"Heading",
+		"---"
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 3
+	}
+};
+
+---@class __markdown.block_quotes
+---
+---@field class "markdown_block_quote"
+---@field callout string? Callout text(text inside `[!...]`).
+---@field title string? Title of the callout.
+---@field text string[]
+---@field range __block_quotes.range
+M.__markdown_block_quotes = {
+	class = "markdown_block_quote",
+	callout = "TIP",
+	title = "Title",
+
+	text = {
+		">[!TIP] Title",
+		"> Something."
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 0,
+
+		callout_start = 3,
+		callout_end = 6,
+
+		title_start = 8,
+		title_end = 13
+	}
+};
+
+---@class __block_quotes.range
+---
+---@field row_start integer
+---@field row_end integer
+---@field col_start integer
+---@field col_end integer
+---
+---@field callout_start? integer Start column of callout text(after `[!`).
+---@field callout_end? integer End column of callout text(before `]`).
+---@field title_start? integer Start column of the title.
+---@field title_end? integer End column of the title.
+M.__block_quotes_range = {
+	row_start = 0,
+	row_end = 2,
+
+	col_start = 0,
+	col_end = 0,
+
+	callout_start = 3,
+	callout_end = 6,
+
+	title_start = 8,
+	title_end = 13
+};
+
+---@class __markdown.code_blocks
+---
+---@field class "markdown_code_block"
+---@field language string? Language string(typically after ```).
+---@field info_string string? Extra information regarding the code block.
+---@field text string[]
+---@field range __code_blocks.range
+M.__markdown_code_blocks = {
+	class = "markdown_code_block",
+
+	language = "lua",
+	info_string = "Info string",
+
+	text = {
+		"```lua Info string",
+		'vim.print("Hello, Neovim!");',
+		"```"
+	},
+
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 3,
+
+		lang_start = 3,
+		lang_end = 6,
+
+		info_start = 7,
+		info_end = 18
+	}
+};
+
+---@class __code_blocks.range
+---
+---@field row_start integer
+---@field row_end integer
+---@field col_start integer
+---@field col_end integer
+---
+---@field lang_start? integer Start column of the language string.
+---@field lang_end? integer End column of the language string.
+---
+---@field info_start? integer Start column of the info string.
+---@field info_end? integer End column of the info string.
+M.__code_blocks_range = {
+	row_start = 0,
+	row_end = 2,
+
+	col_start = 0,
+	col_end = 3,
+
+	lang_start = 3,
+	lang_end = 6,
+
+	info_start = 7,
+	info_end = 18
+};
+
+---@class __markdown.checkboxes
+---
+---@field class "markdown_checkbox"
+---@field state string State of the checkbox(text inside `[]`).
+---@field text string[],
+---@field range node.range
+M.__markdown_checkboxes = {
+	class = "markdown_checkbox",
+	state = " ",
+	text = { "[ ]" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 2,
+		col_end = 5
+	}
+};
+
+---@class __markdown.horizontal_rules
+---
+---@field class "markdown_hr"
+---@field text string[]
+---@field range node.range
+M.__markdown_hr = {
+	class = "markdown_hr",
+	text = { "---" },
+	range = {
+		row_start = 0,
+		row_end = 1,
+
+		col_start = 0,
+		col_end = 0
+	}
+};
+
+---@class __markdown.reference_definitions
+---
+---@field class "markdown_link_ref_definition"
+---@field label? string Visible part of the reference link definition.
+---@field description? string Description of the reference link.
+---@field text string[]
+---@field range __reference_definitions.range
+M.__markdown_reference_definitions = {
+	class = "markdown_link_ref_definition",
+	label = "nvim",
+	description = "https://www.neovim.org",
+
+	text = {
+		"[nvim]:",
+		"https://www.neovim.org"
+	},
+	range = {
+		row_start = 0,
+		row_end = 1,
+
+		col_start = 0,
+		col_end = 21,
+
+		label = { 0, 0, 0, 7 },
+		description = { 1, 0, 1, 21 }
+	}
+};
+
+---@class __reference_definitions.range
+---
+---@field row_start integer
+---@field row_end integer
+---@field col_start integer
+---@field col_end integer
+---
+---@field label integer[] Range of the label node(result of `TSNode:range()`).
+---@field description? integer[] Range of the description node. Same as `label`.
+M.__reference_definitions_range = {
+	row_start = 0,
+	row_end = 1,
+
+	col_start = 0,
+	col_end = 21,
+
+	label = { 0, 0, 0, 7 },
+	description = { 1, 0, 1, 21 }
+};
+
+---@class __markdown.list_items
+---
+---@field class "markdown_list_item"
+---@field candidates integer[] List of line numbers(0-indexed) from `range.row_start` that should be indented.
+---@field marker "-" | "+" | "*" | string List marker text.
+---@field checkbox? string Checkbox state(if there is a checkbox).
+---@field indent integer Spaces before the list marker.
+---@field text string[]
+---@field range node.range
+M.__markdown_list_items = {
+	class = "markdown_list_item",
+	marker = "-",
+	checkbox = nil,
+	candidates = { 0 },
+
+	text = { "- List item" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 11
+	}
+};
+
+---@class __markdown.metadata_minus
+---
+---@field class "markdown_metadata_minus"
+---@field text string[]
+---@field range node.range
+M.__markdown_metadata_minus = {
+	class = "markdown_metadata_minus",
+
+	text = {
+		"---",
+		"author: OXY2DEV",
+		"---"
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 3
+	}
+};
+
+---@class __markdown.metadata_plus
+---
+---@field class "markdown_metadata_plus"
+---@field text string[]
+---@field range node.range
+M.__markdown_metadata_plus = {
+	class = "markdown_metadata_plus",
+
+	text = {
+		"---",
+		"author: OXY2DEV",
+		"---"
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 3
+	}
+};
+
+---@class __markdown.tables
+---
+---@field class "markdown_table"
+---@field top_border boolean Can we draw the top border?
+---@field bottom_border boolean Can we draw the bottom border?
+---@field border_overlap boolean Is the table's borders overlapping another table?
+---@field alignments ( "left" | "center" | "right" | "default" )[] Text alignments.
+---@field header __tables.cell[]
+---@field separator __tables.cell[]
+---@field rows __tables.cell[][]
+---@field text string[]
+---@field range node.range
+M.__markdown_tables = {
+	class = "markdown_table",
+
+	top_border = true,
+	bottom_border = true,
+	border_overlap = false,
+
+	alignments = { "default", "default", "default" },
+	header = {
+		{
+			class = "separator",
+			text = "|",
+			col_start = 0,
+			col_end = 1
+		},
+		{
+			class = "column",
+			text = " Col 1 ",
+			col_start = 2,
+			col_end = 9
+		},
+		{
+			class = "separator",
+			text = "|",
+			col_start = 10,
+			col_end = 11
+		},
+		{
+			class = "column",
+			text = " Col 2 ",
+			col_start = 12,
+			col_end = 19
+		},
+		{
+			class = "separator",
+			text = "|",
+			col_start = 20,
+			col_end = 21
+		}
+	},
+	separator = {
+		{
+			class = "separator",
+			text = "|",
+			col_start = 0,
+			col_end = 1
+		},
+		{
+			class = "column",
+			text = " ----- ",
+			col_start = 2,
+			col_end = 9
+		},
+		{
+			class = "separator",
+			text = "|",
+			col_start = 10,
+			col_end = 11
+		},
+		{
+			class = "column",
+			text = " ----- ",
+			col_start = 12,
+			col_end = 19
+		},
+		{
+			class = "separator",
+			text = "|",
+			col_start = 20,
+			col_end = 21
+		}
+	},
+	rows = {
+		{
+			{
+				class = "separator",
+				text = "|",
+				col_start = 0,
+				col_end = 1
+			},
+			{
+				class = "column",
+				text = " Cell 1 ",
+				col_start = 2,
+				col_end = 10
+			},
+			{
+				class = "separator",
+				text = "|",
+				col_start = 11,
+				col_end = 12
+			},
+			{
+				class = "column",
+				text = " Cell 2 ",
+				col_start = 13,
+				col_end = 21
+			},
+			{
+				class = "separator",
+				text = "|",
+				col_start = 22,
+				col_end = 23
+			}
+		}
+	},
+
+	text = {
+		"| Col 1 | Col 2 |",
+		"| ----- | ----- |",
+		"| Cell 1 | Cell 2 |"
+	}
+};
+
+---@class __tables.cell
+---
+---@field class "separator" | "column" | "missing_separator"
+---@field text string
+---@field col_start integer
+---@field col_end integer
+M.__tables_cell = {
+	class = "separator",
+	text = "|",
+	col_start = 0,
+	col_end = 1
 };
 
 return M;
