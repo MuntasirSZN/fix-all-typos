@@ -6,15 +6,6 @@ local utils = require("markview.utils");
 
 local inline = require("markview.parsers.markdown_inline");
 
----@class markview.parsers.range
----
----@field row_start integer
----@field col_start integer
----@field col_end integer
----@field row_end integer
-
----@alias markview.parsers.function fun(buffer: integer, TSNode: table, text: string[], range: markview.parsers.range): nil
-
 --- Queried contents
 ---@type table[]
 markdown.content = {};
@@ -22,10 +13,13 @@ markdown.content = {};
 --- Queried contents, but sorted
 markdown.sorted = {}
 
+--- Cached values.
 markdown.cache = {
 	table_ends = {}
 }
 
+--- `table.insert()` with extra steps.
+---@param data any
 markdown.insert = function (data)
 	table.insert(markdown.content, data);
 
@@ -43,10 +37,13 @@ end
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 markdown.atx_heading = function (buffer, TSNode, text, range)
+	---+${lua}
+
 	local marker = TSNode:named_child(0);
 
+	---@type __markdown.atx
 	markdown.insert({
 		class = "markdown_atx_heading",
 
@@ -54,15 +51,18 @@ markdown.atx_heading = function (buffer, TSNode, text, range)
 		text = text,
 
 		range = range
-	})
+	});
+	---_
 end
 
 --- Setext heading parser.
 ---@param buffer integer
 ---@param TSNode table
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 markdown.setext_heading = function (buffer, TSNode, text, range)
+	---+${lua}
+
 	local marker = TSNode:named_child(1);
 
 	markdown.insert({
@@ -72,15 +72,18 @@ markdown.setext_heading = function (buffer, TSNode, text, range)
 		text = text,
 
 		range = range
-	})
+	});
+	---_
 end
 
 --- Block quote parser
 ---@param text string[]
----@param range block_quote.range
+---@param range __block_quotes.range
 markdown.block_quote = function (_, _, text, range)
+	---+${lua}
+
 	local call_start, call_end, callout = text[1]:find("^%>%s?%[%!(.-)%]");
-	local title_start, title_end, title = text[1]:find("^%>%s?%[%!.-%](.+)$");
+	local title_start, title_end, title = text[1]:find("^%>%s?%[%!.-%]%s(.+)$");
 
 	if callout then
 		range.callout_start = range.col_start + call_start;
@@ -92,6 +95,7 @@ markdown.block_quote = function (_, _, text, range)
 		range.title_end = range.col_start + title_end;
 	end
 
+	---@type __markdown.block_quotes
 	markdown.insert({
 		class = "markdown_block_quote",
 
@@ -100,13 +104,30 @@ markdown.block_quote = function (_, _, text, range)
 		text = text,
 
 		range = range
-	})
+	});
+	---_
+end
+
+markdown.checkbox = function (_, _, text, range)
+	---+${lua}
+
+	---@type __markdown.checkboxes
+	markdown.insert({
+		class = "markdown_checkbox",
+		state = text[1]:sub(range.col_start + 2, range.col_end - 1),
+
+		text = text,
+		range = range
+	});
+	---_
 end
 
 --- Code block parser
 ---@param text string[]
----@param range code_block.range
+---@param range __code_blocks.range
 markdown.code_block = function (_, _, text, range)
+	---+${lua}
+
 	local tmp, before = text[1], nil;
 	local language, info;
 
@@ -115,6 +136,7 @@ markdown.code_block = function (_, _, text, range)
 
 	if tmp:match("^(%S+)") then
 		language = tmp:match("^(%S+)");
+
 		range.lang_start = before;
 		range.lang_end = range.lang_start + #tmp:match("^(%S+)");
 		tmp = tmp:gsub("^(%S*)", "");
@@ -122,10 +144,12 @@ markdown.code_block = function (_, _, text, range)
 
 	if tmp:match("^%s(.+)$") then
 		info = tmp:match("^%s(.+)$");
+
 		range.info_start = range.lang_end + 1;
 		range.info_end = range.info_start + #info;
 	end
 
+	---@type __markdown.code_blocks
 	markdown.insert({
 		class = "markdown_code_block",
 
@@ -134,23 +158,34 @@ markdown.code_block = function (_, _, text, range)
 		text = text,
 
 		range = range
-	})
+	});
+	---_
 end
 
----@type markview.parsers.function
-markdown.checkbox = function (_, TSNode, text, range)
+--- Horizontal rule parser.
+---@param text string[]
+---@param range node.range
+markdown.hr = function (_, _, text, range)
+	---+${lua}
+
+	---@type __markdown.horizontal_rules
 	markdown.insert({
-		class = "markdown_checkbox",
-		node = TSNode,
+		class = "markdown_hr",
 
-		text = text[1]:sub(range.col_start + 2, range.col_end - 1),
-
+		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
----@type markview.parsers.function
+--- Reference link definition parser.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range __reference_definitions.range
 markdown.link_ref = function (buffer, TSNode, text, range)
+	---+${lua}
+
 	--- [link]: destination
 	---   0   1   2
 	--- These 3 nodes always exist.
@@ -170,25 +205,29 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 		range.description = { n_desc:range() };
 	end
 
+	---@type __markdown.reference_definitions
 	markdown.insert({
 		class = "markdown_link_ref_definition",
 
-		text = text,
 		label = label,
 		description = desc,
 
+		text = text,
 		range = range
 	});
 
 	if label and desc then
 		inline.cache.link_ref[label] = desc;
 	end
+	---_
 end
 
 --- List item parser.
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 markdown.list_item = function (_, _, text, range)
+	---+${lua}
+
 	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
 	local marker, before, indent, checkbox;
 
@@ -271,32 +310,65 @@ markdown.list_item = function (_, _, text, range)
 		end
 	end
 
+	---@type __markdown.list_items
 	markdown.insert({
 		class = "markdown_list_item",
 
-		text = text,
 		candidates = candidates,
 		marker = marker:gsub("%s", ""),
 		checkbox = checkbox,
 		indent = #(indent or ""),
 
+		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
---- Horizontal rule parser.
+--- Minus metadata parser.
 ---@param text string[]
----@param range TSNode.range
-markdown.hr = function (_, _, text, range)
-	markdown.insert({
-		class = "markdown_hr",
+---@param range node.range
+markdown.metadata_minus = function (_, _, text, range)
+	---+${lua}
+
+	---@type __markdown.metadata_minus
+	table.insert(markdown.content, {
+		class = "markdown_metadata_minus",
 
 		text = text,
 		range = range
-	})
+	});
+	---_
 end
 
+--- Plus metadata parser.
+---@param text string[]
+---@param range node.range
+markdown.metadata_plus = function (_, TSNode, text, range)
+	---+${lua}
+
+	---@type __markdown.metadata_plus
+	table.insert(markdown.content, {
+		class = "markdown_metadata_plus",
+		node = TSNode,
+
+		text = text,
+		range = range
+	});
+	---_
+end
+
+--- Checks if a table is overlapping with another table.
+---
+--- NOTE: It is assumed that the file is being parser from the
+--- top.
+---
+---@param row_start integer
+---@return boolean
+---@return boolean
 local function overlap (row_start)
+	---+${lua}
+
 	local top_border, border_overlap = true, false;
 
 	for _, item in ipairs(markdown.sorted.markdown_table or {}) do
@@ -312,12 +384,15 @@ local function overlap (row_start)
 	end
 
 	return top_border, border_overlap;
+	---_
 end
 
 --- Table parser.
 ---@param text string[]
----@param range TSNode.range
+---@param range node.range
 markdown.table = function (_, _, text, range)
+	---+${lua}
+
 	local header, separator, rows = {}, {}, {};
 	local aligns = {};
 
@@ -409,6 +484,7 @@ markdown.table = function (_, _, text, range)
 
 	local top_border, border_overlap = overlap(range.row_start);
 
+	---@type __markdown.tables
 	markdown.insert({
 		class = "markdown_table",
 
@@ -416,44 +492,29 @@ markdown.table = function (_, _, text, range)
 		bottom_border = true,
 		border_overlap = border_overlap,
 
-		text = text,
 		alignments = aligns,
 
 		header = header,
 		separator = separator,
 		rows = rows,
 
+		text = text,
 		range = range
 	});
 	table.insert(markdown.cache.table_ends, range.row_end);
+	---_
 end
 
---- Minus metadata parser.
----@param text string[]
----@param range TSNode.range
-markdown.metadata_minus = function (_, _, text, range)
-	table.insert(markdown.content, {
-		class = "markdown_metadata_minus",
-
-		text = text,
-		range = range
-	})
-end
-
---- Plus metadata parser.
----@param text string[]
----@param range TSNode.range
-markdown.metadata_plus = function (_, TSNode, text, range)
-	table.insert(markdown.content, {
-		class = "markdown_metadata_plus",
-		node = TSNode,
-
-		text = text,
-		range = range
-	})
-end
-
+--- Markdown parser.
+---@param buffer integer
+---@param TSTree table
+---@param from integer?
+---@param to integer?
+---@return table[]
+---@return table
 markdown.parse = function (buffer, TSTree, from, to)
+	---+${lua}
+
 	-- Clear the previous contents
 	markdown.sorted = {}
 	markdown.content = {};
@@ -521,6 +582,7 @@ markdown.parse = function (buffer, TSTree, from, to)
 	end
 
 	return markdown.content, markdown.sorted;
+	---_
 end
 
 return markdown;
