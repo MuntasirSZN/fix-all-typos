@@ -705,8 +705,8 @@ markview.commands = {
 		markview.state.enable = true;
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			if markview.actions.__is_enabled(buf) == true then
-				markview.render(buf);
+			if markview.actions.__is_enabled(buf) == false then
+				markview.actions.enable(buf);
 			end
 		end
 	end,
@@ -716,7 +716,7 @@ markview.commands = {
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
 			if markview.actions.__is_enabled(buf) == true then
-				markview.clear(buf);
+				markview.actions.disable(buf);
 			end
 		end
 	end,
