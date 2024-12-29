@@ -1119,13 +1119,7 @@ markdown.code_block = function (buffer, item)
 	local label = { string.format(" %s%s ", decorations.icon, decorations.name), config.label_hl or decorations.icon_hl };
 	local win = utils.buf_getwin(buffer);
 
-	if
-		config.style == "simple" or
-		(
-			vim.o.wrap == true or
-			vim.wo[win].wrap == true
-		)
-	then
+	if config.style == "simple" or ( vim.o.wrap == true or vim.wo[win].wrap == true ) then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 			end_col = range.col_start + item.text[1]:len(),
 			conceal = "",
@@ -1184,9 +1178,13 @@ markdown.code_block = function (buffer, item)
 
 		if config.label_direction == nil or config.label_direction == "left" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+				undo_restore = false, invalidate = true,
+
 				end_col = range.col_start + (range.info_start or range.lang_end or 0),
 				conceal = "",
-				undo_restore = false, invalidate = true,
+
+				hl_group = utils.set_hl(config.hl),
+				hl_mode = "combine"
 			});
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + (range.lang_end or 0), {
 				undo_restore = false, invalidate = true,
@@ -1196,6 +1194,8 @@ markdown.code_block = function (buffer, item)
 
 				sign_text = config.sign == true and decorations.sign or nil,
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
+
+				hl_mode = "combine"
 			});
 
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
@@ -1209,7 +1209,10 @@ markdown.code_block = function (buffer, item)
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, (range.col_start + range.info_start) + pad_amount + (block_width - (preview + 1)), {
 						end_col = range.col_start + item.text[1]:len(),
 						conceal = "",
+						hl_group = utils.set_hl(config.hl),
+
 						undo_restore = false, invalidate = true,
+						hl_mode = "combine"
 					});
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + item.text[1]:len(), {
 						undo_restore = false, invalidate = true,
@@ -1219,6 +1222,8 @@ markdown.code_block = function (buffer, item)
 							{ "…", utils.set_hl(config.hl) },
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 						},
+
+						hl_mode = "combine"
 					});
 				else
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
@@ -1230,6 +1235,8 @@ markdown.code_block = function (buffer, item)
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 						},
+
+						hl_mode = "combine"
 					});
 				end
 			else
@@ -1237,16 +1244,22 @@ markdown.code_block = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					end_col = range.col_start + item.text[1]:len(),
 					conceal = "",
+
+					hl_mode = "combine"
 				});
 
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + item.text[1]:len(), {
 					undo_restore = false, invalidate = true,
+					hl_group = utils.set_hl(config.hl),
+
 					virt_text_pos = "inline",
 					virt_text = {
 						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-					}
+					},
+
+					hl_mode = "combine"
 				});
 			end
 		elseif config.label_direction == "right" then
@@ -1262,12 +1275,15 @@ markdown.code_block = function (buffer, item)
 
 				sign_text = config.sign == true and sign or nil,
 				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl),
+
+				hl_group = utils.set_hl(config.hl)
 			});
 
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-				end_col = range.col_start + item.text[1]:len(),
-				hl_group = utils.set_hl(config.info_hl or config.hl),
 				undo_restore = false, invalidate = true,
+
+				end_col = range.col_start + item.text[1]:len(),
+				hl_group = utils.set_hl(config.info_hl or config.hl)
 			});
 
 			if item.info_string then
@@ -1275,7 +1291,9 @@ markdown.code_block = function (buffer, item)
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, (range.col_start + range.info_start) + (block_width - (preview + 1)), {
 						undo_restore = false, invalidate = true,
 						end_col = range.col_start + item.text[1]:len(),
-						conceal = "",
+						hl_group = utils.set_hl(config.hl),
+
+						conceal = ""
 					});
 
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
@@ -1287,6 +1305,8 @@ markdown.code_block = function (buffer, item)
 							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 							label
 						},
+
+						hl_mode = "combine"
 					});
 				else
 					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
@@ -1297,12 +1317,15 @@ markdown.code_block = function (buffer, item)
 							{ string.rep(config.pad_char or " ", pad_amount + (block_width - (preview + #item.info_string))), utils.set_hl(config.hl) },
 							label
 						},
+
+						hl_mode = "combine"
 					});
 				end
 			else
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 					undo_restore = false, invalidate = true,
 					end_col = range.col_start + item.text[1]:len(),
+
 					conceal = "",
 				});
 
@@ -1313,15 +1336,20 @@ markdown.code_block = function (buffer, item)
 						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
 						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 						label
-					}
+					},
+
+					hl_mode = "combine"
 				});
 			end
 		end
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start, {
+			undo_restore = false, invalidate = true,
+
 			end_col = range.col_start + #item.text[#item.text],
 			conceal = "",
-			undo_restore = false, invalidate = true
+
+			hl_group = utils.set_hl(config.hl)
 		});
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text], {
 			undo_restore = false, invalidate = true,
@@ -1330,7 +1358,9 @@ markdown.code_block = function (buffer, item)
 				{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
 				{ string.rep(config.pad_char or " ", block_width), utils.set_hl(config.hl) },
 				{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-			}
+			},
+
+			hl_mode = "combine"
 		});
 
 		for l = range.row_start + 1, range.row_end - 2, 1 do
@@ -1358,6 +1388,8 @@ markdown.code_block = function (buffer, item)
 					{ string.rep(" ", offset),},
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 				},
+
+				hl_mode = "combine"
 			});
 
 			--- Right padding
@@ -1369,6 +1401,8 @@ markdown.code_block = function (buffer, item)
 					{ string.rep(config.pad_char or " ", block_width - vim.fn.strdisplaywidth(final)), utils.set_hl(config.hl) },
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
 				},
+
+				hl_mode = "combine"
 			});
 
 			--- Background color

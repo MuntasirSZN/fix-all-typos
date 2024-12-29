@@ -730,12 +730,9 @@ fts.get = function (ft)
 	local provider_name = spec.get({ "preview", "icon_provider" }, { fallback = "internal" });
 	local conf = {};
 
-	if
-		provider_name == "devicons" and
-		pcall(require, "nvim-web-devicons")
-	then
+	if provider_name == "devicons" and pcall(require, "nvim-web-devicons") then
 		conf.icon, conf.icon_hl = require("nvim-web-devicons").get_icon(
-			string.format("example.%s", _ft),
+			string.format("example.%s", ft),
 			nil,
 			{ default = true }
 		);
@@ -745,13 +742,10 @@ fts.get = function (ft)
 		conf.sign = conf.icon;
 		conf.sign_hl = conf.icon_hl;
 		conf.border_hl = conf.icon_hl;
-	elseif
-		provider_name == "mini" and
-		pcall(require, "mini.icons")
-	then
+	elseif provider_name == "mini" and pcall(require, "mini.icons") then
 		conf.icon, conf.icon_hl = require("mini.icons").get(
 			"file",
-			string.format("example.%s", _ft)
+			string.format("example.%s", ft)
 		);
 
 		conf.icon = conf.icon .. " ";
@@ -763,9 +757,8 @@ fts.get = function (ft)
 		conf = fts.styles[_ft] or fts.styles[ft] or fts.styles["default"];
 	end
 
-	if conf.name == nil then
-		conf.name = ft or "Unknown";
-	end
+	local this_conf = fts.styles[_ft] or fts.styles[ft] or fts.styled.default;
+	conf.name = this_conf.name or ft or "Unknown";
 
 	return conf;
 end
