@@ -705,9 +705,18 @@ markview.commands = {
 		markview.state.enable = true;
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			if markview.actions.__is_enabled(buf) == false then
-				markview.actions.enable(buf);
-			end
+			markview.render(buf);
+
+			--- Execute the attaching autocmd.
+			markview.actions.__exec_callback("on_enable", buf, vim.fn.win_findbuf(buf))
+			--- Execute the autocmd too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewEnable",
+				data = {
+					buffer = buf,
+					windows = vim.fn.win_findbuf(buf)
+				}
+			});
 		end
 	end,
 	["Disable"] = function ()
@@ -715,9 +724,18 @@ markview.commands = {
 		markview.state.enable = false;
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			if markview.actions.__is_enabled(buf) == true then
-				markview.actions.disable(buf);
-			end
+			markview.clear(buf);
+
+			--- Execute the attaching autocmd.
+			markview.actions.__exec_callback("on_disable", buf, vim.fn.win_findbuf(buf))
+			--- Execute the autocmd too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewDisable",
+				data = {
+					buffer = buf,
+					windows = vim.fn.win_findbuf(buf)
+				}
+			});
 		end
 	end,
 	["Render"] = function ()
