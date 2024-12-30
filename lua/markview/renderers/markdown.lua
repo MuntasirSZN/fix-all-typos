@@ -1934,6 +1934,25 @@ markdown.table = function (buffer, item)
 
 	if not config then
 		return;
+	else
+		local win = utils.buf_getwin(buffer);
+
+		if type(win) ~= "number" then
+			--- Window doesn't exist.
+			return;
+		end
+
+		local left_col;
+
+		vim.api.nvim_win_call(win, function ()
+			--- TODO, Find a more performant way to
+			--- get this value.
+			left_col = vim.fn.winsaveview().leftcol;
+		end)
+
+		if type(left_col) == "number" and left_col > range.col_start then
+			return;
+		end
 	end
 
 	local col_widths = {};
@@ -2601,7 +2620,7 @@ end
 
 --- Renders wrapped block quotes, callouts & alerts.
 ---@param buffer integer
----@param item __markdown.block_quote
+---@param item __markdown.block_quotes
 markdown.__block_quote = function (buffer, item)
 	---+${func, Post renderer for wrapped block quotes}
 
@@ -2611,10 +2630,7 @@ markdown.__block_quote = function (buffer, item)
 	local keys = vim.tbl_keys(main_config);
 	local range = item.range;
 
-	if
-		not main_config or
-		not main_config.default
-	then
+	if main_config == nil or not main_config.default then
 		return;
 	elseif
 		item.callout and
