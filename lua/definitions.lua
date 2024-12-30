@@ -188,6 +188,9 @@ M.extmark = {
 ---@field padding_right? string Right padding.
 ---@field padding_right_hl? string Highlight group for right padding.
 ---
+---@field file_hl? string Highlight group for block reference file name.
+---@field block_hl? string Highlight group for block reference block ID.
+---
 ---@field match_string? string Pattern used to determine when to use this(when supported).
 M.inline_generic = {
 	corner_left = "<",
@@ -221,6 +224,26 @@ M.range = {
 M.tag_properties = {
 	text = "<p>hi</p>",
 	range = { 0, 0, 0, 9 }
+};
+
+---@class inline_link.range
+---
+---@field row_start integer
+---@field row_end integer
+---@field col_start integer
+---@field col_end integer
+---
+---@field label? integer[]
+---@field description? integer[]
+---
+---@field alias? integer[]
+---@field file? integer[]
+---@field block? integer[]
+M.inline_link_range = {
+	col_end = 1,
+	row_end = 1,
+	col_start = 0,
+	row_start = 0
 };
 
  ------------------------------------------------------------------------------------------
@@ -2193,6 +2216,270 @@ M.__tables_cell = {
 	text = "|",
 	col_start = 0,
 	col_end = 1
+};
+
+ ------------------------------------------------------------------------------------------
+
+---@class __inline.block_references
+---
+---@field class "inline_link_block_ref"
+---@field file? string File name.
+---@field block string Block ID.
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__inline_block_references = {
+	class = "inline_link_block_ref",
+
+	file = "Some_file.md",
+	block = "Block",
+	label = "Some_file.md#^Block",
+
+	text = { "![[Some_file.md#^Block]]" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 25,
+
+		label = { 0, 3, 0, 23 },
+		file = { 0, 3, 0, 12 },
+		block = { 0, 14, 0, 23 }
+	}
+};
+
+---@class __inline.checkboxes
+---
+---@field class "inline_checkbox"
+---@field state string Checkbox state(text inside `[]`).
+---@field text string[]
+---@field range node.range
+M.__inline_checkboxes = {
+	class = "inline_checkbox",
+	state = "-",
+
+	text = { "[-]" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 2,
+		col_end = 5
+	}
+};
+
+---@class __inline.inline_codes
+---
+---@field class "inline_code_span"
+---@field text string[]
+---@field range node.range
+M.__inline_inline_codes = {
+	class = "inline_code_span",
+	text = { "`inline code`" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 13
+	}
+};
+
+---@class __inline.embed_files
+---
+---@field class "inline_link_embed_file"
+---@field label string Text inside `[[...]]`.
+---@field text string[]
+---@field range node.range
+M.__inline_link_embed_files = {
+	class = "inline_link_embed_file",
+	label = "v25",
+
+	text = { "![[v25]]" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 8
+	}
+};
+
+---@class __inline.emails
+---
+---@field class "inline_link_email"
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__inline_link_emails = {
+	class = "inline_link_email",
+	label = "example@mail.com",
+
+	text = { "<example@mail.com>" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 17,
+
+		label = { 0, 1, 0, 16 }
+	}
+};
+
+---@class __inline.entities
+---
+---@field class "inline_entity"
+---@field name string Entity name(text after "\")
+---@field text string[]
+---@field range node.range
+M.__inline_entities = {
+	class = "inline_entity",
+	name = "Int",
+	text = { "&Int;" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+---@class __inline.escaped
+---
+---@field class "inline_escaped"
+---@field text string[]
+---@field range node.range
+M.__inline_escaped = {
+	class = "inline_escaped",
+	text = { "\\'" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 2
+	}
+};
+
+---@class __inline.footnotes
+---
+---@field class "inline_footnotes"
+---@field label string
+---@field text string[]
+---@field range node.range
+M.__inline_footnotes = {
+	class = "inline_footnotes",
+	label = "^1",
+
+	text = { "[^1]" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 4
+	}
+};
+
+---@class __inline.highlights
+---
+---@field class "inline_highlight"
+---@field text string[]
+---@field range node.range
+M.__inline_highlights = {
+	class = "inline_highlight",
+
+	text = { "==Highlight==" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 13
+	}
+};
+
+---@class __inline.images
+---
+---@field class "inline_link_image"
+---@field label? string
+---@field description? string
+---@field text string[]
+---@field range inline_link.range
+M.__inline_images = {
+	class = "inline_link_image",
+	label = "image",
+	description = "test.svg",
+
+	text = { "![image](test.svg)" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 18,
+
+		label = { 0, 2, 0, 7 },
+		description = { 0, 9, 0, 17 }
+	}
+};
+
+---@class __inline.internal_links
+---
+---@field class "inline_link_internal"
+---@field alias? string
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+
+---@class __inline.hyperlinks
+---
+---@field class "inline_link_hyperlink"
+---@field label? string
+---@field description? string
+---@field text string[]
+---@field range inline_link.range
+M.__inline_images = {
+	class = "inline_link_hyperlink",
+	label = "link",
+	description = "test.svg",
+
+	text = { "[link](example.md)" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 18,
+
+		label = { 0, 1, 0, 5 },
+		description = { 0, 7, 0, 16 }
+	}
+};
+
+---@class __inline.uri_autolinks
+---
+---@field class "inline_link_uri_autolinks"
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__inline_uri_autolinks = {
+	class = "inline_link_uri_autolinks",
+	label = "https://example.com",
+
+	text = { "<https://example.com>" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 21,
+
+		label = { 0, 1, 0, 20 }
+	}
 };
 
 return M;
