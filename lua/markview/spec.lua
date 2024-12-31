@@ -37,7 +37,7 @@ local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 
 		on_args = {
 			{
-				before = function (item)
+				on_before = function (item)
 					return {
 						end_col = item.range[2] + 1,
 
@@ -54,7 +54,7 @@ local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 					return { range[1], range[2], range[3], range[4] - 1 };
 				end,
 
-				after = function (item)
+				on_after = function (item)
 					return {
 						end_col = item.range[4],
 
@@ -74,6 +74,9 @@ end
 
 spec.warnings = {};
 
+--- `vim.notify()` with extra steps.
+---@param chunks [ string, string? ][]
+---@param opts { silent: boolean, level: integer? }
 spec.notify = function (chunks, opts)
 	if not opts then opts = {}; end
 
@@ -106,7 +109,7 @@ spec.notify = function (chunks, opts)
 	end
 end
 
----@type markview.configuration
+---@type mkv.config
 spec.default = {
 	---+${conf}
 	experimental = {
@@ -206,6 +209,11 @@ spec.default = {
 						vim.wo[win].concealcursor = "";
 					end
 				end
+			end,
+
+			on_splitview_open = function (_, _, win)
+				vim.wo[win].conceallevel = 3;
+				vim.wo[win].concealcursor = "n";
 			end
 			---_
 		},
@@ -495,7 +503,7 @@ spec.default = {
 			pad_char = " ",
 
 			language_names = nil,
-			language_direction = "right",
+			label_direction = "right",
 
 			sign = true, sign_hl = nil
 			---_
@@ -715,6 +723,8 @@ spec.default = {
 
 		tables = {
 			---+ ${class, Tables}
+			enable = true,
+
 			parts = {
 				top = { "╭", "─", "╮", "┬" },
 				header = { "│", "│", "│" },
@@ -960,7 +970,7 @@ spec.default = {
 
 				on_args = {
 					{
-						before = function (item)
+						on_before = function (item)
 							return {
 								end_col = item.range[2] + 1,
 								conceal = "",
@@ -977,7 +987,7 @@ spec.default = {
 						after_offset = function (range)
 							return { range[1], range[2], range[3], range[4] - 1 };
 						end,
-						after = function (item)
+						on_after = function (item)
 							return {
 								end_col = item.range[4],
 								conceal = "",
@@ -993,7 +1003,7 @@ spec.default = {
 						end
 					},
 					{
-						before = function (item)
+						on_before = function (item)
 							return {
 								end_col = item.range[2] + 1,
 								conceal = "",
@@ -1010,7 +1020,7 @@ spec.default = {
 						after_offset = function (range)
 							return { range[1], range[2], range[3], range[4] - 1 };
 						end,
-						after = function (item)
+						on_after = function (item)
 							return {
 								end_col = item.range[4],
 								conceal = "",
@@ -1157,7 +1167,7 @@ spec.default = {
 			---_
 		},
 
-		codes = {
+		code_block = {
 			enable = true,
 
 			style = "block",
@@ -1171,13 +1181,18 @@ spec.default = {
 			hl = "Code",
 			text_hl = "Icon5"
 		},
+		code_inline = {
+			padding_left = " ",
+			padding_right = " ",
+			hl = "Code"
+		},
 
 		raw_blocks = {
 			enable = true,
 
 			style = "block",
 			icons = "internal",
-			language_direction = "right",
+			label_direction = "right",
 
 			min_width = 60,
 			pad_amount = 3,
@@ -1191,9 +1206,12 @@ spec.default = {
 		labels = {
 			enable = true,
 
-			hl = "InlineCode",
-			padding_left = "  ",
-			padding_right = " "
+			default = {
+				hl = "InlineCode",
+				padding_left = "  ",
+				padding_right = " "
+			},
+			patterns = {}
 		},
 
 		list_items = {
@@ -1234,7 +1252,7 @@ spec.default = {
 		math_blocks = {
 			enable = true,
 			hl = "Code",
-			text = "  LaTeX ",
+			text = " 󰪚 Math ",
 			text_hl = "CodeInfo",
 
 			pad_amount = 3,
@@ -1290,40 +1308,28 @@ spec.default = {
 	yaml = {
 		properties = {
 			enable = true,
-			hl = {
-				["aliases"]    = "MarkviewIcon3",
-				["cssclasses"] = "MarkviewIcon5",
-				["checkbox"]   = "MarkviewIcon6",
-				["date"]       = "MarkviewIcon2",
-				["list"]       = "MarkviewIcon5",
-				["number"]     = "MarkviewIcon6",
-				["nil"]        = "MarkviewIcon1",
-				["string"]     = "MarkviewIcon4",
-				["tags"]       = "MarkviewIcon6",
-				["time"]       = "MarkviewIcon3",
-				["unknown"]    = "MarkviewIcon2"
-			},
 
 			data_types = {
 				["text"] = {
-					text = " 󰗊 "
+					text = " 󰗊 ", hl = "MarkviewIcon4"
 				},
 				["list"] = {
-					text = " 󰝖 "
+					text = " 󰝖 ", hl = "MarkviewIcon5"
 				},
 				["number"] = {
-					text = "  "
+					text = "  ", hl = "MarkviewIcon6"
 				},
 				["checkbox"] = {
 					text = function (_, item)
 						return item.value == "true" and " 󰄲 " or " 󰄱 "
-					end
+					end,
+					hl = "MarkviewIcon6"
 				},
 				["date"] = {
-					text = " 󰃭 "
+					text = " 󰃭 ", hl = "MarkviewIcon2"
 				},
 				["date & time"] = {
-					text = " 󰥔 "
+					text = " 󰥔 ", hl = "MarkviewIcon3"
 				}
 			},
 
@@ -1887,6 +1893,7 @@ spec.fix_config = function (config)
 
 	local _o = {
 		renderers = config.renderers or {},
+		highlight_groups = config.highlight_groups or {},
 
 		splitview = config.splitview or {},
 		preview = config.preview or {},
