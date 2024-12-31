@@ -552,17 +552,27 @@ markdown.parse = function (buffer, TSTree, from, to)
 
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do
 		local capture_name = scanned_queries.captures[capture_id];
+
+		if not capture_name:match("^markdown%.") then
+			goto continue;
+		end
+
+		---@type string?
+		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
 		local r_start, c_start, r_end, c_end = capture_node:range();
 
-		local capture_text = vim.api.nvim_buf_get_lines(buffer, r_start, r_start == r_end and r_end + 1 or r_end, false);
+		if capture_text == nil then
+			goto continue;
+		end
 
-		if capture_name ~= "markdown.list_item" and capture_name ~= "markdown.checkbox" then
-			local spaces = capture_text[1]:sub(c_start + 1):match("^(%s*)");
-			c_start = c_start + #spaces;
+		if not capture_text:match("\n$") then
+			capture_text = capture_text .. "\n";
+		end
 
-			for l, line in ipairs(capture_text) do
-				capture_text[l] = line:sub(c_start + 1)
-			end
+		local lines = {};
+
+		for line in capture_text:gmatch("(.-)\n") do
+			table.insert(lines, line);
 		end
 
 		pcall(
@@ -570,7 +580,7 @@ markdown.parse = function (buffer, TSTree, from, to)
 
 			buffer,
 			capture_node,
-			capture_text,
+			lines,
 			{
 				row_start = r_start,
 				col_start = c_start,
@@ -579,6 +589,8 @@ markdown.parse = function (buffer, TSTree, from, to)
 				col_end = c_end
 			}
 		);
+
+		::continue::
 	end
 
 	return markdown.content, markdown.sorted;
