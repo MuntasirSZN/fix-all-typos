@@ -3,88 +3,23 @@ local typst = {};
 local symbols = require("markview.symbols");
 local spec = require("markview.spec");
 local utils = require("markview.utils");
-local languages = require("markview.languages");
 
 local filetypes = require("markview.filetypes");
-local devicons_loaded, devicons = pcall(require, "nvim-web-devicons");
-local mini_loaded, MiniIcons = pcall(require, "mini.icons");
 
 typst.cache = {
-	style_regions = {
-		superscripts = {},
-		subscripts = {}
-	},
+	superscripts = {},
+	subscripts = {}
 };
 
-typst.get_icon = function (icons, ft)
-	if type(icons) ~= "string" or icons == "" then
-		return "", "Normal";
-	end
-
-	if icons == "devicons" and devicons_loaded then
-		return devicons.get_icon(nil, ft, { default = true })
-	elseif icons == "mini" and mini_loaded then
-		return MiniIcons.get("extension", ft);
-	elseif icons == "internal" then
-		return languages.get_icon(ft);
-	end
-
-	return "󰡯", "Normal";
-end
-
-typst.__ns = {
-	__call = function (self, key)
-		return self[key] or self.default;
-	end
-}
-
-typst.ns = {
-	default = vim.api.nvim_create_namespace("markview/typst"),
-};
-setmetatable(typst.ns, typst.__ns)
-
-typst.set_ns = function ()
-	local ns_pref = spec.get({ "typst", "use_seperate_ns" }, { fallback = true });
-	if not ns_pref then ns_pref = true; end
-
-	local available = vim.api.nvim_get_namespaces();
-	local ns_list = {
-		["headings"] = "markview/typst/headings",
-		["injections"] = "markview/typst/injections",
-		["links"] = "markview/typst/links",
-		["symbols"] = "markview/typst/symbols",
-	};
-
-	if ns_pref == true then
-		for ns, name in pairs(ns_list) do
-			if vim.list_contains(available, ns) == false then
-				typst.ns[ns] = vim.api.nvim_create_namespace(name);
-			end
-		end
-	end
-end
-
-typst.custom_config = function (config, value)
-	if not config.custom or not value then
-		return config;
-	end
-
-	for _, custom in ipairs(config.custom) do
-		if custom.match_string and value:match(custom.match_string) then
-			return vim.tbl_deep_extend("force", config, custom);
-		end
-	end
-
-	return config;
-end
+typst.ns = vim.api.nvim_create_namespace("markview/typst");
 
 ---@param buffer integer
----@param item __typst.code
-typst.code = function (buffer, item)
+---@param item __typst.code_block
+typst.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
-	---@type typst.codes?
-	local config = spec.get({ "typst", "codes" }, { fallback = nil, eval_args = { buffer, item } });
+	---@type typst.code_block?
+	local config = spec.get({ "typst", "code_block" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
@@ -92,7 +27,7 @@ typst.code = function (buffer, item)
 	end
 
 	if config.style == "simple" then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("codes"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "right_align",
@@ -105,7 +40,7 @@ typst.code = function (buffer, item)
 		});
 
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_row = range.row_end, end_col = range.col_end,
 			line_hl_group = utils.set_hl(config.hl),
@@ -122,7 +57,7 @@ typst.code = function (buffer, item)
 		end
 
 		if config.text_direction == nil or config.text_direction == "left" then
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), range.row_start, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_lines_above = true,
@@ -140,7 +75,7 @@ typst.code = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or config.hl),
 			});
 		elseif config.text_direction == "right" then
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), range.row_start, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_lines_above = true,
@@ -159,7 +94,7 @@ typst.code = function (buffer, item)
 			});
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), range.row_end, range.col_end, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end, {
 			undo_restore = false, invalidate = true,
 
 			virt_lines = {
@@ -177,7 +112,7 @@ typst.code = function (buffer, item)
 			local final = line;
 
 			--- Left padding
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -187,7 +122,7 @@ typst.code = function (buffer, item)
 			});
 
 			--- Right padding
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), l, range.col_start + #line, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start + #line, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -198,7 +133,7 @@ typst.code = function (buffer, item)
 			});
 
 			--- Background color
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
 				undo_restore = false, invalidate = true,
 				end_col = range.col_start + #line,
 				hl_group = utils.set_hl(config.hl)
@@ -209,26 +144,133 @@ typst.code = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item table
-typst.emphasis = function (buffer, item)
+---@param item __typst.code_inline
+typst.code_inline = function (buffer, item)
+	---+${lua}
+
+	---@type typst.code_inline?
+	local config = spec.get({ "typst", "code_inline" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
+	if not config then
+		return;
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		hl_group = utils.set_hl(config.hl),
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end, {
+		undo_restore = false, invalidate = true,
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
+		},
+
+		hl_mode = "combine"
+	});
+
+	if range.row_start == range.row_end then
+		return;
+	end
+
+	for l = range.row_start, range.row_end do
+		local line = item.text[(l - range.row_start) + 1];
+
+		if l == range.row_start then
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start + #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		elseif l == range.row_end then
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, 0, {
+				undo_restore = false, invalidate = true,
+				right_gravity = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, #line, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+				},
+
+				hl_mode = "combine"
+			});
+		end
+	end
+	---_
+end
+
+---@param buffer integer
+---@param item __typst.emphasis
+typst.emphasis = function (buffer, item)
+	---+${lua}
+
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = ""
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = ""
 	});
+	---_
 end
 
 ---@param buffer integer
----@param item __typst.escaped
+---@param item __typst.escapes
 typst.escaped = function (buffer, item)
+	---+${lua}
+
 	---@type typst.escapes?
 	local config = spec.get({ "typst", "escapes" }, { fallback = nil, eval_args = { buffer, item } });
 
@@ -238,15 +280,16 @@ typst.escaped = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
 	});
+	---_
 end
 
 ---@param buffer integer
----@param item __typst.heading
+---@param item __typst.headings
 typst.heading = function (buffer, item)
 	---+${func}
 
@@ -264,12 +307,12 @@ typst.heading = function (buffer, item)
 	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
 
 	if config.style == "simple" then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("headings"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			line_hl_group = utils.set_hl(config.hl)
 		});
 	elseif config.style == "icon" then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("headings"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + item.level + 1,
 			conceal = "",
@@ -289,7 +332,7 @@ typst.heading = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.label
+---@param item __typst.labels
 typst.label = function (buffer, item)
 	---+${func}
 
@@ -315,7 +358,7 @@ typst.label = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -330,7 +373,7 @@ typst.label = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
@@ -338,7 +381,7 @@ typst.label = function (buffer, item)
 		hl_group = utils.set_hl(config.hl),
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -355,132 +398,7 @@ typst.label = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.reference_link
-typst.link_ref = function (buffer, item)
-	---+${func}
-
-	---@type typst.reference_links?
-	local main_config = spec.get({ "typst", "reference_links" }, { fallback = nil, eval_args = { buffer, item } });
-
-	if not main_config then
-		return;
-	end
-
-	---@type config.inline_generic?
-	local config = utils.pattern(
-		main_config,
-		string.sub(item.text[1], 2),
-		{
-			eval_args = { buffer, item }
-		}
-	);
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 1,
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
-		},
-
-		hl_mode = "combine"
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_row = range.row_end,
-		end_col = range.col_end,
-
-		hl_group = utils.set_hl(config.hl),
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_end, range.col_end, {
-		undo_restore = false, invalidate = true,
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-		},
-
-		hl_mode = "combine"
-	});
-	---_
-end
-
----@param buffer integer
----@param item __typst.url_link
-typst.link_url = function (buffer, item)
-	---+${func}
-
-	---@type typst.links?
-	local main_config = spec.get({ "typst", "url_links" }, { fallback = nil });
-
-	if not main_config then
-		return;
-	end
-
-	---@type config.inline_generic?
-	local config = utils.pattern(
-		main_config,
-		item.label,
-		{
-			eval_args = { buffer, item }
-		}
-	);
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-
-			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		hl_group = utils.set_hl(config.hl)
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_end, {
-		undo_restore = false, invalidate = true,
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-	---_
-end
-
----@param buffer integer
----@param item __typst.list_item
+---@param item __typst.list_items
 typst.list_item = function (buffer, item)
 	---+${func}
 
@@ -512,7 +430,7 @@ typst.list_item = function (buffer, item)
 		for l = range.row_start, range.row_end do
 			local line = item.text[(l - range.row_start) + 1];
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), l, math.min(#line, range.col_start - item.indent), {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, math.min(#line, range.col_start - item.indent), {
 				undo_restore = false, invalidate = true,
 				end_col = math.min(#line, range.col_start),
 				conceal = "",
@@ -526,7 +444,7 @@ typst.list_item = function (buffer, item)
 	end
 
 	if item.marker == "-" then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 1,
 
@@ -536,7 +454,7 @@ typst.list_item = function (buffer, item)
 			}
 		});
 	elseif item.marker == "+" then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 1,
 			conceal = "",
@@ -551,12 +469,137 @@ typst.list_item = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.math
+---@param item __typst.reference_links
+typst.link_ref = function (buffer, item)
+	---+${func}
+
+	---@type typst.reference_links?
+	local main_config = spec.get({ "typst", "reference_links" }, { fallback = nil, eval_args = { buffer, item } });
+
+	if not main_config then
+		return;
+	end
+
+	---@type config.inline_generic?
+	local config = utils.pattern(
+		main_config,
+		item.label,
+		{
+			eval_args = { buffer, item }
+		}
+	);
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		hl_group = utils.set_hl(config.hl),
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end, {
+		undo_restore = false, invalidate = true,
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
+		},
+
+		hl_mode = "combine"
+	});
+	---_
+end
+
+---@param buffer integer
+---@param item __typst.url_links
+typst.link_url = function (buffer, item)
+	---+${func}
+
+	---@type typst.url_links?
+	local main_config = spec.get({ "typst", "url_links" }, { fallback = nil });
+
+	if not main_config then
+		return;
+	end
+
+	---@type config.inline_generic?
+	local config = utils.pattern(
+		main_config,
+		item.label,
+		{
+			eval_args = { buffer, item }
+		}
+	);
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+
+			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_end, {
+		undo_restore = false, invalidate = true,
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+	---_
+end
+
+---@param buffer integer
+---@param item __typst.maths
 typst.math = function (buffer, item)
 	---+${func}
 	local range = item.range;
 
-	if item.inline then
+	if item.inline == true then
 		---@type typst.math_spans?
 		local config = spec.get({ "typst", "math_spans" }, { fallback = nil, eval_args = { buffer, item } });
 
@@ -564,7 +607,7 @@ typst.math = function (buffer, item)
 			return;
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 1,
 			conceal = "",
@@ -579,7 +622,7 @@ typst.math = function (buffer, item)
 		});
 
 		if range.row_start ~= range.row_end then
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start + #item.text[1], {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -588,7 +631,7 @@ typst.math = function (buffer, item)
 				}
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, 0, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, 0, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -598,7 +641,7 @@ typst.math = function (buffer, item)
 			});
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_row = range.row_end,
 			end_col = range.col_end,
@@ -606,7 +649,7 @@ typst.math = function (buffer, item)
 			hl_group = utils.set_hl(config.hl),
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end - (item.closed and 1 or 0), {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - (item.closed and 1 or 0), {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -621,7 +664,7 @@ typst.math = function (buffer, item)
 		});
 
 		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start + l, math.min(#item.text[l + 1], 0), {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, math.min(#item.text[l + 1], 0), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -630,7 +673,7 @@ typst.math = function (buffer, item)
 				}
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start + l, #item.text[l + 1], {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, #item.text[l + 1], {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -647,7 +690,7 @@ typst.math = function (buffer, item)
 			return;
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 1,
 			conceal = "",
@@ -659,7 +702,7 @@ typst.math = function (buffer, item)
 			line_hl_group = utils.set_hl(config.hl)
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, math.max(0, range.col_end - 1), {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, math.max(0, range.col_end - 1), {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
@@ -668,7 +711,7 @@ typst.math = function (buffer, item)
 		});
 
 		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start + l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -684,7 +727,7 @@ typst.math = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.raw_block
+---@param item __typst.raw_blocks
 typst.raw_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
@@ -702,7 +745,7 @@ typst.raw_block = function (buffer, item)
 	local win = utils.buf_getwin(buffer);
 
 	if config.style == "simple" or ( vim.o.wrap == true or vim.wo[win].wrap == true ) then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 3 + vim.fn.strdisplaywidth(item.language or ""),
 			conceal = "",
@@ -716,17 +759,17 @@ typst.raw_block = function (buffer, item)
 			sign_hl_group = utils.set_hl(config.sign_hl or sign_hl)
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end - 3, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 3, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = ""
 		});
 
 		for l = range.row_start + 1, range.row_end - 1, 1 do
-			local pad_amount = config.pad_amount;
+			local pad_amount = config.pad_amount or 0;
 
 			--- Left padding
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("code_blocks"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -738,7 +781,7 @@ typst.raw_block = function (buffer, item)
 
 		if not config.hl then return; end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_row = range.row_end,
 			end_col = range.col_end,
@@ -756,13 +799,13 @@ typst.raw_block = function (buffer, item)
 			end
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + 3 + vim.fn.strdisplaywidth(item.language or ""),
 			conceal = "",
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start + #item.text[1], {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start + #item.text[1], {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -782,13 +825,13 @@ typst.raw_block = function (buffer, item)
 			sign_hl_group = utils.set_hl(config.sign_hl or sign_hl)
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end - 3, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 3, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
 		});
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end, {
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end, {
 			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
@@ -804,7 +847,7 @@ typst.raw_block = function (buffer, item)
 		for l = range.row_start + 1, range.row_end - 1 do
 			local line = item.text[(l - range.row_start) + 1];
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -815,7 +858,7 @@ typst.raw_block = function (buffer, item)
 				hl_mode = "combine"
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), l, range.col_start + #line, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start + #line, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -827,7 +870,7 @@ typst.raw_block = function (buffer, item)
 				hl_mode = "combine"
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), l, range.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
 				undo_restore = false, invalidate = true,
 				end_col = range.col_start + #line,
 
@@ -839,7 +882,7 @@ typst.raw_block = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.raw_span
+---@param item __typst.raw_spans
 typst.raw_span = function (buffer, item)
 	---+${func}
 
@@ -852,7 +895,7 @@ typst.raw_span = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = "",
@@ -867,7 +910,7 @@ typst.raw_span = function (buffer, item)
 		hl_mode = "combine"
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
@@ -875,7 +918,7 @@ typst.raw_span = function (buffer, item)
 		hl_group = utils.set_hl(config.hl),
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("injections"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -892,25 +935,127 @@ typst.raw_span = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item table
+---@param item __typst.strong
 typst.strong = function (buffer, item)
+	---+${lua}
+
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 1,
 		conceal = ""
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("links"), range.row_end, range.col_end - 1, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = ""
 	});
+	---_
 end
 
 ---@param buffer integer
----@param item __typst.style
+---@param item __typst.subscripts
+typst.subscript = function (buffer, item)
+	-- ---+${func}
+
+	---@type typst.subscripts?
+	local config = spec.get({ "typst", "subscripts" }, { fallback = nil, eval_args = { buffer, item } });
+
+	if not config then
+		return;
+	end
+
+	local range = item.range;
+	---@type string?
+	local hl;
+
+	if type(config.hl) == "string" then
+		hl = config.hl --[[ @as string ]];
+	elseif vim.islist(config.hl) == true then
+		hl = config.hl[utils.clamp(item.level, 1, #config.hl)];
+	end
+
+	local previewable = true;
+
+	local invalid_symbols = vim.list_extend(vim.tbl_keys(symbols.typst_entries), vim.tbl_keys(symbols.typst_shorthands));
+	local valid_symbols = vim.tbl_keys(symbols.subscripts);
+
+	local lines = vim.deepcopy(item.text);
+
+	lines[1] = string.gsub(lines[1], "^%{", "");
+	lines[#lines] = string.gsub(lines[#lines], "%}$", "");
+
+	for _, line in ipairs(lines) do
+		if utils.str_contains(line, invalid_symbols) == true then
+			previewable = false;
+			break;
+		elseif utils.str_contains(line, valid_symbols) == false then
+			previewable = false;
+			break;
+		end
+	end
+
+	---+${Lua, Render markers}
+	if item.parenthesis == true then
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + 2,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = previewable == false and {
+				{ config.marker_left or "↓(", utils.set_hl(hl) }
+			} or nil,
+
+			hl_mode = "combine"
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_end,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = previewable == false and {
+				{ config.marker_right or ")", utils.set_hl(hl) }
+			} or nil,
+
+			hl_mode = "combine"
+		});
+	else
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + 1,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = previewable == false and {
+				{ config.marker_left or "↓", utils.set_hl(hl) }
+			} or nil,
+
+			hl_mode = "combine"
+		});
+	end
+	---_
+
+	if previewable == true then
+		table.insert(typst.cache.subscripts, item);
+	else
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end,
+			end_col = range.col_end,
+
+			hl_group = utils.set_hl(hl)
+		});
+	end
+	-- ---_
+end
+
+---@param buffer integer
+---@param item __typst.superscripts
 typst.superscript = function (buffer, item)
 	---+${func}
 
@@ -922,115 +1067,94 @@ typst.superscript = function (buffer, item)
 	end
 
 	local range = item.range;
+	---@type string?
+	local hl;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + (item.parenthesis and 2 or 1),
-		conceal = "",
+	if type(config.hl) == "string" then
+		hl = config.hl --[[ @as string ]];
+	elseif vim.islist(config.hl) == true then
+		hl = config.hl[utils.clamp(item.level, 1, #config.hl)];
+	end
 
-		virt_text_pos = "inline",
-		virt_text = item.preview == false and { { "↑(", utils.set_hl(config.hl) } } or nil,
+	local previewable = true;
 
-		hl_mode = "combine"
-	});
+	local invalid_symbols = vim.list_extend(vim.tbl_keys(symbols.typst_entries), vim.tbl_keys(symbols.typst_shorthands));
+	local valid_symbols = vim.tbl_keys(symbols.superscripts);
 
-	if item.parenthesis then
-		if item.preview then
-			table.insert(typst.cache.style_regions.superscripts, item.range);
-		else
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_row = range.row_end,
-				end_col = range.col_end,
+	local lines = vim.deepcopy(item.text);
 
-				hl_group = utils.set_hl(config.hl)
-			});
+	lines[1] = string.gsub(lines[1], "^%{", "");
+	lines[#lines] = string.gsub(lines[#lines], "%}$", "");
+
+	for _, line in ipairs(lines) do
+		if utils.str_contains(line, invalid_symbols) == true then
+			previewable = false;
+			break;
+		elseif utils.str_contains(line, valid_symbols) == false then
+			previewable = false;
+			break;
 		end
+	end
 
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_end, range.col_end - 1, {
+	---+${Lua, Render markers}
+	if item.parenthesis == true then
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + 2,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = previewable == false and {
+				{ config.marker_left or "↑(", utils.set_hl(hl) }
+			} or nil,
+
+			hl_mode = "combine"
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
 			conceal = "",
 
 			virt_text_pos = "inline",
-			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
+			virt_text = previewable == false and {
+				{ config.marker_right or ")", utils.set_hl(hl) }
+			} or nil,
 
 			hl_mode = "combine"
 		});
-	elseif symbols.superscripts[item.text[1]] then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start + 1, {
+	else
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			virt_text_pos = "overlay",
-			virt_text = { { symbols.superscripts[item.text[1]], utils.set_hl(config.hl) } },
+			end_col = range.col_start + 1,
+			conceal = "",
+
+			virt_text_pos = "inline",
+			virt_text = previewable == false and {
+				{ config.marker_left or "↑", utils.set_hl(hl) }
+			} or nil,
 
 			hl_mode = "combine"
+		});
+	end
+	---_
+
+	if previewable == true then
+		table.insert(typst.cache.superscripts, item);
+	else
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end,
+			end_col = range.col_end,
+
+			hl_group = utils.set_hl(hl)
 		});
 	end
 	---_
 end
 
 ---@param buffer integer
----@param item __typst.style
-typst.subscript = function (buffer, item)
-	---+${func}
-
-	---@type latex.styles?
-	local config = spec.get({ "typst", "subscripts" }, { fallback = nil, eval_args = { buffer, item } });
-
-	if not config then
-		return;
-	end
-
-	local range = item.range;
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_start + (item.parenthesis and 2 or 1),
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = item.preview == false and { { "↑(", utils.set_hl(config.hl) } } or nil,
-
-		hl_mode = "combine"
-	});
-
-	if item.parenthesis then
-		if item.preview then
-			table.insert(typst.cache.style_regions.subscripts, item.range);
-		else
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_row = range.row_end,
-				end_col = range.col_end,
-
-				hl_group = utils.set_hl(config.hl)
-			});
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_end, range.col_end - 1, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
-
-			hl_mode = "combine"
-		});
-	elseif symbols.subscripts[item.text[1]] then
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns("specials"), range.row_start, range.col_start + 1, {
-			undo_restore = false, invalidate = true,
-			virt_text_pos = "overlay",
-			virt_text = { { symbols.subscripts[item.text[1]], utils.set_hl(config.hl) } },
-
-			hl_mode = "combine"
-		});
-	end
-	---_
-end
-
----@param buffer integer
----@param item __typst.symbol
+---@param item __typst.symbols
 typst.symbol = function (buffer, item)
 	---+${func}
 
@@ -1044,52 +1168,37 @@ typst.symbol = function (buffer, item)
 	end
 
 	local range = item.range;
-	local _o, _h = "", nil;
 
-	if
-		item.style and
-		spec.get({ "typst", item.style, "hl" }, { fallback = nil })
-	then
-		_o = symbols[item.style][item.name] or symbols.typst_entries[item.name];
-		_h = spec.get({ "typst", item.style, "hl" }, { fallback = nil });
-	elseif symbols.typst_shorthands[item.name] then
-		_o = symbols.typst_shorthands[item.name];
-		_h = config.hl;
-	elseif symbols.typst_entries[item.name] then
-		_o = symbols.typst_entries[item.name];
-		_h = config.hl;
-	else
-		return;
-	end
-
-
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
 
 		virt_text_pos = "inline",
-		virt_text = { { _o, utils.set_hl(_h) } },
+		virt_text = {
+			{ symbols.typst_entries[item.name], utils.set_hl(config.hl) }
+		},
 		hl_mode = "combine"
 	});
 	---_
 end
 
 ---@param buffer integer
----@param item __typst.term
+---@param item __typst.terms
 typst.term = function (buffer, item)
 	---+${func}
 
-	---@type typst.term?
+	---@type typst.terms?
 	local main_config = spec.get({ "typst", "terms" }, { fallback = nil });
 
 	if not main_config then
 		return;
 	end
 
+	---@type term.opts?
 	local config = utils.pattern(
 		main_config,
-		item.term,
+		item.label,
 		{
 			eval_args = { buffer, item }
 		}
@@ -1101,7 +1210,7 @@ typst.term = function (buffer, item)
 
 	local range = item.range;
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("symbols"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_start + 2,
 		conceal = "",
@@ -1120,83 +1229,91 @@ typst.text = function (buffer, item)
 	---+${func}
 
 	local range = item.range;
-	---@type boolean, string?
-	local within_style, style;
+	local style;
 
-	for _, region in ipairs(typst.cache.style_regions.superscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "superscripts";
+	local function modify_style(new_style)
+		if style == nil then
+			return true;
+		elseif new_style.range and utils.within_range(style.range, new_style.range) == true then
+			return true;
+		end
+
+		return false;
+	end
+
+	--- Check for subscript styles.
+	for _, node in ipairs(typst.cache.subscripts or {}) do
+		if utils.within_range(node.range, range) and modify_style(node) == true then
+			style = node;
 			break;
 		end
 	end
 
-	for _, region in ipairs(typst.cache.style_regions.subscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "subscripts";
+	--- Check for superscript styles.
+	for _, node in ipairs(typst.cache.superscripts or {}) do
+		if utils.within_range(node.range, range) and modify_style(node) == true then
+			style = node;
 			break;
 		end
 	end
 
-	local _o, _h = "", nil;
+	local virt_text, virt_hl;
 
-	if spec.get({ "typst", style }, {}) and within_style == true then
-		for letter in item.text[1]:gmatch(".") do
-			if symbols[style][letter] then
-				_o = _o .. symbols[style][letter];
-			else
-				_o = _o .. letter;
-			end
-		end
+	if style == nil then
+		--- No styles were found.
+		return;
+	elseif style.class == "typst_subscript" then
+		local config = spec.get({ "typst", "subscripts", "hl" }, { fallback = nil, eval_args = { buffer, style } });
 
-		_h = spec.get({ "typst", style, "hl" }, { fallback = nil, eval_args = { buffer, item } });
+		virt_text = symbols.tostring("subscripts", item.text[1])
+		virt_hl = config.hl;
+	elseif style.class == "typst_superscript" then
+		local config = spec.get({ "typst", "superscripts", "hl" }, { fallback = nil, eval_args = { buffer, style } });
+
+		virt_text = symbols.tostring("superscripts", item.text[1])
+		virt_hl = config.hl;
 	else
-		for letter in item.text[1]:gmatch(".") do
-			if symbols.fonts.default[letter] then
-				_o = _o .. symbols.fonts.default[letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = spec.get({ "typst", "fonts", "hl" }, { fallback = nil, eval_args = { buffer, item } });
+		--- Unknown style.
+		return;
 	end
 
-	vim.api.nvim_buf_set_extmark(buffer, typst.ns("fonts"), range.row_start, range.col_start, {
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
 		end_row = range.row_end,
 		end_col = range.col_end,
 
 		virt_text_pos = "overlay",
-		virt_text = { { _o, utils.set_hl(_h) } },
+		virt_text = {
+			{ virt_text, utils.set_hl(virt_hl) }
+		},
 		hl_mode = "combine"
 	});
 	---_
 end
 
+--- Renders typst previews.
+---@param buffer integer
+---@param content table[]
 typst.render = function (buffer, content)
 	typst.cache = {
-		style_regions = {
-			superscripts = {},
-			subscripts = {}
-		},
+		superscripts = {},
+		subscripts = {}
 	};
 
 	for _, item in ipairs(content or {}) do
 		if typst[item.class:gsub("^typst_", "")] then
-			-- pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
-			typst[item.class:gsub("^typst_", "")](buffer, item);
+			pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
 		end
 	end
 end
 
-typst.clear = function (buffer, ignore_ns, from, to)
-	for name, ns in pairs(typst.ns) do
-		if ignore_ns and vim.list_contains(ignore_ns, name) == false then
-			vim.api.nvim_buf_clear_namespace(buffer, ns, from or 0, to or -1);
-		end
-	end
+--- Clear typst previews.
+---@param buffer integer
+---@param _ any
+---@param from integer?
+---@param to integer?
+typst.clear = function (buffer, _, from, to)
+	vim.api.nvim_buf_clear_namespace(buffer, typst.ns, from or 0, to or -1);
 end
 
 return typst;
