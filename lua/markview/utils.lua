@@ -184,9 +184,7 @@ utils.pattern = function (main_config, txt, opts)
 			return false;
 		elseif vim.islist(main_config.patterns) == false then
 			return false;
-		elseif type(opts.pattern) ~= "string" then
-			return false;
-		elseif txt == nil then
+		elseif type(txt) ~= "string" then
 			return false;
 		end
 
@@ -194,6 +192,7 @@ utils.pattern = function (main_config, txt, opts)
 	end
 
 	local spec = require("markview.spec");
+
 	local default  = spec.get({ "default" }, { source = main_config, fallback = {}, eval_args = opts.eval_args });
 	--- NOTE, Pattern items can also be dynamic.
 	local patterns = spec.get({ "patterns" }, { source = main_config, fallback = {}, eval_args = opts.eval_args });
@@ -324,6 +323,24 @@ utils.match = function (config, name, opts)
 	end
 
 	return _o;
+end
+
+--- Checks if a string only contains {chars}
+---@param str string
+---@param chars string[]
+---@return boolean
+utils.str_contains = function (str, chars)
+	if type(str) ~= "string" or str == "" then
+		return false;
+	end
+
+	local tmp = str;
+
+	for _, char in ipairs(chars or {}) do
+		tmp = string.gsub(tmp, utils.escape_string(char), "");
+	end
+
+	return string.match(tmp, "^%s*$") ~= nil;
 end
 
 return utils;
