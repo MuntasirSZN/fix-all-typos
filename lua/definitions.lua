@@ -1147,7 +1147,7 @@ M.typst = {
 	reference_links = {}
 };
 
----@class typst.codes
+---@class typst.code_block
 ---
 ---@field enable boolean
 ---@field hl? string
@@ -1160,7 +1160,7 @@ M.typst = {
 ---@field text string
 ---@field text_direction "left" | "right"
 ---@field text_hl? string
-M.typst_code = {
+M.typst_codes_block = {
 	style = "block",
 	text_direction = "right",
 	pad_amount = 3,
@@ -1169,6 +1169,26 @@ M.typst_code = {
 	hl = "MarkviewCode"
 } or {
 	style = "simple",
+	hl = "MarkviewCode"
+};
+
+---@class typst.code_inline
+---
+---@field enable boolean
+---@field corner_left? string Left corner.
+---@field corner_left_hl? string Highlight group for left corner.
+---@field corner_right? string Right corner.
+---@field corner_right_hl? string Highlight group for right corner.
+---@field hl? string Base Highlight group.
+---@field padding_left? string Left padding.
+---@field padding_left_hl? string Highlight group for left padding.
+---@field padding_right? string Right padding.
+---@field padding_right_hl? string Highlight group for right padding.
+M.typst_codes_inline = {
+	enable = true,
+
+	padding_left = " ",
+	corner_left = " ",
 	hl = "MarkviewCode"
 };
 
@@ -1308,22 +1328,26 @@ M.typst_raw_blocks = {
 	hl = "MarkviewInlineCode"
 };
 
----@class typst.superscripts
----
----@field enable boolean
----@field hl? string
-M.typst_superscripts = {
-	enable = true,
-	hl = "MarkviewSuperscript"
-};
-
 ---@class typst.subscripts
 ---
 ---@field enable boolean
----@field hl? string
+---@field hl? string | string[]
+---@field marker_left? string
+---@field marker_right? string
 M.typst_subscripts = {
 	enable = true,
 	hl = "MarkviewSubscript"
+};
+
+---@class typst.superscripts
+---
+---@field enable boolean
+---@field hl? string | string[]
+---@field marker_left? string
+---@field marker_right? string
+M.typst_superscripts = {
+	enable = true,
+	hl = "MarkviewSuperscript"
 };
 
 ---@class typst.symbols
@@ -2482,4 +2506,372 @@ M.__inline_uri_autolinks = {
 	}
 };
 
-return M;
+ ------------------------------------------------------------------------------------------
+
+---@class __typst.code_block
+---@field class "typst_code_block"
+---@field text string[]
+---@field range node.range
+M.__typst_codes = {
+	class = "typst_code_block",
+
+	text = {
+		"#{",
+		"    let a = [from]",
+		"}"
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 1
+	}
+};
+
+---@class __typst.code_inline
+---@field class "typst_code_inline"
+---@field text string[]
+---@field range node.range
+M.__typst_codes = {
+	class = "typst_code_inline",
+
+	text = { "#{ let a = 1 }" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 13
+	}
+};
+
+---@class __typst.emphasis
+---
+---@field class "typst_emphasis"
+---@field text string[]
+---@field range node.range
+M.__typst_emphasis = {
+	class = "typst_emphasis",
+	text = { "_emphasis_" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 9
+	}
+};
+
+---@class __typst.escapes
+---
+---@field class "typst_escaped"
+---@field text string[]
+---@field range node.range
+M.__typst_escapes = {
+	class = "typst_escaped",
+
+	text = { "\\|" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 2
+	}
+};
+
+---@class __typst.headings
+---
+---@field class "typst_heading"
+---@field level integer Heading level.
+---@field text string[]
+---@field range node.range
+M.__typst_headings = {
+	class = "typst_heading",
+	level = 1,
+
+	text = { "= Heading 1" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 10
+	}
+};
+
+---@class __typst.labels
+---
+---@field class "typst_labels"
+---@field text string[]
+---@field range node.range
+M.__typst_labels = {
+	class = "typst_labels",
+
+	text = { "<label>" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 7
+	}
+};
+
+---@class __typst.list_items
+---
+---@field class "typst_list_item"
+---@field indent integer
+---@field marker "+" | "-" | string
+---@field number? integer Number to show on the list item when previewing.
+---@field text string[]
+---@field range node.range
+M.__typst_list_items = {
+	class = "typst_list_item",
+	indent = 0,
+	marker = "-",
+
+	text = { "- List item" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 11
+	}
+};
+
+---@class __typst.maths
+---
+---@field class "typst_math"
+---@field inline boolean Should we render it inline?
+---@field closed boolean Is the node closed(ends with `$$`)?
+---@field text string[]
+---@field range node.range
+M.__typst_maths = {
+	class = "typst_math",
+	inline = true,
+	closed = true,
+
+	text = { "$ 1 + 2 $" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 9
+	}
+};
+
+---@class __typst.url_links
+---
+---@field class "typst_link_url"
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__typst_url_links = {
+	class = "typst_link_url",
+	label = "https://example.com",
+
+	text = { "https://example.com" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 19,
+
+		label = { 0, 0, 0, 19 }
+	}
+};
+
+---@class __typst.reference_links
+---
+---@field class "typst_link_ref"
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__typst_link_ref = {
+	class = "typst_link_ref",
+	label = "label",
+
+	text = { "@label" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 6,
+
+		label = { 0, 1, 0, 6 }
+	}
+};
+
+---@class __typst.raw_blocks
+---
+---@field class "typst_raw_block"
+---@field language? string
+---@field text string[]
+---@field range node.range
+M.__typst_raw_blocks = {
+	class = "typst_raw_block",
+	language = "lua",
+
+	text = {
+		"```lua",
+		'vim.print("Hello, Neovim")',
+		"```"
+	},
+	range = {
+		row_start = 0,
+		row_end = 2,
+
+		col_start = 0,
+		col_end = 3
+	}
+};
+
+---@class __typst.raw_spans
+---
+---@field class "typst_raw_span"
+---@field text string[]
+---@field range node.range
+M.__typst_raw_blocks = {
+	class = "typst_raw_span",
+
+	text = { "`hi`" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 4
+	}
+};
+
+---@class __typst.strong
+---
+---@field class "typst_strong"
+---@field text string[]
+---@field range node.range
+M.__typst_strong = {
+	class = "typst_strong",
+
+	text = { "*strong*" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 7
+	}
+};
+
+---@class __typst.subscripts
+---
+---@field class "typst_subscript"
+---@field parenthesis boolean Whether the text is surrounded by parenthesis.
+---@field level integer Subscript level.
+---@field text string[]
+---@field range node.range
+M.__typst_subscripts = {
+	class = "typst_subscript",
+	parenthesis = true,
+	preview = true,
+	level = 1,
+
+	text = { "_{12}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+---@class __typst.superscripts
+---
+---@field class "typst_superscript"
+---@field parenthesis boolean Whether the text is surrounded by parenthesis.
+---@field level integer Superscript level.
+---@field text string[]
+---@field range node.range
+M.__typst_subscripts = {
+	class = "typst_superscript",
+	parenthesis = true,
+	preview = true,
+	level = 1,
+
+	text = { "^{12}" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+---@class __typst.symbols
+---
+---@field class "typst_symbol"
+---@field name string
+---@field text string[]
+---@field range node.range
+M.__typst_symbols = {
+	class = "typst_symbol",
+	name = "alpha",
+
+	text = { "alpha" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 5
+	}
+};
+
+---@class __typst.text
+---
+---@field class "typst_text"
+---@field text string[]
+---@field range node.range
+M.__typst_text = {
+	class = "typst_text",
+
+	text = { "1" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 1
+	}
+};
+
+---@class __typst.terms
+---
+---@field class "typst_term"
+---@field label string
+---@field text string[]
+---@field range inline_link.range
+M.__typst_terms = {
+	class = "typst_term",
+	label = "Term",
+
+	text = { "/ Term" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 6,
+
+		label = { 0, 2, 0, 6 }
+	}
+}
+
+ return M;
