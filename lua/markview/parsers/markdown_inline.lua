@@ -551,8 +551,13 @@ inline.parse = function (buffer, TSTree, from, to)
 			goto continue;
 		end
 
-		local r_start, c_start, r_end, c_end = capture_node:range();
+		---@type string?
 		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
+		local r_start, c_start, r_end, c_end = capture_node:range();
+
+		if capture_text == nil then
+			goto continue;
+		end
 
 		--- Doesn't end with a newline. Add it.
 		if not capture_text:match("\n$") then

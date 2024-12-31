@@ -468,7 +468,6 @@ latex.parse = function (buffer, TSTree, from, to)
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do
 		---@type string
 		local capture_name = scanned_queries.captures[capture_id];
-		local r_start, c_start, r_end, c_end = capture_node:range();
 
 		--- Capture groups used internally.
 		--- Do not parse them.
@@ -476,8 +475,13 @@ latex.parse = function (buffer, TSTree, from, to)
 			goto continue
 		end
 
-		---@type string
+		---@type string?
 		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
+		local r_start, c_start, r_end, c_end = capture_node:range();
+
+		if capture_text == nil then
+			goto continue;
+		end
 
 		--- If a node doesn't end with \n, Add it.
 		if not capture_text:match("\n$") then

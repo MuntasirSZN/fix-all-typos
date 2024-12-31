@@ -78,13 +78,18 @@ yaml.parse = function (buffer, TSTree, from, to)
 
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do
 		local capture_name = scanned_queries.captures[capture_id];
-		local r_start, c_start, r_end, c_end = capture_node:range();
 
 		if not capture_name:match("^yaml%.") then
 			goto continue
 		end
 
+		---@type string?
 		local capture_text = vim.treesitter.get_node_text(capture_node, buffer);
+		local r_start, c_start, r_end, c_end = capture_node:range();
+
+		if capture_text == nil then
+			goto continue;
+		end
 
 		if not capture_text:match("\n$") then
 			capture_text = capture_text .. "\n";
