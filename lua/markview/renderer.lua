@@ -9,6 +9,117 @@ renderer.typst = require("markview.renderers.typst");
 
 renderer.cache = {};
 
+--- Range modifiers for various nodes.
+---@type { [string]: fun(range: table): table }
+renderer.range_modifiers = {};
+
+--- Filters provided content.
+--- [Used for hybrid mode]
+---@param content table
+---@param filter table?
+---@param clear [ integer, integer ]
+---@return table
+renderer.filter = function (content, filter, clear)
+	local spec = require("markview.spec");
+	filter = filter or spec.get({ "preview", "ignore_previews" }, { fallback = {} });
+
+	if not clear then
+		--- No clear region.
+		return content;
+	end
+
+	---@type integer?, integer?
+	local cl_from, cl_to;
+
+	--- Checks if a range contains the clear range.
+	---@param range { row_start: integer, row_end: integer }
+	---@return boolean
+	local function in_range(range)
+		if vim.islist(clear) == false then
+			--- Not within range
+			return false;
+		elseif clear[1] >= range.row_start and clear[2] <= range.row_end then
+			return true;
+		else
+			return false;
+		end
+	end
+
+	--- Updates the final clearing range.
+	---@param range { row_start: integer, row_end: integer }
+	local function update_range(range)
+		if type(cl_from) ~= "number" then
+			cl_from = range.row_start;
+		elseif range.row_start < cl_from then
+			cl_from = range.row_start;
+		end
+
+		if type(cl_to) ~= "number" then
+			cl_to = range.row_end;
+		elseif range.row_start < cl_to then
+			cl_to = range.row_end;
+		end
+	end
+
+	for lang, items in pairs(content) do
+		local lang_filter = spec.get({ lang }, { source = filter });
+
+		for _, item in ipairs(items) do
+			local class = item.class;
+			local range = item.range;
+
+			if renderer.range_modifiers[class] then
+				range = renderer.range_modifiers[class](range);
+			end
+
+			class = class:gsub("^" .. lang, "");
+
+			if vim.tbl_islist(lang_filter) == false and in_range(range) == true then
+				update_range(range);
+			elseif (inverse == true and vim.list_contains(lang_filter, item.class)) and in_range(range) == true then
+				update_range(range);
+			elseif vim.list_contains(lang_filter, item.class) == false and in_range(range) == true then
+				update_range(range);
+			end
+		end
+	end
+
+	local filtered = {};
+
+	for lang, items in pairs(content) do
+		local lang_filter = spec.get({ lang }, { source = filter });
+
+		if filtered[lang] == nil then
+			filtered[lang] = {};
+		end
+
+		for _, item in ipairs(items) do
+			local class = item.class;
+			local range = item.range;
+
+			if renderer.range_modifiers[class] then
+				range = renderer.range_modifiers[class](range);
+			end
+
+			class = class:gsub("^" .. lang, "");
+
+			if vim.tbl_islist(lang_filter) == false and in_range(range) == true then
+				goto skip_item;
+			elseif (inverse == true and vim.list_contains(lang_filter, item.class)) and in_range(range) == true then
+				goto skip_item;
+			elseif vim.list_contains(lang_filter, item.class) == false and in_range(range) == true then
+				goto skip_item;
+			end
+
+			table.insert(filtered[lang], item);
+
+			::skip_item::
+		end
+	end
+
+	return filtered;
+end
+
 --- Renders things
 ---@param buffer integer
 renderer.render = function (buffer, parsed_content)
