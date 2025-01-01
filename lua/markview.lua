@@ -349,7 +349,12 @@ markview.splitview_render = function ()
 
 	if markview.buf_is_safe(buffer) == false then
 		--- Buffer isn't safe.
-		markview.state.splitview_source = nil;
+		-- markview.state.splitview_source = nil;
+		pcall(markview.actions.splitClose);
+		return;
+	elseif markview.win_is_safe(utils.buf_getwin(buffer)) == false then
+		--- Buffer doesn't have any windows attached.
+		pcall(markview.actions.splitClose);
 		return;
 	end
 
@@ -371,7 +376,6 @@ markview.splitview_render = function ()
 		hybrid_mode = false,
 		events = false
 	});
-
 	---_
 end
 
@@ -740,19 +744,37 @@ markview.commands = {
 			});
 		end
 	end,
+
 	["Render"] = function ()
 		markview.clean();
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			markview.render(buf);
+			if markview.state.enable == true and markview.actions.__is_enabled(buf) then
+				markview.render(buf);
+			end
 		end
 	end,
 	["Clear"] = function ()
 		markview.clean();
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			markview.clear(buf);
+			if markview.state.enable == true and markview.actions.__is_enabled(buf) then
+				markview.clear(buf);
+			end
 		end
+	end,
+
+	["render"] = function (buffer)
+		markview.clean();
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		markview.render(buffer);
+	end,
+	["clear"] = function (buffer)
+		markview.clean();
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		markview.clear(buffer);
 	end,
 
 	["toggleAll"] = function ()
@@ -824,6 +846,7 @@ markview.commands = {
 	end,
 
 	["splitRedraw"] = function ()
+		markview.splitview_render();
 	end,
 
 	["splitOpen"] = function (buffer)
