@@ -480,7 +480,9 @@ markview.actions = {
 			}
 		});
 
-		markview.render(buffer);
+		if enable == true then
+			markview.render(buffer);
+		end
 		---_
 	end,
 	--- Detaches previewer from a buffer.
