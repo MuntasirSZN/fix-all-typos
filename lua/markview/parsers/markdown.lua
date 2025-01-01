@@ -114,7 +114,7 @@ markdown.checkbox = function (_, _, text, range)
 	---@type __markdown.checkboxes
 	markdown.insert({
 		class = "markdown_checkbox",
-		state = text[1]:sub(range.col_start + 2, range.col_end - 1),
+		state = text[1]:match("^%[(.)%]"),
 
 		text = text,
 		range = range
@@ -246,7 +246,7 @@ markdown.list_item = function (buffer, _, _, range)
 		return;
 	end
 
-	before = text[1]:match("^(.*%>)") or "";
+	before = text[1]:match("^([%s%>]*%>)") or "";
 	indent = text[1]:gsub(utils.escape_string(before), ""):match("^(%s*)" .. utils.escape_string(marker)) or "";
 
 	if indent:match("^%>%s") then
