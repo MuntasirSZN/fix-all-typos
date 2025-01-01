@@ -223,10 +223,13 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 end
 
 --- List item parser.
----@param text string[]
+---@param buffer integer
 ---@param range node.range
-markdown.list_item = function (_, _, text, range)
+markdown.list_item = function (buffer, _, _, range)
 	---+${lua}
+
+	---@type string[]
+	local text = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end, false);
 
 	local tolerance_limit = spec.get({ "experimental", "list_empty_line_tolerance" }) or 3; ---@diagnostic disable-line
 	local marker, before, indent, checkbox;
@@ -243,7 +246,8 @@ markdown.list_item = function (_, _, text, range)
 		return;
 	end
 
-	before, indent = text[1]:match("^(.-)(%>?%s*)" .. utils.escape_string(marker));
+	before = text[1]:match("^(.*%>)") or "";
+	indent = text[1]:gsub(utils.escape_string(before), ""):match("^(%s*)" .. utils.escape_string(marker)) or "";
 
 	if indent:match("^%>%s") then
 		indent = indent:sub(3);
