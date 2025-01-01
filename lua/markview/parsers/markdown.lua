@@ -123,10 +123,20 @@ markdown.checkbox = function (_, _, text, range)
 end
 
 --- Code block parser
----@param text string[]
 ---@param range __code_blocks.range
-markdown.code_block = function (_, _, text, range)
+markdown.code_block = function (buffer, _, _, range)
 	---+${lua}
+
+	--- Parser is unreliable.
+	--- Use buffer lines.
+	---@type string[]
+	local text = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end, false);
+
+	--- Modify the text so that only the text
+	--- inside the node's range is visible.
+	for l, line in ipairs(text) do
+		text[l] = line:sub(range.col_start + 1);
+	end
 
 	local tmp, before = text[1], nil;
 	local language, info;
