@@ -1452,9 +1452,9 @@ markdown.hr = function (buffer, item)
 		if part.type == "text" then
 			table.insert(virt_text, { part.text, utils.set_hl(part.hl --[[ @as string ]]) });
 		elseif part.type == "repeating" then
-			local rep     = spec.get({ "repeat_amount" }, { source = part, fallback = 1, args = { buffer, item } });
-			local hl_rep  = spec.get({ "repeat_hl" }, { source = part, fallback = false, args = { buffer, item } });
-			local txt_rep = spec.get({ "repeat_text" }, { source = part, fallback = false, args = { buffer, item } });
+			local rep     = spec.get({ "repeat_amount" }, { source = part, fallback = 1, eval_args = { buffer, item } });
+			local hl_rep  = spec.get({ "repeat_hl" }, { source = part, fallback = false, eval_args = { buffer, item } });
+			local txt_rep = spec.get({ "repeat_text" }, { source = part, fallback = false, eval_args = { buffer, item } });
 
 			for r = 1, rep, 1 do
 				if part.direction == "right" then
@@ -1638,7 +1638,7 @@ markdown.list_item = function (buffer, item)
 
 	--- Gets checkbox state
 	---@param state string?
-	---@return __inline.checkbox?
+	---@return __inline.checkboxes?
 	local function get_state (state)
 		local checkboxes = spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil });
 
@@ -1690,7 +1690,7 @@ markdown.list_item = function (buffer, item)
 	elseif item.marker:match("[%+%-%*]") then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + (item.indent + 1),
+			end_col = range.col_start + (item.indent + #item.marker),
 			conceal = "",
 
 			virt_text_pos = "inline",
