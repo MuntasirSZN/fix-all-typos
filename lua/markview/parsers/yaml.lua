@@ -17,36 +17,99 @@ yaml.insert = function (data)
 	table.insert(yaml.sorted[data.class], data);
 end
 
+--- YAML property.
+---@param buffer integer
+---@param TSNode table
+---@param text string[]
+---@param range node.range
 yaml.property = function (buffer, TSNode, text, range)
+	---+${lua}
+
 	local key, value = TSNode:field("key")[1], TSNode:field("value")[1];
 
 	local key_text = key and vim.treesitter.get_node_text(key, buffer) or nil;
 	local value_text = value and vim.treesitter.get_node_text(value, buffer) or nil;
 
+	--- Checks if {str} matches any of the
+	--- date patterns.
+	---@param str string?
+	---@return boolean
+	local function is_date (str)
+		---+${lua}
+		if type(str) ~= "string" then
+			return false;
+		end
+
+		local spec = require("markview.spec");
+		local formats = spec.get({ "experimental", "date_formats" }, { fallback = {} });
+
+		for _, format in ipairs(formats) do
+			if string.match(str, format) then
+				return true;
+			end
+		end
+
+		return false;
+		---_
+	end
+
+	--- Checks if {str} matches any of the
+	--- date & time patterns.
+	---@param str string?
+	---@return boolean
+	local function is_date_time (str)
+		---+${lua}
+		if type(str) ~= "string" then
+			return false;
+		end
+
+		local spec = require("markview.spec");
+		local formats = spec.get({ "experimental", "date_time_formats" }, { fallback = {} });
+
+		for _, format in ipairs(formats) do
+			if string.match(str, format) then
+				return true;
+			end
+		end
+
+		return false;
+		---_
+	end
+
+	--- Checks if this node contains
+	--- a list.
+	local function is_list()
+		---+${lua}
+		if type(value) ~= "table" then
+			return false;
+		elseif value:child(0) == nil then
+			--- `value:` has no node.
+			return false;
+		elseif value:child(0):child(0) == nil then
+			return false;
+		elseif value:child(0):child(0):type() ~= "block_sequence" then
+			return false;
+		end
+
+		return true;
+		---_
+	end
+
 	local value_type = "unknown";
 
-	if key_text == "date" then
+	if is_date_time(value_text) == true then
+		value_type = "date_&_time";
+	elseif is_date(value_text) == true then
 		value_type = "date";
-	elseif key_text == "time" then
-		value_type = "date & time";
-	elseif key_text == "tags" then
-		value_type = "tags";
-	elseif key_text == "aliases" then
-		value_type = "aliases";
-	elseif key_text == "cssclasses" then
-		value_type = "cssclasses";
-	elseif tonumber(value_text) then
+	elseif is_list() == true then
+		value_type = "list";
+	elseif tonumber(value_text) ~= nil then
 		value_type = "number";
 	elseif value_text == "true" or value_text == "false" then
 		value_type = "checkbox";
-	elseif
-		value and value:child(0) and value:child(0):child(0) and
-		value:child(0):child(0):type() == "block_sequence_item"
-	then
-		value_type = "list";
 	elseif type(value_text) == "string" then
 		value_type = "text";
-	elseif not value_text then
+	elseif value_type == nil then
 		value_type = "nil";
 	end
 
@@ -54,6 +117,7 @@ yaml.property = function (buffer, TSNode, text, range)
 		range.row_end = range.row_start + #text - 1;
 	end
 
+	---@type __yaml.properties
 	yaml.insert({
 		class = "yaml_property",
 		type = value_type,
@@ -62,12 +126,21 @@ yaml.property = function (buffer, TSNode, text, range)
 		value = value_text,
 
 		text = text,
-
 		range = range
 	});
+	---_
 end
 
+--- YAML parser.
+---@param buffer integer
+---@param TSTree table
+---@param from integer?
+---@param to integer?
+---@return table[]
+---@return table
 yaml.parse = function (buffer, TSTree, from, to)
+	---+${lua}
+
 	-- Clear the previous contents
 	yaml.sorted = {};
 	yaml.content = {};
@@ -120,6 +193,7 @@ yaml.parse = function (buffer, TSTree, from, to)
 	end
 
 	return yaml.content, yaml.sorted;
+	---_
 end
 
 return yaml;
