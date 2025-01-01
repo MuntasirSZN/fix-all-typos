@@ -875,6 +875,7 @@ M.inline_checkboxes = {
 ---
 ---@field text string
 ---@field hl? string
+---@field scope_hl? string Highlight group for the list item.
 M.checkboxes_opts = {
 	text = "∆",
 	hl = "MarkviewCheckboxChecked"
@@ -2872,6 +2873,33 @@ M.__typst_terms = {
 
 		label = { 0, 2, 0, 6 }
 	}
-}
+};
+
+ ------------------------------------------------------------------------------------------
+
+---@class __yaml.properties
+---
+---@field class "yaml_property"
+---@field type "date" | "date_&_time" | "number" | "text" | "list" | "checkbox" | "nil" | "unknown"
+---@field key string
+---@field value string
+---@field text string[]
+---@field range node.range
+M.__yaml_properties = {
+	class = "yaml_property",
+	type = "checkbox",
+
+	key = "key",
+	value = "value",
+
+	text = { "key: value" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 10
+	}
+};
 
  return M;
