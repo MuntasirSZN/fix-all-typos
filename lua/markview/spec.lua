@@ -1938,67 +1938,101 @@ spec.setup = function (config)
 	spec.config = vim.tbl_deep_extend("force", spec.default, config);
 end
 
----@param keys string[]
----@param opts table
+---@param keys ( string | integer )[]
+---@param opts { fallback: any, eval_ignore: string[]?, source: table?, eval_args: any[]?, args: any[] | { __is_arg_list: boolean, [integer]: any } }
 ---@return any
 spec.get = function (keys, opts)
+	--- In case the values are correctly provided..
+	keys = keys or {};
 	opts = opts or {};
-	local source = opts.source or spec.config;
 
-	local eval = function (val, args)
+	--- Turns a dynamic value into
+	--- a static value.
+	---@param val any | fun(...): any
+	---@param args any[]?
+	---@return any
+	local function to_static(val, args)
+		---+${lua}
+
 		args = args or {};
 
 		---@diagnostic disable
-		if type(val) == "function" and pcall(val, unpack(args)) then
+		if pcall(val, unpack(args)) then
 			return val(unpack(args));
 		end
 		---@diagnostic enable
 
 		return val;
+		---_
 	end
 
-	--- Iterate over the keys
-	for _, key in ipairs(keys) do
-		if type(source) ~= "table" then
-			--- Reached unusual value.
-			--- Should be a table.
-			return opts.fallback;
-		end
-
-		--- Do not evaluate the final result.
-		--- We may need the literal value.
-		if opts.ignore_enable ~= true and ( type(source) == "table" and source.enable == false ) then
-			return opts.fallback;
-		end
-
-		source = source[key];
-		source = eval(source, opts.args)
-	end
-
-	--- If it's not a table return it.
-	if type(source) ~= "table" then
-		return source;
-	elseif opts.return_static == false then
-		return source;
-	end
-
-	--- Convert the function values to literal
-	for key, val in pairs(source) do
-		if type(val) == "function" and pcall(eval, val, opts.eval_args or opts.args) then
-			source[key] = eval(val, opts.eval_args or opts.args)
-		elseif type(val) == "function" then
-			source[key] = nil;
-		end
-	end
-
-	if opts.enable ~= false then
-		if source.enable == false then
-			return opts.fallback;
+	---@param index integer | string
+	---@return any
+	local function get_arg(index)
+		---+${lua}
+		if type(opts.args) ~= "table" then
+			return {};
+		elseif opts.args.__is_arg_list == true then
+			return opts.args[index];
 		else
-			return source;
+			return opts.args;
 		end
+		---_
+	end
+
+	--- Temporarily store the value.
+	---
+	--- Use `deepcopy()` as we may need to
+	--- modify this value.
+	---@type any
+	local val;
+
+	if type(opts.source) == "table" or type(opts.source) == "function" then
+		val = opts.source;
+	elseif spec.config then
+		val = spec.config;
 	else
-		return source;
+		val = {};
+	end
+
+	--- Turn the main value into a static value.
+	--- [ In case a function was provided as the source. ]
+	val = to_static(val, get_arg("init"));
+
+	if type(val) ~= "table" then
+		--- The source isn't a table.
+		return opts.fallback;
+	end
+
+	for k, key in ipairs(keys) do
+		val = to_static(val[key], val.args);
+
+		if k ~= #keys and type(val) ~= "table" then
+			return opts.fallback;
+		end
+	end
+
+	if vim.islist(opts.eval_args) == true and type(val) == "table" then
+		local _e = {};
+		local ignore = opts.eval_ignore or {};
+
+		for k, v in pairs(val) do
+			if vim.list_contains(ignore, k) == false then
+				_e[k] = to_static(v, opts.eval_args);
+			else
+				_e[k] = v;
+			end
+		end
+
+		val = _e;
+	elseif vim.islist(opts.eval_args) == true and type(val) == "function" then
+		val = to_static(val, opts.eval_args)
+	end
+
+	if val == nil and opts.fallback then
+		return opts.fallback;
+	else
+		return val;
 	end
 end
 
