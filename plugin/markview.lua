@@ -132,6 +132,9 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		elseif buffer == markview.state.splitview_source then
 			markview.splitview_render();
 			return;
+		elseif markview.actions.__is_enabled(buffer) == false then
+			--- Markview disabled on this buffer.
+			return;
 		end
 
 		---@type string[] List of modes where preview is shown.
