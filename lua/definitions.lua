@@ -95,6 +95,8 @@ M.config = {
 ---@field list_empty_line_tolerance integer Number of empty lines between text in a list item.
 ---@field read_chunk_size integer Number of bytes to check to see if a file is a text file.
 ---@field text_filetypes string[] Filetypes to open inside `Neovim`.
+---@field date_formats? string[] For detecting dates in YAML metadata.
+---@field date_time_formats? string[] For detecting date & time in YAML metadata.
 M.experimental = {
 	list_empty_line_tolerance = 3,
 	text_filetypes = { "markdown" },
@@ -589,6 +591,10 @@ M.markdown_code_blocks = {
 ---@field heading_6 headings.atx | fun(): headings.atx
 ---
 ---@field shift_width integer Amount of spaces to add before the heading(per level).
+---@field org_indent? boolean Whether to enable org-mode like section indentation.
+---@field org_shift_width? integer Shift width for org indents.
+---@field org_shift_char? string Shift char for org indent.
+---@field org_indent_wrap? boolean Whether to enable wrap support. May have severe performance issues!
 M.markdown_headings = {
 	enable = true,
 	shift_width = 1,
@@ -704,6 +710,8 @@ M.hr_repeating = {
 ---@field marker_plus list_items.unordered
 ---@field marker_star list_items.unordered
 ---@field shift_width integer
+---
+---@field wrap? boolean Enables wrap support.
 M.markdown_list_items = {
 	enable = true,
 	marker_plus = {},
@@ -1057,6 +1065,7 @@ M.inline_uri_autolinks = {
 ---@field callbacks preview.callbacks
 ---@field enable boolean
 ---@field hybrid_modes string[]
+---@field icon_provider "internal" | "devicons" | "mini"
 ---@field ignore_previews preview.ignore
 ---@field modes string[]
 ---@field debounce integer
@@ -1073,6 +1082,7 @@ M.preview = {
 	filetypes = { "md" },
 	draw_range = { 10, 10 },
 	ignore_buftypes = {},
+	icon_provider = "internal",
 	splitview_winopts = {},
 	edit_range = { 1, 1 },
 	hybrid_modes = {},
@@ -1842,6 +1852,8 @@ M.__markdown_setext = {
 ---@field title string? Title of the callout.
 ---@field text string[]
 ---@field range __block_quotes.range
+---
+---@field __nested boolean Is the node nested?
 M.__markdown_block_quotes = {
 	class = "markdown_block_quote",
 	callout = "TIP",
@@ -2044,6 +2056,8 @@ M.__reference_definitions_range = {
 ---@field indent integer Spaces before the list marker.
 ---@field text string[]
 ---@field range node.range
+---
+---@field __block boolean Indicates whether the list item is the children of a block quote.
 M.__markdown_list_items = {
 	class = "markdown_list_item",
 	marker = "-",
@@ -2101,6 +2115,29 @@ M.__markdown_metadata_plus = {
 
 		col_start = 0,
 		col_end = 3
+	}
+};
+
+---@class __markdown.sections
+---
+---@field class "markdown_section"
+---@field level integer
+---@field text string[]
+---@field range node.range
+M.__markdown_sections = {
+	class = "markdown_section",
+
+	text = {
+		"# header",
+		"",
+		"Some text"
+	},
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 9
 	}
 };
 
