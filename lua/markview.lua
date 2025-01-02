@@ -407,6 +407,14 @@ markview.actions = {
 			return;
 		end
 
+		local utils = require("markview.utils");
+		local win = utils.buf_getwin(markview.state.splitview_source);
+
+		if markview.win_is_safe(win) == false then
+			markview.actions.splitClose();
+			return;
+		end
+
 		if markview.buf_is_safe(markview.state.splitview_buffer) == false then
 			pcall(vim.api.nvim_buf_delete, markview.state.splitview_buffer, { force = true });
 			markview.state.splitview_buffer = vim.api.nvim_create_buf(false, true);
@@ -424,6 +432,9 @@ markview.actions = {
 				})
 			);
 		end
+
+		vim.wo[markview.state.splitview_window].wrap = vim.wo[win].wrap;
+		vim.wo[markview.state.splitview_window].linebreak = vim.wo[win].linebreak;
 	end,
 
 	--- Registers a buffer to be preview-able.
