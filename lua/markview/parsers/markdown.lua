@@ -43,6 +43,12 @@ markdown.atx_heading = function (buffer, TSNode, text, range)
 
 	local marker = TSNode:named_child(0);
 
+	if text[1]:match("^%s+") then
+		--- BUG, `markdown` parser includes spaces before #.
+		--- So  we should modify the range do that it starts at #.
+		range.col_start = range.col_start + text[1]:match("^%s+"):len();
+	end
+
 	---@type __markdown.atx
 	markdown.insert({
 		class = "markdown_atx_heading",
@@ -77,10 +83,23 @@ markdown.setext_heading = function (buffer, TSNode, text, range)
 end
 
 --- Block quote parser
----@param text string[]
+---@param buffer integer
+---@param TSNode table
+---@param lines string[]
 ---@param range __block_quotes.range
-markdown.block_quote = function (_, _, text, range)
+markdown.block_quote = function (buffer, TSNode, lines, range)
 	---+${lua}
+
+	local text = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end, false);
+
+	if lines[1]:match("^[^%>]+") then
+		range.col_start = range.col_start + lines[1]:match("^[^%>]+"):len();
+	end
+
+	for l, line in ipairs(text) do
+		--- We want to get text after the start column.
+		text[l] = line:sub(range.col_start + 1);
+	end
 
 	local call_start, call_end, callout = text[1]:find("^%>%s?%[%!(.-)%]");
 	local title_start, title_end, title = text[1]:find("^%>%s?%[%!.-%]%s(.+)$");
@@ -98,6 +117,7 @@ markdown.block_quote = function (_, _, text, range)
 	---@type __markdown.block_quotes
 	markdown.insert({
 		class = "markdown_block_quote",
+		__nested = TSNode:parent() ~= nil,
 
 		callout = callout,
 		title = title,
@@ -203,6 +223,7 @@ markdown.link_ref = function (buffer, TSNode, text, range)
 	local n_label = TSNode:child(0);
 	local n_desc  = TSNode:child(2);
 
+	---@type string, string
 	local label, desc;
 
 	if n_label then
@@ -235,7 +256,7 @@ end
 --- List item parser.
 ---@param buffer integer
 ---@param range node.range
-markdown.list_item = function (buffer, _, _, range)
+markdown.list_item = function (buffer, TSNode, _, range)
 	---+${lua}
 
 	---@type string[]
@@ -273,6 +294,8 @@ markdown.list_item = function (buffer, _, _, range)
 	local candidates = {};
 
 	for l, line in ipairs(text) do
+		---+${lua}
+
 		if list_tolerance >= tolerance_limit then
 			break;
 		end
@@ -322,11 +345,25 @@ markdown.list_item = function (buffer, _, _, range)
 				table.insert(candidates, (l - 1));
 			end
 		end
+		---_
+	end
+
+	local node = TSNode;
+	local block = false;
+
+	while node do
+		if node:type() == "block_quote" then
+			block = true;
+			break;
+		end
+
+		node = node:parent();
 	end
 
 	---@type __markdown.list_items
 	markdown.insert({
 		class = "markdown_list_item",
+		__block = block,
 
 		candidates = candidates,
 		marker = marker:gsub("%s", ""),
@@ -358,13 +395,29 @@ end
 --- Plus metadata parser.
 ---@param text string[]
 ---@param range node.range
-markdown.metadata_plus = function (_, TSNode, text, range)
+markdown.metadata_plus = function (_, _, text, range)
 	---+${lua}
 
 	---@type __markdown.metadata_plus
 	table.insert(markdown.content, {
 		class = "markdown_metadata_plus",
-		node = TSNode,
+
+		text = text,
+		range = range
+	});
+	---_
+end
+
+markdown.section = function (buffer, TSNode, text, range)
+	---+${lua}
+
+	local heading = TSNode:child(0);
+	local heading_text = vim.treesitter.get_node_text(heading, buffer);
+
+	---@type __markdown.sections
+	table.insert(markdown.content, {
+		class = "markdown_section",
+		level = heading_text:match("^%s*(#+)"):len(),
 
 		text = text,
 		range = range
@@ -534,10 +587,15 @@ markdown.parse = function (buffer, TSTree, from, to)
 	markdown.content = {};
 
 	markdown.cache.table_ends = {};
-	inline.cache.checkbox = {};
-	inline.cache.link_ref = {};
+	inline.cache = {
+		checkbox = {},
+		link_ref = {}
+	};
 
 	local scanned_queries = vim.treesitter.query.parse("markdown", [[
+		((section
+			(atx_heading)) @markdown.section)
+
 		((atx_heading) @markdown.atx_heading)
 
 		((block_quote) @markdown.block_quote)
