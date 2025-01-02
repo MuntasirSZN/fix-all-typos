@@ -15,6 +15,8 @@ local spec = require("markview.spec");
 --- Opens an address via `vim.ui.open()`.
 ---@param address string
 links.__open_in_app = function (address)
+	---+${lua}
+
 	local cmd, err = vim.ui.open(address);
 
 	if err then
@@ -30,11 +32,14 @@ links.__open_in_app = function (address)
 		cmd:wait();
 		return;
 	end
+	---_
 end
 
 --- Opens a file inside **Neovim**.
 ---@param address string
 links.__open_in_nvim = function (address)
+	---+${lua}
+
 	local cmd = spec.get({ "experimental", "file_open_command" }, { fallback = "tab" });
 	local _, err = pcall(function ()
 		vim.cmd(cmd .. " " .. address);
@@ -48,12 +53,15 @@ links.__open_in_nvim = function (address)
 
 		return;
 	end
+	---_
 end
 
 --- Internal function that handles
 --- opening links.
 ---@param address string?
 links.__open = function (address)
+	--++${lua}
+
 	if not address then
 		return;
 	end
@@ -111,6 +119,7 @@ links.__open = function (address)
 	end
 
 	links.__open_in_nvim(address);
+	---_
 end
 
 --- Opens an inline link.
@@ -174,6 +183,8 @@ end;
 --- Fallback to the `<cfile>` if no node
 --- was found.
 links.open = function ()
+	---+${lua}
+
 	local utils = require("markview.utils");
 	local buffer = vim.api.nvim_get_current_buf();
 	local node;
@@ -212,6 +223,7 @@ links.open = function ()
 	end
 
 	links.__open_in_app(vim.fn.expand("<cfile>"));
+	---_
 end
 
 return links;

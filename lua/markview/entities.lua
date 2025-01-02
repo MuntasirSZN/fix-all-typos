@@ -9,12 +9,12 @@
 ---
 --- Note: Table keys were later sorted using `vim.inspect()` &
 --- I/O functions.
---- 
 local entities = {};
 
 --- Map for entity number & entity.
 ---@type { [integer]: string }
 entities.codes = {
+	---+${lua}
 	[32] = "",
 	[33] = "!",
 	[34] = '"',
@@ -868,11 +868,13 @@ entities.codes = {
 	[10621] = "⥽",
 	[10622] = "⥾",
 	[10623] = "⥿"
+	---_
 };
 
 --- Map for entity name & entity value.
 ---@type { [string]: string }
 entities.names = {
+	---+${lua}
 	AElig = "Æ",
 	Aacute = "Á",
 	Abreve = "Ă",
@@ -1659,6 +1661,7 @@ entities.names = {
 	zeta = "ζ",
 	ziglarr = "⇜",
 	zigrarr = "⇝"
+	---_
 };
 
 --- Checks for missing entities.
