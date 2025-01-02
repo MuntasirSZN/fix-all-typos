@@ -1,12 +1,14 @@
---- Completion for `markview.nvim`.
-local source = {}
+--- Completion source for `markview.nvim`.
+local source = {};
 
+--- Is this source available?
 ---@return boolean
 function source:is_available()
 	local fts = require("markview.spec").get({ "preview", "filetypes" }, { fallback = {}  });
 	return vim.list_contains(fts, vim.bo.ft);
 end
 
+--- Source name.
 ---@return string
 function source:get_debug_name()
 	return "markview-cmp";
@@ -19,6 +21,9 @@ function source:get_trigger_characters()
 end
 
 --- Completion items.
+---@param self table
+---@param params table
+---@param callback function
 function source:complete(params, callback)
 	local spec = require("markview.spec");
 

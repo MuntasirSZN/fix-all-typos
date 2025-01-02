@@ -406,8 +406,10 @@ end
 highlights.created = {};
 
 --- Creates highlight groups from an array of tables
----@param array { [string]: table }
+---@param array { [string]: config.hl | fun(): config.hl }
 highlights.create = function (array)
+	---+${lua}
+
 	if type(array) == "string" then
 		if not highlights[array] then
 			return;
@@ -440,13 +442,27 @@ highlights.create = function (array)
 			end
 		end
 	end
+	---_
 end
 
+--- Is the background "dark"?
+--- Returns values based on this condition(when provided).
+---@param on_light any
+---@param on_dark any
+---@return any
 local is_dark = function (on_light, on_dark)
 	return vim.o.background == "dark" and (on_dark or true) or (on_light or false);
 end
 
+--- Gets {property} from a list of highlight groups.
+---@param property string
+---@param groups string[]
+---@param light any
+---@param dark any
+---@return any
 highlights.get_property = function (property, groups, light, dark)
+	---+${lua}
+
 	local val;
 
 	for _, item in ipairs(groups) do
@@ -464,16 +480,26 @@ highlights.get_property = function (property, groups, light, dark)
 	end
 
 	return vim.list_contains({ "fg", "bg", "sp" }, property) and highlights.rgb(is_dark(light, dark)) or is_dark(light, dark);
+	---_
 end
 
+--- Gets color properties from a highlight group.
+---@param opt string
+---@param fallback any
+---@param on_light any
+---@param on_dark any
+---@return any
 ---@deprecated
 highlights.color = function (opt, fallback, on_light, on_dark)
 	vim.notify("[ markview.nvim ]: highlights.color is deprecated. Use 'highlights.get_property' instead", vim.log.levels.WARN);
 	highlights.get_property(opt, fallback, on_light, on_dark);
 end
 
---- Generates a heading
+--- Generates a heading highlight group.
+---@return config.hl
+---@deprecated
 highlights.generate_heading = function (opts)
+	---+${lua}
 	local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 		"bg",
 		opts.bg_fallbacks or { "Normal" },
@@ -499,8 +525,12 @@ highlights.generate_heading = function (opts)
 		bg = highlights.rgb_to_hex(res_bg),
 		fg = highlights.rgb_to_hex(h_fg)
 	};
+	---_
 end
 
+--- Generates a highlight group.
+---@param opts { source_opt: string?, output_opt: string?, hl_opts: config.hl?, source: string[], fallback_light: string, fallback_dark: string }
+---@return config.hl
 highlights.hl_generator = function (opts)
 	local hi = highlights.get_property(
 		opts.source_opt or "fg",
@@ -514,7 +544,10 @@ highlights.hl_generator = function (opts)
 	}, opts.hl_opts or {})
 end
 
+---@type { [string]: function }
 highlights.dynamic = {
+	---+${lua}
+
 	["0P"] = function ()
 		---+${hl}
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
@@ -554,8 +587,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -617,8 +649,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -680,8 +711,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -743,8 +773,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -806,8 +835,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -869,8 +897,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -932,8 +959,7 @@ highlights.dynamic = {
 				value = {
 					default = true,
 
-					fg = highlights.rgb_to_hex(h_fg),
-					bg = highlights.rgb_to_hex(vim_bg)
+					fg = highlights.rgb_to_hex(h_fg)
 				}
 			},
 			{
@@ -1511,10 +1537,13 @@ highlights.dynamic = {
 		}
 	end,
 	---_
+	---_
 };
 
 highlights.groups = highlights.dynamic;
 
+--- Setup function.
+---@param opt { [string]: config.hl }?
 highlights.setup = function (opt)
 	if type(opt) == "table" then
 		highlights.groups = vim.tbl_extend("force", highlights.groups, opt);
