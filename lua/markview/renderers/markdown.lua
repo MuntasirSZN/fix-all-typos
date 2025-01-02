@@ -8,7 +8,7 @@ local filetypes = require("markview.filetypes");
 local entities = require("markview.entities");
 
 --- Forces the {index} to be between 1 & the length of {value}.
----@param value table
+---@param value any | any[]
 ---@param index integer
 ---@return any
 local function tbl_clamp(value, index)
@@ -1048,15 +1048,10 @@ markdown.block_quote = function (buffer, item)
 		end
 	end
 
-	--- TODO: Feat
-	local win = utils.buf_getwin(buffer);
-
-	if main_config.wrap == true and vim.wo[win].wrap == true then
-		table.insert(markdown.cache, item);
-	end
-
 	for l = range.row_start, range.row_end - 1, 1  do
-		local line = item.text[(l - range.row_start) + 1];
+		local l_index = l - (range.row_start) + 1;
+
+		local line = item.text[l_index];
 		local line_len = #line;
 
 		if line:match("^%>") then
@@ -1069,7 +1064,10 @@ markdown.block_quote = function (buffer, item)
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) }
+					{
+						tbl_clamp(config.border, l_index),
+						utils.set_hl(tbl_clamp(config.border_hl, l_index) or config.hl)
+					}
 				},
 
 				hl_mode = "combine",
@@ -1081,7 +1079,10 @@ markdown.block_quote = function (buffer, item)
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) },
+					{
+						tbl_clamp(config.border, l_index),
+						utils.set_hl(tbl_clamp(config.border_hl, l_index) or config.hl)
+					},
 					{ " " }
 				},
 
@@ -1089,12 +1090,20 @@ markdown.block_quote = function (buffer, item)
 			});
 		end
 	end
+
+	--- TODO: Feat
+	local win = utils.buf_getwin(buffer);
+
+	if main_config.wrap == true and vim.wo[win].wrap == true then
+		--- When `wrap` is enabled, run post-processing effects.
+		table.insert(markdown.cache, item);
+	end
 	---_
 end
 
 --- Renders [ ], [x] & [X].
 ---@param buffer integer
----@param item __markdown.checkboxes
+---@param item __inline.checkboxes
 markdown.checkbox = function (buffer, item)
 	--- Wrapper for the inline checkbox renderer function.
 	--- Used for [ ] & [X] checkboxes.
@@ -1638,7 +1647,7 @@ markdown.list_item = function (buffer, item)
 
 	--- Gets checkbox state
 	---@param state string?
-	---@return __inline.checkboxes?
+	---@return checkboxes.opts?
 	local function get_state (state)
 		local checkboxes = spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil });
 
@@ -1665,7 +1674,7 @@ markdown.list_item = function (buffer, item)
 		});
 
 		if not checkbox.scope_hl then
-			return;
+			goto exit;
 		end
 
 		for l, line in ipairs(item.text) do
@@ -1701,10 +1710,21 @@ markdown.list_item = function (buffer, item)
 			hl_mode = "combine"
 		});
 	end
+
+	::exit::
+
+	local win = utils.buf_getwin(buffer);
+
+	--- BUG, Post-processing effects become inaccurate when
+	--- list items are inside block quotes.
+	if main_config.wrap == true and vim.wo[win].wrap == true then
+		--- When `wrap` is enabled, run post-processing effects.
+		table.insert(markdown.cache, item);
+	end
 	---_
 end
 
---- Renders - metadatas.
+--- Renders metadatas.
 ---@param buffer integer
 ---@param item __markdown.metadata_minus
 markdown.metadata_minus = function (buffer, item)
@@ -1827,6 +1847,50 @@ markdown.metadata_plus = function (buffer, item)
 
 		line_hl_group = utils.set_hl(config.hl)
 	});
+	---_
+end
+
+--- Render org mode like section indentations.
+---@param buffer integer
+---@param item __markdown.sections
+markdown.section = function (buffer, item)
+	---+${lua}
+
+	---@type markdown.headings?
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil, eval_args = { buffer, item } });
+
+	if main_config == nil then
+		return;
+	elseif main_config.org_indent ~= true then
+		--- Org indent mode disabled.
+		return;
+	end
+
+	local shift_width = main_config.org_shift_width or main_config.shift_width or 0;
+	local shift_char = main_config.org_shift_char or " ";
+
+	local range = item.range;
+
+	for l = range.row_start + 1, range.row_end do
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, 0, {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ string.rep(shift_char, shift_width * (item.level - 1)) }
+			},
+
+			right_gravity = false,
+			hl_mode = "combine"
+		});
+	end
+
+	local win = utils.buf_getwin(buffer);
+
+	if main_config.org_indent_wrap == true and vim.wo[win].wrap == true then
+		--- When `wrap` is enabled, run post-processing effects.
+		table.insert(markdown.cache, item);
+	end
 	---_
 end
 
@@ -2618,6 +2682,35 @@ end
  -----------------------------------------------------------------------------------------
 
 
+--- Places where the list items were wrapped.
+---@type { [integer]: integer[] }
+markdown.__list_wraps = {};
+
+local get_extmark = function (buffer, lnum, col)
+	local extmarks = vim.api.nvim_buf_get_extmarks(buffer, markdown.ns, { lnum, col }, { lnum, col + 1 }, {
+		details = true,
+		type = "virt_text"
+	});
+
+	return extmarks[1];
+end
+
+local register_wrap = function (lnum, col)
+	if vim.islist(markdown.__list_wraps[lnum]) == false then
+		markdown.__list_wraps[lnum] = {};
+	end
+
+	table.insert(markdown.__list_wraps[lnum], col);
+end
+
+local has_wrap = function (lnum, col)
+	if vim.islist(markdown.__list_wraps[lnum]) == false then
+		return false;
+	else
+		return vim.list_contains(markdown.__list_wraps[lnum], col);
+	end
+end
+
 --- Renders wrapped block quotes, callouts & alerts.
 ---@param buffer integer
 ---@param item __markdown.block_quotes
@@ -2641,10 +2734,10 @@ markdown.__block_quote = function (buffer, item)
 		return;
 	end
 
-	---@type block_quotes.opts
 	local config;
 
 	if item.callout then
+		---@type block_quotes.opts
 		config = spec.get(
 			{ string.lower(item.callout) },
 			{ source = main_config, eval_args = { buffer, item } }
@@ -2656,45 +2749,352 @@ markdown.__block_quote = function (buffer, item)
 			{ source = main_config, eval_args = { buffer, item } }
 		);
 	else
+		---@type block_quotes.opts
 		config = spec.get({ "default" }, { source = main_config, eval_args = { buffer, item } });
 	end
 
 	local win = utils.buf_getwin(buffer);
 
-	local t = vim.fn.getwininfo(win)[1].textoff;
-	local p = vim.api.nvim_win_get_position(win);
+	local width = vim.api.nvim_win_get_width(win);
+	local textoff = vim.fn.getwininfo(win)[1].textoff;
+	local winx = vim.api.nvim_win_get_position(win)[2];
 
 	for l = range.row_start, range.row_end - 1, 1  do
-		local line = item.text[(l + 1) - range.row_start];
+		local l_index = (l - range.row_start) + 1;
+
+		local line = item.text[l_index];
 		local start = false;
 
+		if vim.fn.strdisplaywidth(line) <= width - textoff then
+			-- Lines that are too short should be skipped.
+			goto skip_line;
+		end
+
 		for c = 1, vim.fn.strdisplaywidth(line) do
-			if (vim.fn.screenpos(win, l + 1, c).col - p[2]) == t + range.col_start + 1 then
+			--- `l` should be 1-indexed.
+			---@type integer
+			local x = vim.fn.screenpos(win, l + 1, c).col - (winx + textoff);
+
+			if x == 1 then
 				if start == false then
 					start = true;
 					goto continue;
 				end
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
-					undo_restore = false, invalidate = true,
-					right_gravity = false,
+				local extmark = get_extmark(buffer, l, c - 1);
+				register_wrap(l, c - 1);
 
-					virt_text_pos = "inline",
-					virt_text = {
-						{ tbl_clamp(config.border --[[ @as string[] ]], (l - range.row_start) + 1), utils.set_hl(tbl_clamp(config.border_hl --[[ @as string[] ]] or config.hl, (l - range.row_start) + 1)) },
-						{ " " }
-					},
+				if extmark ~= nil then
+					local id = extmark[1];
+					local virt_text = extmark[4].virt_text;
 
-					hl_mode = "combine",
-				});
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
+						id = id,
+
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = vim.list_extend(virt_text, {
+							{ string.rep(" ", item.__nested and 0 or range.col_start) },
+							{
+								tbl_clamp(config.border, l_index),
+								utils.set_hl(tbl_clamp(config.border_hl, l_index) or config.hl)
+							},
+							{ " " }
+						}),
+
+						hl_mode = "combine",
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(" ", item.__nested and 0 or range.col_start) },
+							{
+								tbl_clamp(config.border, l_index),
+								utils.set_hl(tbl_clamp(config.border_hl, l_index) or config.hl)
+							},
+							{ " " }
+						},
+
+						hl_mode = "combine",
+					});
+				end
 			end
 
 		    ::continue::
 		end
+
+		::skip_line::
 	end
 	---_
 end
 
+--- Renders wrapped block quotes, callouts & alerts.
+---@param buffer integer
+---@param item __markdown.list_items
+markdown.__list_item = function (buffer, item)
+	---+${lua}
+
+	---@type markdown.list_items?
+	local main_config = spec.get({ "markdown", "list_items" }, { fallback = nil });
+	local range = item.range;
+
+	if not main_config then
+		return;
+	end
+
+	---@type list_items.ordered | list_items.unordered
+	local config;
+	local shift_width, indent_size = main_config.shift_width or 1, main_config.indent_size or 1;
+
+	if item.marker == "-" then
+		config = spec.get({ "marker_minus" }, {
+			source = main_config,
+			eval_args = { buffer, item }
+		});
+	elseif item.marker == "+" then
+		config = spec.get({ "marker_plus" }, {
+			source = main_config,
+			eval_args = { buffer, item }
+		});
+	elseif item.marker == "*" then
+		config = spec.get({ "marker_star" }, {
+			source = main_config,
+			eval_args = { buffer, item }
+		});
+	elseif item.marker:match("%d+%.") then
+		config = spec.get({ "marker_dot" }, {
+			source = main_config,
+			eval_args = { buffer, item }
+		});
+	elseif item.marker:match("%d+%)") then
+		config = spec.get({ "marker_parenthesis" }, {
+			source = main_config,
+			eval_args = { buffer, item }
+		});
+	end
+
+	if config == nil then
+		return;
+	end
+
+	--- Evaluation arguments for checkboxes.
+	--- Used for turning function values into static values.
+	local chk_args = {
+		buffer,
+		{
+			class = "inline_checkbox",
+
+			text = item.checkbox,
+			range = {}
+		}
+	};
+
+	--- Gets checkbox state
+	---@param state string?
+	---@return checkboxes.opts?
+	local function get_state (state)
+		local checkboxes = spec.get({ "markdown_inline", "checkboxes" }, { fallback = nil });
+
+		if state == nil or checkboxes == nil then
+			return;
+		end
+
+		if state == "x" or state == "X" then
+			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+		elseif state == " " then
+			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+		end
+
+		return utils.match(checkboxes, state, { eval_args = chk_args });
+	end
+
+	local checkbox = get_state(item.checkbox);
+	local pad_width = (math.floor(item.indent / indent_size) + 1) * shift_width;
+
+	if config.conceal_on_checkbox == true and checkbox and checkbox.text then
+		pad_width = pad_width + vim.fn.strdisplaywidth(checkbox.text);
+	else
+		pad_width = pad_width + vim.fn.strdisplaywidth(item.marker) + 1;
+	end
+
+	local win = utils.buf_getwin(buffer);
+
+	local width = vim.api.nvim_win_get_width(win);
+	local textoff = vim.fn.getwininfo(win)[1].textoff;
+	local winx = vim.api.nvim_win_get_position(win)[2];
+
+	for _, l in ipairs(item.candidates) do
+		local line = item.text[l + 1];
+		local start = false;
+
+		if vim.fn.strdisplaywidth(line) <= width - textoff then
+			-- Lines that are too short should be skipped.
+			goto skip_line;
+		end
+
+		for c = 1, vim.fn.strdisplaywidth(line) do
+			--- `l` should be 1-indexed.
+			---@type integer
+			local x = vim.fn.screenpos(win, range.row_start + l + 1, c).col - (winx + textoff);
+
+			if x == 1 then
+				if start == false then
+					start = true;
+					goto continue;
+				end
+
+				local extmark = get_extmark(buffer, range.row_start + l, c - 1);
+				local has_space = has_wrap(range.row_start + l, c - 1);
+				-- register_wrap(range.row_start + l, c - 1);
+
+				if extmark ~= nil then
+					local id = extmark[1];
+					local virt_text = extmark[4].virt_text;
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, c - 1, {
+						id = id,
+
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = vim.list_extend(virt_text, {
+							{ string.rep(" ", has_space and pad_width - 1 or pad_width) }
+						}),
+
+						hl_mode = "combine",
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, c - 1, {
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(" ", has_space and pad_width - 1 or pad_width) }
+						},
+
+						hl_mode = "combine",
+					});
+				end
+			end
+
+		    ::continue::
+		end
+
+		::skip_line::
+	end
+	---_
+end
+
+--- Renders wrapped block quotes, callouts & alerts.
+---@param buffer integer
+---@param item __markdown.sections
+markdown.__section = function (buffer, item)
+	---+${lua}
+
+	---@type markdown.headings?
+	local main_config = spec.get({ "markdown", "headings" }, { fallback = nil, eval_args = { buffer, item } });
+
+	if main_config == nil then
+		return;
+	elseif main_config.org_indent ~= true then
+		--- Org indent mode disabled.
+		return;
+	end
+
+	local shift_width = main_config.org_shift_width or main_config.shift_width or 0;
+	local shift_char = main_config.org_shift_char or " ";
+
+	local win = utils.buf_getwin(buffer);
+
+	local width = vim.api.nvim_win_get_width(win);
+	local textoff = vim.fn.getwininfo(win)[1].textoff;
+	local winx = vim.api.nvim_win_get_position(win)[2];
+
+	local range = item.range;
+
+	for l = range.row_start, range.row_end, 1  do
+		local l_index = (l - range.row_start) + 1;
+
+		local line = item.text[l_index];
+		local start = false;
+
+		if vim.fn.strdisplaywidth(line) <= width - textoff then
+			-- Lines that are too short should be skipped.
+			goto skip_line;
+		end
+
+		for c = 1, vim.fn.strdisplaywidth(line) do
+			--- `l` should be 1-indexed.
+			---@type integer
+			local x = vim.fn.screenpos(win, l + 1, c).col - (winx + textoff);
+
+			if x == 1 then
+				if start == false then
+					start = true;
+					goto continue;
+				end
+
+				local extmark = get_extmark(buffer, l, c - 1);
+				register_wrap(l, c - 1);
+
+				if extmark ~= nil then
+					local id = extmark[1];
+					local virt_text = extmark[4].virt_text;
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
+						id = id,
+
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = vim.list_extend(virt_text, {
+							{ string.rep(shift_char, shift_width * (item.level - 1)) }
+						}),
+
+						hl_mode = "combine",
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
+						undo_restore = false, invalidate = true,
+						right_gravity = false,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(shift_char, shift_width * (item.level - 1)) }
+						},
+
+						hl_mode = "combine",
+					});
+				end
+				-- vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, c - 1, {
+				-- 	undo_restore = false, invalidate = true,
+				-- 	right_gravity = false,
+				--
+				-- 	virt_text_pos = "inline",
+				-- 	virt_text = {
+				-- 		{ string.rep(shift_char, shift_width * (item.level - 1)) }
+				-- 	},
+				--
+				-- 	hl_mode = "combine",
+				-- });
+			end
+
+		    ::continue::
+		end
+
+		::skip_line::
+	end
+	---_
+end
 
  -----------------------------------------------------------------------------------------
 
@@ -2717,6 +3117,8 @@ end
 ---@param buffer integer
 ---@param content table
 markdown.post_render = function (buffer, content)
+	markdown.__list_wraps = {};
+
 	for _, item in ipairs(content or {}) do
 		pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
 	end
