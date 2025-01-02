@@ -14,10 +14,139 @@
 
 ## 📖 Table of contents
 
-- [🧭 Configuration]()
-- [🎇 Commands]()
-- [📞 Autocmds]()
-- [🎨 Highlight groups]()
+- [📚 Requirements](#-requirements)
+- [📐 Installation](#-installation)
+- [🧭 Configuration](#-configuration)
+- [🎇 Commands](#-commands)
+- [📞 Autocmds](#-autocmds)
+- [🎨 Highlight groups](#-highlight-groups)
+
+## 📚 Requirements
+
+System,
+
+- **Neovim:** 0.10.3
+
+---
+
+Colorscheme,
+
+- Any *tree-sitter* based colorscheme is recommended.
+
+External icon providers,
+
+>[!NOTE]
+> You need to change the config to use the desired icon provider.
+> 
+> ```lua
+> {
+>     preview = {
+>         icon_provider = "internal", -- "mini" or "devicons"
+>     }
+> }
+> ```
+
+- [mini.icons]()
+- [ nvim-web-devicons]()
+
+Parsers,
+
+>[!TIP]
+> You can use `nvim-treesitter` to easily install parsers. You can install all the parsers with the following command,
+> 
+> ```vim
+> :TSInstall markdown markdown_inline html latex typst yaml
+> ```
+
+- `markdown`
+- `markdown_inline`
+- `html`(optional)
+- `latex`(optional)
+- `typst`(optional)
+- `yaml`(optional)
+
+Fonts,
+
+- Any *modern* Unicode font is required for math symbols.
+- *Nerd fonts* are recommended.
+
+>[!TIP]
+> It is recommended to run `:checkhealth markview` after installing the plugin to check if any potential issues exist.
+
+## 📐 Installation
+
+### 🧩 Vim-plug
+
+Add this to your plugin list.
+
+```vim
+Plug "OXY2DEV/markview.nvim"
+```
+
+### 💤 Lazy.nvim
+
+>[!WARNING]
+> Do *not* lazy load this plugin as it is already lazy-loaded.
+
+The plugin should be loaded *after* your colorscheme to ensure the correct highlight groups are used.
+
+```lua
+-- For `plugins/markview.lua` users.
+return {
+    "OXY2DEV/markview.nvim",
+    lazy = false
+};
+```
+
+```lua
+-- For `plugins.lua` users.
+{
+    "OXY2DEV/markview.nvim",
+    lazy = false
+},
+```
+
+### 🦠 Mini.deps
+
+```lua
+local MiniDeps = require("mini.deps");
+
+MiniDeps.add({
+    source = "OXY2DEV/markview.nvim"
+});
+```
+
+### 🌒 Rocks.nvim
+
+>[!WARNING]
+> `luarocks package` may sometimes be a bit behind `main`.
+
+```vim
+:Rocks install markview.nvim
+```
+
+### 📥 GitHub release
+
+Tagged releases can be found in the [release page]().
+
+>[!NOTE]
+> `Github releases` may sometimes be slightly behind `main`.
+
+### 🚨 Development version
+
+You can use the [dev]() branch to use test features.
+
+>[!WARNING]
+> Development releases can contain *breaking changes* and **experimental changes**.
+> Use at your own risk!
+
+```lua
+return {
+    "OXY2DEV/markview.nvim",
+    branch = "dev",
+    lazy = false
+};
+```
 
 ## 🧭 Configuration
 
