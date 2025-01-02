@@ -1,4 +1,4 @@
-<h1 align="center">-☄️ Markview.nvim</h1>
+<h1 align="center">☄️ Markview.nvim</h1>
 
 <p align="center">
     A <b>Markdown</b>, <b>HTML</b>, <b>LaTeX</b>, <b>Typst</b> & <b>YAML</b> previewer for Neovim.
@@ -398,8 +398,11 @@ These groups are then used as links by other groups responsible for various prev
 
 
 > \* = Only the foreground color is used. Strikeout is added.
+> 
 > \*\* = The color is converted to HSL and it's luminosity(L) is increased/decreased by the specified amount.
+> 
 > \*\*\* = The background color of `MarkviewCode` is added to the groups.
+> 
 > \*\*\*\* = Linearly interpolated value between 2 highlight groups `fg`.
 
 ---
