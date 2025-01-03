@@ -2917,7 +2917,7 @@ markdown.__list_item = function (buffer, item)
 	local checkbox = get_state(item.checkbox);
 	local pad_width = (math.floor(item.indent / indent_size) + 1) * shift_width;
 
-	if config.conceal_on_checkbox == true and checkbox and checkbox.text then
+	if config.conceal_on_checkboxes == true and checkbox and checkbox.text then
 		pad_width = pad_width + vim.fn.strdisplaywidth(checkbox.text);
 	else
 		pad_width = pad_width + vim.fn.strdisplaywidth(item.marker) + 1;
