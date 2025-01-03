@@ -192,7 +192,7 @@ markview.draw = function (buffer, ignore_modes)
 		return;
 	elseif markview.state.hybrid_mode == false then
 		return;
-	elseif markview.state.hybrid_states[buffer] == false then
+	elseif markview.state.buffer_states[buffer].hybrid_mode == false then
 		return;
 	end
 
@@ -289,7 +289,7 @@ markview.render = function (buffer, state)
 
 				content = renderer.filter(content, nil, {
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(line_count, cursor[1] + edit_range[2])
+					math.min(cursor[1] + edit_range[2], line_count)
 				});
 			end
 
@@ -305,7 +305,7 @@ markview.render = function (buffer, state)
 
 				renderer.clear(buffer, nil, {
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(line_count, cursor[1] + edit_range[2])
+					math.min(cursor[1] + edit_range[2], line_count)
 				});
 			end
 		else
@@ -323,7 +323,7 @@ markview.render = function (buffer, state)
 			if hybrid_mode() == true and linewise_hybrid_mode == false then
 				content = renderer.filter(content, nil, {
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(line_count, cursor[1] + edit_range[2])
+					math.min(cursor[1] + edit_range[2], line_count)
 				});
 				renderer.render(buffer, content);
 			elseif hybrid_mode() == true then
@@ -331,7 +331,7 @@ markview.render = function (buffer, state)
 
 				renderer.clear(buffer, nil, {
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(line_count, cursor[1] + edit_range[2])
+					math.min(cursor[1] + edit_range[2], line_count)
 				});
 			else
 				renderer.render(buffer, content);
@@ -480,7 +480,7 @@ markview.actions = {
 
 		if enable == true then
 			markview.actions.__exec_callback("on_enable", buffer, vim.fn.win_findbuf(buffer))
-			markview.draw(buffer, false);
+			markview.render(buffer, false);
 		else
 			markview.actions.__exec_callback("on_disable", buffer, vim.fn.win_findbuf(buffer))
 			markview.clear(buffer);

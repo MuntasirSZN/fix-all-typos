@@ -145,7 +145,7 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		elseif markview.state.buffer_states[buffer] and markview.state.buffer_states[buffer].enable == false then
 			markview.clear(buffer);
 		elseif vim.list_contains(modes, mode) then
-			markview.draw(buffer);
+			markview.render(buffer);
 		else
 			markview.clear(buffer);
 		end
