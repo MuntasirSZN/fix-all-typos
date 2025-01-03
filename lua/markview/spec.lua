@@ -225,15 +225,15 @@ spec.default = {
 		edit_range = { 0, 0 },
 
 		filetypes = { "markdown", "typst" },
-		hybrid_modes = {},
+		hybrid_modes = { "n" },
 		ignore_buftypes = { "nofile" },
 		ignore_previews = {
-			markdown = {},
-			typst = {},
-			html = {},
-			yaml = {},
-			latex = {},
-			markdown_inline = { "hyperlinks" }
+			-- markdown = {},
+			-- typst = {},
+			-- html = {},
+			-- yaml = {},
+			-- latex = {},
+			-- markdown_inline = { "hyperlinks" }
 			-- markdown = { "list_items" }
 		},
 		linewise_hybrid_mode = false,
