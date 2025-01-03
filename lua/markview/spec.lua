@@ -225,7 +225,7 @@ spec.default = {
 		edit_range = { 0, 0 },
 
 		filetypes = { "markdown", "typst" },
-		hybrid_modes = { "n" },
+		hybrid_modes = {},
 		ignore_buftypes = { "nofile" },
 		ignore_previews = {
 			-- markdown = {},
@@ -522,7 +522,7 @@ spec.default = {
 			---+ ${class, Headings}
 			enable = true,
 			shift_width = 1,
-			org_indent = true,
+			org_indent = false,
 			org_indent_wrap = true,
 
 			heading_1 = {
