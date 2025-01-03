@@ -94,7 +94,7 @@ M.config = {
 ---@field link_open_alerts boolean When `true`, alert when opening links.
 ---@field list_empty_line_tolerance integer Number of empty lines between text in a list item.
 ---@field read_chunk_size integer Number of bytes to check to see if a file is a text file.
----@field text_filetypes string[] Filetypes to open inside `Neovim`.
+---@field text_filetypes? string[] Filetypes to open inside `Neovim`.
 ---@field date_formats? string[] For detecting dates in YAML metadata.
 ---@field date_time_formats? string[] For detecting date & time in YAML metadata.
 M.experimental = {
@@ -284,9 +284,9 @@ M.html_container_elements = {
 ---
 ---@field closing_tag_offset? fun(range: integer[]): integer[] Modifies the closing </tag>'s range.
 ---@field node_offset? fun(range: integer[]): table Modifies the element's range.
----@field on_closing_tag? fun(tag: table): config.extmark Extmark configuration to use on the closing </tag>.
----@field on_node? fun(tag: table): config.extmark Extmark configuration to use on the element.
----@field on_opening_tag? fun(tag: table): config.extmark Extmark configuration to use on the opening <tag>.
+---@field on_closing_tag? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the closing </tag>.
+---@field on_node? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the element.
+---@field on_opening_tag? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the opening <tag>.
 ---@field opening_tag_offset? fun(range: integer[]): integer[] Modifies the opening <tag>'s range.
 M.html_container_elements_opts = {
 	opening_tag_offset = function (range)
@@ -335,7 +335,7 @@ M.html_void_elements = {
 ---@class void_elements.opts
 ---
 ---@field node_offset fun(range: integer[]): table Modifies the element's range.
----@field on_node fun(tag: table): config.extmark Extmark configuration to use on the element.
+---@field on_node config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the element.
 M.html_void_elements_opts = {
 	node_offset = function (range)
 		return range;
@@ -408,7 +408,7 @@ M.latex_commands = {
 ---@class commands.opts
 ---
 ---@field command_offset? fun(range: integer[]): table Modifies the command's range.
----@field on_command? fun(tag: table): config.extmark Extmark configuration to use on the command.
+---@field on_command? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the command.
 ---@field on_args? commands.arg_opts[]? Configuration table for each argument.
 M.latex_commands_opts = {
 	on_command = function ()
@@ -424,9 +424,9 @@ M.latex_commands_opts = {
 ---@field before_offset? fun(range: integer[]): integer[] Modifies the range of the argument(only for `on_before`).
 ---@field condition? fun(item: table): boolean Can be used to change when the command preview is shown.
 ---@field content_offset? fun(range: integer[]): table Modifies the argument's range(only for `on_content`).
----@field on_after? fun(tag: table): config.extmark Extmark configuration to use at the end of the argument.
----@field on_before? fun(tag: table): config.extmark Extmark configuration to use at the start of the argument.
----@field on_content? fun(tag: table): config.extmark Extmark configuration to use on the argument.
+---@field on_after? config.extmark | fun(tag: table): config.extmark Extmark configuration to use at the end of the argument.
+---@field on_before? config.extmark | fun(tag: table): config.extmark Extmark configuration to use at the start of the argument.
+---@field on_content? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the argument.
 M.latex_commands_arg_opts = {
 	on_after = function ()
 		return { virt_text = { ")", "Comment" } };
@@ -531,6 +531,7 @@ M.markdown = {
 ---@class markdown.block_quotes
 ---
 ---@field enable boolean Enables preview of block quotes.
+---@field wrap? boolean Enables basic wrap support.
 ---@field default block_quotes.opts Default block quote configuration.
 ---@field [string] block_quotes.opts Configuration for >[!{string}] callout.
 M.markdown_block_quotes = {
@@ -609,7 +610,7 @@ M.markdown_headings = {
 
 ---@class headings.atx
 ---
----@field align "left" | "center" | "right" Label alignment.
+---@field align? "left" | "center" | "right" Label alignment.
 ---@field corner_left? string Left corner.
 ---@field corner_left_hl? string Highlight group for left corner.
 ---@field corner_right? string Right corner.
@@ -724,8 +725,8 @@ M.markdown_list_items = {
 ---@class list_items.unordered
 ---
 ---@field add_padding boolean
----@field conceal_on_checkbox boolean
----@field enable boolean
+---@field conceal_on_checkboxes? boolean
+---@field enable? boolean
 ---@field hl? string
 ---@field text string
 M.list_items_unordered = {
@@ -733,18 +734,18 @@ M.list_items_unordered = {
 	hl = "MarkviewListItemPlus",
 	text = "•",
 	add_padding = true,
-	conceal_on_checkbox = true
+	conceal_on_checkboxes = true
 };
 
 ---@class list_items.ordered
 ---
 ---@field add_padding boolean
----@field conceal_on_checkbox boolean
----@field enable boolean
+---@field conceal_on_checkboxes? boolean
+---@field enable? boolean
 M.list_items_ordered = {
 	enable = true,
 	add_padding = true,
-	conceal_on_checkbox = true
+	conceal_on_checkboxes = true
 };
 
 --- Configuration for YAML metadata.
@@ -1099,7 +1100,7 @@ M.preview = {
 ---@field on_splitview_open? fun(source: integer, buf: integer, win: integer, mode: string): nil
 ---@field on_splitview_close? fun(source: integer, buf: integer, win: integer, mode: string): nil
 M.preview_callbacks = {
-	on_attach = function (buf, wins)
+	on_attach = function (_, wins)
 		vim.print(wins);
 	end
 };
@@ -1123,7 +1124,8 @@ M.preview_ignore = {
 ---@class config.typst
 ---
 ---@field enable boolean
----@field codes typst.codes
+---@field code_blocks typst.code_blocks
+---@field code_spans typst.code_spans
 ---@field escapes typst.escapes
 ---@field headings typst.headings
 ---@field raw_blocks typst.raw_blocks
@@ -1135,7 +1137,7 @@ M.preview_ignore = {
 ---@field url_links typst.url_links
 ---@field reference_links typst.reference_links
 ---@field subscripts typst.subscripts
----@field superscript typst.subscripts
+---@field superscripts typst.subscripts
 ---@field symbols typst.symbols
 ---@field terms typst.terms
 M.typst = {
@@ -1158,7 +1160,7 @@ M.typst = {
 	reference_links = {}
 };
 
----@class typst.code_block
+---@class typst.code_blocks
 ---
 ---@field enable boolean
 ---@field hl? string
@@ -1183,7 +1185,7 @@ M.typst_codes_block = {
 	hl = "MarkviewCode"
 };
 
----@class typst.code_inline
+---@class typst.code_spans
 ---
 ---@field enable boolean
 ---@field corner_left? string Left corner.
@@ -1288,14 +1290,28 @@ M.typst_link_ref = {
 ---@field enable boolean
 ---@field marker_dot list_items.ordered
 ---@field indent_size integer
----@field marker_minus list_items.unordered
----@field marker_plus list_items.unordered
+---@field marker_minus list_items.typst
+---@field marker_plus list_items.typst
 ---@field shift_width integer
 M.typst_list_items = {
 	enable = true,
 	marker_plus = {},
 	marker_minus = {},
 	marker_dot = {},
+};
+
+---@class list_items.typst
+---
+---@field add_padding boolean
+---@field enable? boolean
+---@field hl? string
+---@field text string
+M.list_items_unordered = {
+	enable = true,
+	hl = "MarkviewListItemPlus",
+	text = "•",
+	add_padding = true,
+	conceal_on_checkboxes = true
 };
 
 ---@alias typst.math_spans config.inline_generic
@@ -1434,7 +1450,7 @@ M.yaml_properties = {
 ---@field border_top? string
 ---@field border_top_hl? string
 ---@field hl? string
----@field text string
+---@field text? string
 ---@field use_types? boolean
 M.properties_opts = {
 	use_types = true,

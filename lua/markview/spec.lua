@@ -116,8 +116,10 @@ spec.default = {
 		---+${conf}
 		read_chunk_size = 1000,
 		file_open_command = "tabnew",
-		text_filetypes = nil,
-		list_empty_line_tolerance = 3
+		list_empty_line_tolerance = 3,
+		link_open_alerts = false,
+
+		--- date_formats = { "%d%d%d%-%d%d%-%d%d" }
 		---_
 	};
 
@@ -129,8 +131,8 @@ spec.default = {
 		callbacks = {
 			---+${func}
 			on_attach = function (_, wins)
-				local preview_modes = spec.get({ "preview", "modes" }) or {};
-				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }) or {};
+				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
@@ -156,8 +158,8 @@ spec.default = {
 			end,
 
 			on_enable = function (_, wins)
-				local preview_modes = spec.get({ "preview", "modes" }) or {};
-				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }) or {};
+				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
@@ -183,8 +185,8 @@ spec.default = {
 			end,
 
 			on_mode_change = function (_, wins, mode)
-				local preview_modes = spec.get({ "preview", "modes" }) or {};
-				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }) or {};
+				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
@@ -217,15 +219,22 @@ spec.default = {
 			end
 			---_
 		},
+		icon_provider = "internal",
 
 		debounce = 50,
-		edit_range = { 1, 0 },
+		edit_range = { 0, 0 },
 
 		filetypes = { "markdown", "typst" },
 		hybrid_modes = {},
 		ignore_buftypes = { "nofile" },
-		ignore_node_classes = {
-			-- markdown = { "code_blocks" }
+		ignore_previews = {
+			markdown = {},
+			typst = {},
+			html = {},
+			yaml = {},
+			latex = {},
+			markdown_inline = { "hyperlinks" }
+			-- markdown = { "list_items" }
 		},
 		linewise_hybrid_mode = false,
 		max_buf_lines = 1000,
@@ -513,6 +522,8 @@ spec.default = {
 			---+ ${class, Headings}
 			enable = true,
 			shift_width = 1,
+			org_indent = true,
+			org_indent_wrap = true,
 
 			heading_1 = {
 				---+ ${conf, Heading 1}
@@ -585,6 +596,7 @@ spec.default = {
 			enable = true,
 
 			parts = {
+				---@diagnostic disable
 				{
 					---+ ${conf, Left portion}
 					type = "repeating",
@@ -645,6 +657,7 @@ spec.default = {
 					}
 					---_
 				}
+				---@diagnostic enable
 			}
 			---_
 		},
@@ -652,6 +665,7 @@ spec.default = {
 		list_items = {
 			---+${conf, List items}
 			enable = true,
+			wrap = true,
 
 			indent_size = 2,
 			shift_width = 4,
@@ -760,7 +774,7 @@ spec.default = {
 		},
 	},
 	markdown_inline = {
-		use_seperate_ns = true,
+		enable = true,
 
 		block_references = {
 			enable = true,
@@ -768,7 +782,8 @@ spec.default = {
 			default = {
 				icon = "󰿨 ",
 				hl = "Comment"
-			}
+			},
+			patterns = {}
 		},
 
 		checkboxes = {
@@ -813,7 +828,8 @@ spec.default = {
 			default = {
 				icon = " ",
 				hl = "Hyperlink"
-			}
+			},
+			patterns = {}
 		},
 
 		highlights = {
@@ -821,7 +837,8 @@ spec.default = {
 
 			default = {
 				hl = "Palette1"
-			}
+			},
+			patterns = {}
 		},
 
 		inline_codes = {
@@ -838,7 +855,8 @@ spec.default = {
 			default = {
 				icon = " ",
 				hl = "Email"
-			}
+			},
+			patterns = {}
 		},
 
 		uri_autolinks = {
@@ -847,7 +865,8 @@ spec.default = {
 			default = {
 				icon = " ",
 				hl = "MarkviewEmail"
-			}
+			},
+			patterns = {}
 		},
 
 		images = {
@@ -861,7 +880,7 @@ spec.default = {
 
 			patterns = {
 				{ match_string = "%.svg$", icon = "󰜡 " },
-			}
+			},
 		},
 
 		embed_files = {
@@ -870,7 +889,8 @@ spec.default = {
 			default = {
 				icon = "󰠮 ",
 				hl = "Palette2Fg"
-			}
+			},
+			patterns = {}
 		},
 
 		internal_links = {
@@ -881,9 +901,7 @@ spec.default = {
 				icon = "󰌷 ",
 				hl = "Hyperlink",
 			},
-
-			patterns = {
-			}
+			patterns = {}
 		},
 
 		hyperlinks = {
@@ -1115,6 +1133,8 @@ spec.default = {
 		},
 	},
 	typst = {
+		enable = true,
+
 		headings = {
 			---+ ${class, Headings}
 			enable = true,
@@ -1167,7 +1187,7 @@ spec.default = {
 			---_
 		},
 
-		code_block = {
+		code_blocks = {
 			enable = true,
 
 			style = "block",
@@ -1181,7 +1201,9 @@ spec.default = {
 			hl = "Code",
 			text_hl = "Icon5"
 		},
-		code_inline = {
+		code_spans = {
+			enable = true,
+
 			padding_left = " ",
 			padding_right = " ",
 			hl = "Code"
@@ -1306,6 +1328,8 @@ spec.default = {
 		}
 	},
 	yaml = {
+		enable = true,
+
 		properties = {
 			enable = true,
 
@@ -1320,15 +1344,17 @@ spec.default = {
 					text = "  ", hl = "MarkviewIcon6"
 				},
 				["checkbox"] = {
+					---@diagnostic disable
 					text = function (_, item)
 						return item.value == "true" and " 󰄲 " or " 󰄱 "
 					end,
+					---@diagnostic enable
 					hl = "MarkviewIcon6"
 				},
 				["date"] = {
 					text = " 󰃭 ", hl = "MarkviewIcon2"
 				},
-				["date & time"] = {
+				["date_&_time"] = {
 					text = " 󰥔 ", hl = "MarkviewIcon3"
 				}
 			},
