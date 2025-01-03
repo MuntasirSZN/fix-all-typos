@@ -19,7 +19,7 @@ typst.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
 	---@type typst.code_block?
-	local config = spec.get({ "typst", "code_block" }, { fallback = nil, eval_args = { buffer, item } });
+	local config = spec.get({ "typst", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
@@ -148,8 +148,8 @@ end
 typst.code_inline = function (buffer, item)
 	---+${lua}
 
-	---@type typst.code_inline?
-	local config = spec.get({ "typst", "code_inline" }, { fallback = nil, eval_args = { buffer, item } });
+	---@type typst.code_spans?
+	local config = spec.get({ "typst", "code_spans" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then
