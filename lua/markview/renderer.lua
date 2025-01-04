@@ -15,186 +15,209 @@ renderer.__filter_cache = {
 };
 
 --- Maps a `class` to an option name.
-renderer.opt_map = {
+---@class mkv.option_maps
+---
+---@field html { [string]: string[] }
+---@field latex { [string]: string[] }
+---@field markdown { [string]: string[] }
+---@field markdown_inline { [string]: string[] }
+---@field typst { [string]: string[] }
+---@field yaml { [string]: string[] }
+renderer.option_maps = {
 	---+${lua}
 
 	html = {
-		html_container_element = "container_elements",
-		html_heading = "headings",
-		html_void_element = "void_elements"
+		container_elements = { "html_container_element" },
+		headings = { "html_heading" },
+		void_elements = { "html_void_element" },
 	},
 	latex = {
-		latex_block = function (item)
-			return item.inline == true and "inlines" or "blocks";
-		end,
-		latex_command = "commands",
-		latex_escaped = "escapes",
-		latex_font = "fonts",
-		latex_inline = "inlines",
-		latex_parenthesis = "parenthesis",
-		latex_subscripts = "subscripts",
-		latex_superscript = "superscripts",
-		latex_symbol = "symbols",
-		latex_text = "texts"
+		blocks = { "latex_block" },
+		commands = { "latex_command" },
+		escapes = { "latex_escaped" },
+		fonts = { "latex_font" },
+		inlines = { "latex_inline" },
+		parenthesis = { "latex_parenthesis" },
+		subscripts = { "latex_subscript" },
+		superscripts = { "latex_superscript" },
+		symbols = { "latex_symbol" },
+		text = { "latex_text" },
 	},
 	markdown = {
-		markdown_atx_heading = "headings",
-		markdown_block_quote = "block_quotes",
-		markdown_code_block = "code_blocks",
-		markdown_hr = "horizontal_rules",
-		markdown_link_ref_definition = "reference_definitions",
-		markdown_list_item = "list_items",
-		markdown_metadata_minus = "metadata_minus",
-		markdown_metadata_plus = "metadata_plus",
-		markdown_setext_heading = "headings",
-		markdown_table = "tables"
+		headings = { "markdown_atx_heading", "markdown_setext_heading" },
+		block_quotes = { "markdown_block_quote" },
+		code_blocks = { "markdown_code_block" },
+		horizontal_rules = { "markdown_hr" },
+		reference_definitions = { "markdown_link_ref_definition" },
+		list_items = { "markdown_list_item" },
+		metadata_minus = { "markdown_metadata_minus" },
+		metadata_plus = { "markdown_metadata_plus" },
+		tables = { "markdown_table" },
+		checkboxes = { "markdown_checkbox" },
 	},
 	markdown_inline = {
-		inline_checkbox = "checkboxes",
-		inline_code_span = "inline_codes",
-		inline_entity = "entities",
-		inline_escaped = "escapes",
-		inline_footnote = "footnotes",
-		inline_highlight = "highlights",
-		inline_link_block_ref = "block_references",
-		inline_link_embed_file = "embed_files",
-		inline_link_email = "emails",
-		inline_link_hyperlink = "hyperlinks",
-		inline_link_image = "images",
-		inline_link_shortcut = "hyperlinks",
-		inline_link_uri_autolink = "uri_autolinks",
-		inline_link_internal = "internal_links"
+		checkboxes = { "inline_checkbox" },
+		inline_codes = { "inline_code_span" },
+		entities = { "inline_entity" },
+		escapes = { "inline_escaped" },
+		footnotes = { "inline_footnote" },
+		highlights = { "inline_highlight" },
+		block_references = { "inline_link_block_ref" },
+		embed_files = { "inline_embed_files" },
+		emails = { "inline_link_email" },
+		hyperlinks = { "inline_link_hyperlink", "inline_link_shortcut" },
+		images = { "inline_link_hyperlink" },
+		uri_autolinks = { "inline_link_uri_autolink" },
+		internal_links = { "inline_link_internal" },
 	},
 	typst = {
-		typst_code_block = "code_blocks",
-		typst_code_inline = "code_inlines",
-		typst_escaped = "escapes",
-		typst_heading = "headings",
-		typst_label = "labels",
-		typst_list_item = "list_items",
-		typst_link_ref = "reference_links",
-		typst_link_url = "url_links",
-		typst_math = function (item)
-			return item.inline == true and "math_inlines" or "math_blocks";
-		end,
-		typst_raw_block = "raw_blocks",
-		typst_raw_span = "raw_spans",
-		typst_subscript = "subscripts",
-		typst_superscript = "superscripts",
-		typst_symbol = "symbols",
-		typst_term = "terms"
+		code_blocks = { "typst_code_block" },
+		code_spans = { "typst_code_span" },
+		escapes = { "typst_escaped" },
+		headings = { "typst_heading" },
+		labels = { "typst_label" },
+		list_items = { "typst_list_item" },
+		reference_links = { "typst_link_ref" },
+		url_links = { "typst_link_url" },
+		math_blocks = { "typst_math_blocks" },
+		math_spans = { "typst_math_spans" },
+		raw_blocks = { "typst_raw_block" },
+		raw_spans = { "typst_raw_span" },
+		subscripts = { "typst_subscript" },
+		superscripts = { "typst_superscript" },
+		symbols = { "typst_symbol" },
+		terms = { "typst_terms" },
 	},
 	yaml = {
-		yaml_property = "properties",
+		properties = { "yaml_property" },
 	}
 	---_
 };
 
 --- Creates node class filters for hybrid mode.
----@param filter table?
----@return table
+---@param filter preview.ignore?
+---@return { [string]: string[] }
 local create_filter = function (filter)
 	---+${lua}
-
-	--- Reverse mapping function.
-	---@param tbl { [string | integer]: any }
-	---@param value any
-	---@return ( string | integer )[]
-	local function rmap (tbl, value)
-		---+${lua}
-
-		local _k = {};
-
-		for key, val in pairs(tbl) do
-			if val == value then
-				table.insert(_k, key);
-			end
-		end
-
-		return _k;
-		---_
-	end
-
-	--- Returns items from {source} that aren't
-	--- in {collected}.
-	---@param source any[]
-	---@param collected any[]
-	---@return any[]
-	local get_excluded = function (source, collected)
-		---+${lua}
-
-		local _t = {};
-
-		for _, item in ipairs(source or {}) do
-			if vim.list_contains(collected, item) == false then
-				table.insert(_t, item);
-			end
-		end
-
-		return _t;
-		---_
-	end
-
 	local spec = require("markview.spec");
+
+	--- Ignore queries.
+	---@type preview.ignore
 	local filters = filter or spec.get({ "preview", "ignore_previews" }, { fallback = {} });
 
-	if renderer.__filter_cache.result ~= nil and vim.deep_equal(renderer.__filter_cache.config, filters) == true then
+	--- To save time, do not recalculate these if the
+	--- configuration hasn't changed.
+	if vim.deep_equal(renderer.__filter_cache.config, filters) == true then
+		--- Configuration has most likely not changed.
+		--- Return the cached value.
 		return renderer.__filter_cache.result;
-	else
-		renderer.__filter_cache.config = filters;
 	end
 
 	--- Resulting filter.
-	local _o = {};
+	local _f = {};
 
-	for lang, maps in pairs(renderer.opt_map) do
-		if vim.islist(filters[lang]) == false then
-			-- Filter doesn't exist. Add every
-			-- node class.
-			_o[lang] = vim.tbl_keys(maps);
-			goto continue;
-		end
+	--- Checks if a value is valid by matching all
+	--- the provided queries against it.
+	---@param value string
+	---@param queries string[]
+	---@return boolean
+	local is_valid = function (value, queries)
+		---+${lua}
 
-		--- Temporarily store the option maps.
-		--- Used for `!*` operator.
-		local tmp = vim.deepcopy(maps);
+		for q, query in ipairs(queries or {}) do
+			--- Queries that were already passed.
+			local passed = vim.list_slice(queries, 0, q - 1);
 
-		--- We need a table to insert entries.
-		_o[lang] = {};
-
-		--- Iterate over the filter items and
-		--- create a list of class names.
-		for _, item in ipairs(filters[lang]) do
-			---+${lua}
-			if item:match("^%!") then
-				-- Only add nodes that aren't mapped to this item!
-				local exclude = get_excluded( vim.tbl_keys(tmp), rmap(tmp, item:sub(2)) );
-
-				for _, match in ipairs(exclude) do
-					if vim.list_contains(_o[lang], match) == false then
-						table.insert(_o[lang], match);
-						tmp[match] = nil;
-					end
+			if string.match(query, "^%!") then
+				if value == string.sub(query, 2) then
+					--- Part of negation query.
+					return false;
+				elseif vim.list_contains(passed, value) then
+					--- Already part of the query.
+					return true;
 				end
+			elseif value == query then
+				--- Valid value.
+				return true;
 			else
-				local matches = rmap(tmp, item);
-
-				for _, match in ipairs(matches) do
-					if vim.list_contains(_o[lang], match) == false then
-						--- Only add ones we haven't added before.
-						table.insert(_o[lang], match);
-						tmp[match] = nil;
-					end
-				end
+				--- Invalid value.
+				return false;
 			end
-			---_
 		end
 
-	    ::continue::
+		--- All conditions matched!
+		return true;
+		---_
 	end
 
-	renderer.__filter_cache.result = _o;
-	return _o;
+	--- Creates a list of valid options for {language}.
+	---@param language string
+	---@param options string[]
+	---@return string[]
+	local function language_filter (language, options)
+		---+${lua}
+
+		---@type string[] Filters for this language.
+		local queries = filters[language];
+
+		if vim.islist(queries) == false then
+			--- Filter is invalid.
+			return options;
+		elseif #queries == 0 then
+			--- Filter is empty.
+			return {};
+		end
+
+		---@type string[] Valid options.
+		local _m = {};
+
+		for _, item in ipairs(options) do
+			if is_valid(item, queries) == true then
+				table.insert(_m, item);
+			end
+		end
+
+		return _m;
+		---_
+	end
+
+	--- Registers a new entry to {language}.
+	---@param language string
+	---@param classes string[]
+	local function register (language, classes)
+		---+${lua}
+		if vim.islist(_f[language]) == false then
+			_f[language] = {};
+		end
+
+		for _, class in ipairs(classes or {}) do
+			if type(class) == "string" and vim.list_contains(_f[language], class) == false then
+				table.insert(_f[language], class);
+			end
+		end
+		---_
+	end
+
+	for language, maps in pairs(renderer.option_maps) do
+		--- Copy the values as we don't want to
+		--- accidentally modify the mapping table.
+		local valid_options = language_filter(language, vim.tbl_keys(maps));
+
+		if vim.islist(_f[language]) == false then
+			_f[language] = {};
+		end
+
+		for _, option in ipairs(valid_options) do
+			local nodes = maps[option];
+			register(language, nodes);
+		end
+	end
+
+	--- Cache values.
+	renderer.__filter_cache.config = filters;
+	renderer.__filter_cache.result = _f;
+
+	return _f;
 	---_
 end
 
@@ -245,6 +268,12 @@ renderer.range_modifiers = {
 		return _r;
 	end,
 	markdown_metadata_plus = function (range)
+		local _r = vim.deepcopy(range)
+		_r.row_end = _r.row_end - 1;
+
+		return _r;
+	end,
+	markdown_table = function (range)
 		local _r = vim.deepcopy(range)
 		_r.row_end = _r.row_end - 1;
 
@@ -389,19 +418,12 @@ renderer.render = function (buffer, parsed_content)
 	end
 end
 
-renderer.clear = function (buffer, ignore, from, to)
-	ignore = vim.tbl_extend("force", {
-		markdown = {},
-		markdown_inline = {},
-		html = {},
-		latex = {},
-		typst = {},
-		yaml = {}
-	}, ignore or {});
+renderer.clear = function (buffer, from, to)
+	local langs = { "html", "latex", "markdown", "markdown_inline", "typst", "yaml" };
 
-	for lang, content in pairs(ignore) do
+	for _, lang in ipairs(langs) do
 		if renderer[lang] then
-			renderer[lang].clear(buffer, content, from, to);
+			renderer[lang].clear(buffer, from, to);
 		end
 	end
 end
