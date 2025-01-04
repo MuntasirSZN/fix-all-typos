@@ -2,178 +2,259 @@
 ---
 --- This is a `tree-sitter` based wrapper
 --- for `vim.ui.input()`.
----
---- Features:
----     • Flexible enough to work on any
----       of the supported nodes.
----     • Opens text files/selected filetypes
----       inside **Neovim**.
----     • Multiple file open methods.
 local links = {};
 local spec = require("markview.spec");
 
---- Opens an address via `vim.ui.open()`.
----@param address string
-links.__open_in_app = function (address)
-	---+${lua}
+--- Tree-sitter node processor.
+---@type { [string]: fun(buffer: integer, node: table): string? }
+local processors = {};
 
-	local cmd, err = vim.ui.open(address);
+---+${lua}
 
-	if err then
-		spec.notify({
-			{ "Failed to open " },
-			{ " " .. link.address .. " ", "DiagnosticVirtualTextInfo" }
-		})
+---@param buffer integer
+---@param node table
+---@return string?
+processors.email_autolink = function (buffer, node)
+	local address = vim.treesitter.get_node_text(node, buffer);
+	address = address:gsub("^%<", ""):gsub("%>$", "");
 
-		return;
-	end
-
-	if cmd then
-		cmd:wait();
-		return;
-	end
-	---_
+	return string.format("mailto:%s", address);
 end
 
---- Opens a file inside **Neovim**.
----@param address string
-links.__open_in_nvim = function (address)
-	---+${lua}
+---@param buffer integer
+---@param node table
+---@return string?
+processors.inline_link = function (buffer, node)
+	local address = node:child(4);
 
-	local cmd = spec.get({ "experimental", "file_open_command" }, { fallback = "tab" });
-	local _, err = pcall(function ()
-		vim.cmd(cmd .. " " .. address);
-	end);
-
-	if err then
-		spec.notify({
-			{ "Failed to open " },
-			{ " " .. address .. " ", "DiagnosticVirtualTextInfo" }
-		})
-
+	if address == nil then
 		return;
 	end
-	---_
+
+	return vim.treesitter.get_node_text(address, buffer);
 end
 
---- Internal function that handles
---- opening links.
----@param address string?
-links.__open = function (address)
-	--++${lua}
+---@param buffer integer
+---@param node table
+---@return string?
+processors.link_reference_definition = function (buffer, node)
+	local address = node:named_child(1);
 
-	if not address then
+	if address == nil then
 		return;
 	end
 
-	if spec.get({ "experimental", "link_open_alerts" }, { fallback = false }) then
-		spec.notify({
-			{ "Opening " },
-			{ " " .. address .. " ", "DiagnosticVirtualTextInfo" }
-		}, {
-			level = vim.log.levels.INFO
-		})
+	return vim.treesitter.get_node_text(address, buffer);
+end
+
+---@param buffer integer
+---@param node table
+---@return string?
+processors.shortcut_link = function (buffer, node)
+	local range = { node:range() };
+	local text = vim.treesitter.get_node_text(node, buffer);
+
+	local before = vim.api.nvim_buf_get_lines(buffer, range[1], range[1] + 1, false)[1];
+	before = before:sub(0, range[2]);
+
+	local after = vim.api.nvim_buf_get_lines(buffer, range[3], range[3] + 1, false)[1];
+	after = after:sub(range[4]);
+
+	if ( range[1] == range[3] ) and before:match("%[$") and after:match("^%]") then
+		-- Obsidian internal links or embed files.
+		return text:gsub("^%[", ""):gsub("%]$", "");
+	else
+		return text:gsub("\n", ""):gsub("^%[", ""):gsub("%]$", "");
 	end
+end
 
-	local extension = vim.fn.fnamemodify(address, ":e");
+---@param buffer integer
+---@param node table
+---@return string?
+processors.image = function (buffer, node)
+	local address = node:named_child(1);
 
-	if spec.get({ "experimental", "text_filetypes" }, { fallback = nil }) then
-		---+${default, Configuration for filetypes to open in nvim exists}
-		local in_nvim = spec.get({ "experimental", "text_filetypes" }, { fallback = nil });
-
-		if
-			not address:match("^http") and
-			not address:match("^www%.") and
-
-			vim.list_contains(in_nvim, extension)
-		then
-			links.__open_in_nvim(address);
-		else
-			links.__open_in_app(address);
-		end
-		---_
+	if address == nil then
 		return;
 	end
 
-	local file = io.open(address, "rb");
+	return vim.treesitter.get_node_text(address, buffer);
+end
 
-	if not file then
-		links.__open_in_app(address);
-		return;
+---@param buffer integer
+---@param node table
+---@return string?
+processors.uri_autolink = function (buffer, node)
+	local address = vim.treesitter.get_node_text(node, buffer);
+	address = address:gsub("^%<", ""):gsub("%>$", "");
+
+	return address;
+end
+
+---@param buffer integer
+---@param node table
+---@return string?
+processors.url = function (buffer, node)
+	return vim.treesitter.get_node_text(node, buffer);
+end
+
+---_
+
+--- [ Stuff ] ------------------------------------------------------------------------------
+
+--- Checks if {address} is a text file or not.
+---@param address string
+---@return boolean
+links.__text_file = function (address)
+	---+${lua}
+
+    local file = io.open(address, "rb");
+
+	if file == nil then
+		--- File doesn't exist.
+		return false;
 	end
 
+	---@type integer
 	local read_bytes = spec.get({ "experimental", "read_chunk_size" }, { fallback = 1024 });
+	---@type string
 	local bytes = file:read(read_bytes);
+
 	file:close();
 
-	for b = 1, #bytes do
-		local byte = bytes:byte(b);
+	if bytes == nil then
+		--- Unreadable or Empty file.
+		return false;
+	elseif bytes:find("\x00") then
+		--- Null byte?
+		return false;
+	end
 
-		if
-			byte < 32 and
-			not vim.list_contains({ 9, 10, 13 }, byte)
-		then
-			links.__open_in_app(address);
-			return;
+	local bom = bytes:sub(1, 3);
+
+	if bom == "\xEF\xBB\xBF" then
+		return true;
+	elseif bom == "\xFF\xFE" or bom == "\xFE\xFF" then
+		return true;
+	end
+
+	local valid, invalid = 0, 0;
+
+	for b = 1, #bytes do
+		local byte = string.byte(bytes, b);
+
+		if byte >= 32 and byte <= 126 then
+			valid = valid + 1;
+		elseif vim.list_contains({ 9, 10, 13 }, byte) then
+			valid = valid + 1;
+		else
+			invalid = invalid + 1;
 		end
 	end
 
-	links.__open_in_nvim(address);
+	local validity_threshold = 0.9;
+
+	if (valid / #bytes) >= validity_threshold then
+		return true;
+	else
+		return false;
+	end
 	---_
 end
 
---- Opens an inline link.
---- Example: `[text](https://www.neovim.org)`
----@param node table
+--- Internal functions to open links.
 ---@param buffer integer
-links.inline_link = function (node, buffer)
-	local to = node:child(4);
-	if not to then return; end
-
-	links.__open(vim.treesitter.get_node_text(to, buffer))
-end;
-
---- Opens an image link.
---- Example: `![text](https://www.neovim.org)`
----@param node table
----@param buffer integer
-links.image = function (node, buffer)
-	local to = node:child(5);
-	if not to then return; end
-
-	links.__open(vim.treesitter.get_node_text(to, buffer))
-end;
-
---- Opens an shortcut link.
---- Example: `[https://www.neovim.org]`
----@param node table
----@param buffer integer
-links.shortcut_link = function (node, buffer)
-	local to = node:child(1);
-	if not to then return; end
-
-	local address = vim.treesitter.get_node_text(to, buffer);
-	if address:match("|") then
-		address = address:match("^([^%|]+)%|");
-	elseif address:match("%#%^") then
-		address = address:match("^(.+)%#%^");
+---@param address string?
+links.__open = function (buffer, address)
+	---+${lua}
+	if type(address) ~= "string" then
+		vim.api.nvim_buf_call(buffer, function ()
+			address = vim.fn.expand("<cfile>");
+		end);
 	end
 
-	links.__open(address)
+	---@cast address string
+
+	--- Checks if a {path} can be opened.
+	---@param path string
+	---@return boolean
+	local function can_open (path)
+		---+${lua}
+
+		local stat = vim.uv.fs_stat(path)
+
+		if stat == nil then
+			return false;
+		elseif stat.type ~= "file" then
+			return false;
+		end
+
+		return true;
+		---_
+	end
+
+	--- Wrapper for `vim.ui.open`.
+	---@param path string
+	local ui_open = function (path)
+		---+${lua}
+
+		local cmd, err = vim.ui.open(path);
+
+		if cmd then
+			cmd:wait();
+		elseif err then
+			spec.notify({
+				{ err, "DiagnosticError" }
+			}, {})
+		end
+		---_
+	end
+
+	if can_open(address) == false then
+		--- {address} isn't a file or it doesn't
+		--- exist.
+		ui_open(address);
+	elseif links.__text_file(address) == true then
+		local command = spec.get({ "experimental", "file_open_command" }, { fallback = "tabnew" });
+
+		--- Text file. Open inside Neovim.
+		vim.cmd(string.format("%s %s", command, address));
+	else
+		--- This is a file, but not a text file.
+		ui_open(address);
+	end
+	---_
 end
 
---- Opens an uri_autolink.
---- Example: `<https://www.neovim.org>`
----@param node table
+--- `Tree-sitter` based link opener.
 ---@param buffer integer
-links.uri_autolink = function (node, buffer)
-	local to = node;
-	if not to then return; end
+links.treesitter = function (buffer)
+	---+${lua}
 
-	links.__open(
-		vim.treesitter.get_node_text(to, buffer):gsub("^%<", ""):gsub("%>$", "")
-	);
-end;
+	local utils = require("markview.utils");
+	local node;
+
+	if vim.api.nvim_get_current_buf() == buffer then
+		node = vim.treesitter.get_node({ ignore_injections = false });
+	else
+		local primary_win = utils.buf_getwin(buffer);
+		local cursor = vimm.api.nvim_win_get_cursor(primary_win);
+
+		node = vim.treesitter.get_node({ bufnr = buffer, pos = cursor, ignore_injections = true });
+	end
+
+	while node do
+		if pcall(processors[node:type()], buffer, node) then
+			local link = processors[node:type()](buffer, node);
+
+			links.__open(buffer, link);
+			return;
+		end
+
+		node = node:parent();
+	end
+	---_
+end
 
 --- Opens the link under the cursor.
 ---
@@ -187,42 +268,32 @@ links.open = function ()
 
 	local utils = require("markview.utils");
 	local buffer = vim.api.nvim_get_current_buf();
-	local node;
 
-	if
-		vim.treesitter.language.get_lang(vim.bo[buffer].ft) == nil or
-		utils.parser_installed(vim.treesitter.language.get_lang(vim.bo[buffer].ft)) == false
-	then
-		goto language_not_found;
-	end
+	local ts_available = function ()
+		local ft = vim.bo[buffer].ft;
+		local language = vim.treesitter.language.get_lang(ft);
 
-	node = vim.treesitter.get_node({
-		ignore_injections = false
-	});
-
-	while node do
-		if links[node:type()] then
-			links[node:type()](node, buffer);
-			return;
+		if language == nil then
+			return false;
+		elseif utils.parser_installed(language) == false then
+			return false;
 		end
 
-		node = node:parent();
+		return true;
 	end
 
-	::language_not_found::
-
-	if not vim.fn.expand("<cfile>") then return; end
-
-	if spec.get({ "experimental", "link_open_alerts" }, { fallback = false }) then
+	if ts_available() == true then
+		--- Use tree-sitter based link detector.
+		links.treesitter(buffer);
+	else
 		spec.notify({
-			{ "Opening " },
-			{ " " .. vim.fn.expand("<cfile>") .. " ", "DiagnosticVirtualTextInfo" }
-		}, {
-			level = vim.log.levels.INFO
-		})
-	end
+			{ "Link opener needs " },
+			{ " tree-sitter parsers ", "DiagnosticVirtualTextHint" },
+			{ "!" }
+		}, { silent = true });
 
-	links.__open_in_app(vim.fn.expand("<cfile>"));
+		links.__open(buffer);
+	end
 	---_
 end
 
