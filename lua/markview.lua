@@ -128,113 +128,15 @@ markview.can_draw = function (buffer)
 	---_
 end
 
---- Draws preview on a buffer
----@param buffer integer
----@param ignore_modes? boolean
-markview.draw = function (buffer, ignore_modes)
-	---+${func}
-	if markview.buf_is_safe(buffer) == false then
-		markview.clean();
-		return;
-	end
-
-	local line_limit = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
-	local draw_range = spec.get({ "preview", "draw_range" }, { fallback = { vim.o.lines, vim.o.lines }, ignore_enable = true });
-	local edit_range = spec.get({ "preview", "edit_range" }, { fallback = { 1, 0 }, ignore_enable = true });
-
-	local line_count = vim.api.nvim_buf_line_count(buffer);
-
-	local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-	local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {}, ignore_enable = true });
-	local linewise_hybrid_mode = spec.get({ "preview", "linewise_hybrid_mode" }, { fallback = false, ignore_enable = true })
-
-	local mode = vim.api.nvim_get_mode().mode;
-
-	if
-		ignore_modes ~= true and
-		not vim.list_contains(preview_modes, mode)
-	then
-		return;
-	end
-
-	local parser = require("markview.parser");
-	local renderer = require("markview.renderer");
-
-	markview.clear(buffer);
-
-	if line_count <= line_limit then
-		local content = parser.parse(buffer, 0, -1, true);
-		renderer.render(buffer, content);
-	else
-		for _, window in ipairs(vim.fn.win_findbuf(buffer)) do
-			local cursor = vim.api.nvim_win_get_cursor(window);
-
-			local content = parser.init(
-				buffer,
-				math.max(0, cursor[1] - draw_range[1]),
-				math.min(
-					vim.api.nvim_buf_line_count(buffer),
-					cursor[1] + draw_range[2]
-				)
-			);
-
-			local clear_from, clear_to = renderer.range(content);
-
-			if clear_from and clear_to then
-				renderer.clear(buffer, nil, clear_from, clear_to);
-			end
-
-			renderer.render(buffer, content);
-		end
-	end
-
-	if not vim.list_contains(hybrid_modes, mode) then
-		return;
-	elseif markview.state.hybrid_mode == false then
-		return;
-	elseif markview.state.buffer_states[buffer].hybrid_mode == false then
-		return;
-	end
-
-	for _, window in ipairs(vim.fn.win_findbuf(buffer)) do
-		local cursor = vim.api.nvim_win_get_cursor(window);
-		local clear_from, clear_to;
-
-		if linewise_hybrid_mode == false then
-			local hidden_content = parser.init(
-				buffer,
-				math.max(0, cursor[1] - edit_range[1]),
-				math.min(
-					vim.api.nvim_buf_line_count(buffer),
-					cursor[1] + edit_range[2]
-				),
-				false
-			);
-
-			clear_from, clear_to = renderer.range(hidden_content);
-		else
-			clear_from = cursor[1] - edit_range[1];
-			clear_to = cursor[1] + edit_range[2];
-		end
-
-		if clear_from and clear_to then
-			renderer.clear(
-				buffer,
-				spec.get({ "preview", "ignore_node_classes" }, { fallback = {}, ignore_enable = true }),
-				clear_from,
-				clear_to == clear_from and clear_to + 1 or clear_to
-			);
-		end
-	end
-	---_
-end
-
 --- Wrapper to clear decorations from a buffer
 ---@param buffer integer
 markview.clear = function (buffer)
-	require("markview.renderer").clear(buffer, {}, 0, -1);
+	require("markview.renderer").clear(buffer, 0, -1);
 end
 
+--- Renders preview.
+---@param buffer integer?
+---@param state { enable: boolean, hybrid_mode: boolean?, events: boolean }?
 markview.render = function (buffer, state)
 	---+${lua}
 
@@ -303,10 +205,10 @@ markview.render = function (buffer, state)
 				--- 1-index → 0-index
 				cursor[1] = cursor[1] - 1;
 
-				renderer.clear(buffer, nil, {
+				renderer.clear(buffer,
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(cursor[1] + edit_range[2], line_count)
-				});
+					math.min(cursor[1] + 1 + edit_range[2], line_count)
+				);
 			end
 		else
 			renderer.render(buffer, content);
@@ -329,10 +231,10 @@ markview.render = function (buffer, state)
 			elseif hybrid_mode() == true then
 				renderer.render(buffer, content);
 
-				renderer.clear(buffer, nil, {
+				renderer.clear(buffer,
 					math.max(0, cursor[1] - edit_range[1]),
-					math.min(cursor[1] + edit_range[2], line_count)
-				});
+					math.min(cursor[1] + 1 + edit_range[2], line_count)
+				);
 			else
 				renderer.render(buffer, content);
 			end
@@ -480,7 +382,7 @@ markview.actions = {
 
 		if enable == true then
 			markview.actions.__exec_callback("on_enable", buffer, vim.fn.win_findbuf(buffer))
-			markview.render(buffer, false);
+			markview.render(buffer);
 		else
 			markview.actions.__exec_callback("on_disable", buffer, vim.fn.win_findbuf(buffer))
 			markview.clear(buffer);
