@@ -24,120 +24,44 @@ latex.block = function (buffer, item)
 	---+${func}
 	local range = item.range;
 
-	if item.inline then
-		local config = spec.get({ "latex", "inlines" }, { fallback = nil, eval_args = { buffer, item } });
-		if not config then return; end
+	---@type latex.blocks?
+	local config = spec.get({ "latex", "blocks" }, { fallback = nil, eval_args = { buffer, item } });
 
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
+	if not config then
+		return;
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 2,
+		conceal = "",
+
+		virt_text_pos = "right_align",
+		virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
+
+		hl_mode = "combine",
+		line_hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, math.max(0, range.col_end - 2), {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		line_hl_group = utils.set_hl(config.hl)
+	});
+
+	for l = 1, #item.text - 2 do
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
 			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 2,
-			conceal = "",
 
 			virt_text_pos = "inline",
 			virt_text = {
-				{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+				{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
 			},
-
-			hl_mode = "combine"
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + #item.text[1], {
-			undo_restore = false, invalidate = true,
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-			}
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
-
-			hl_group = utils.set_hl(config.hl),
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and 2 or 0), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-			},
-
-			hl_mode = "combine"
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, 0, {
-			undo_restore = false, invalidate = true,
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-			}
-		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], 0), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-				}
-			});
-
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, #item.text[l + 1], {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-				}
-			});
-		end
-	else
-		---@type latex.blocks?
-		local config = spec.get({ "latex", "blocks" }, { fallback = nil, eval_args = { buffer, item } });
-		if not config then return; end
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 2,
-			conceal = "",
-
-			virt_text_pos = "right_align",
-			virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
-
-			hl_mode = "combine",
-			line_hl_group = utils.set_hl(config.hl)
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, math.max(0, range.col_end - 2), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
 
 			line_hl_group = utils.set_hl(config.hl)
 		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
-				},
-
-				line_hl_group = utils.set_hl(config.hl)
-			});
-		end
 	end
 	---_
 end
@@ -328,7 +252,7 @@ latex.inline = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 1,
+		end_col = range.col_start + #item.marker,
 		conceal = "",
 
 		virt_text_pos = "inline",
@@ -359,7 +283,7 @@ latex.inline = function (buffer, item)
 		hl_group = utils.set_hl(config.hl),
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and 1 or 0), {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and #item.marker or 0), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -818,10 +742,9 @@ end
 
 --- Clears LaTeX previews.
 ---@param buffer integer
----@param ignore_ns any
 ---@param from integer?
 ---@param to integer!
-latex.clear = function (buffer, ignore_ns, from, to)
+latex.clear = function (buffer, from, to)
 	vim.api.nvim_buf_clear_namespace(buffer, latex.ns, from or 0, to or -1);
 end
 

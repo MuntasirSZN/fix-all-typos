@@ -74,8 +74,8 @@ latex.block = function (buffer, _, text, range)
 
 	---@class __latex.blocks
 	latex.insert({
-		class = "latex_block",
-		inline = inline,
+		class = inline == true and "latex_inline" or "latex_block",
+		marker = inline == true and "$$" or nil,
 		closed = closed,
 
 		text = text,
@@ -194,6 +194,7 @@ latex.inline = function (_, _, text, range)
 	---@type __latex.inlines
 	latex.insert({
 		class = "latex_inline",
+		marker = "$",
 		closed = closed,
 
 		text = text,
