@@ -83,7 +83,7 @@ yaml.render = function (buffer, content)
 	end
 end
 
-yaml.clear = function (buffer, _, from, to)
+yaml.clear = function (buffer, from, to)
 	vim.api.nvim_buf_clear_namespace(buffer, yaml.ns, from or 0, to or -1);
 end
 

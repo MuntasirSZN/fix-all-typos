@@ -1049,10 +1049,9 @@ end
 
 --- Clears markdown inline previews.
 ---@param buffer integer
----@param _ any
 ---@param from integer?
 ---@param to integer?
-inline.clear = function (buffer, _, from, to)
+inline.clear = function (buffer, from, to)
 	vim.api.nvim_buf_clear_namespace(buffer, inline.ns, from or 0, to or -1);
 end
 
