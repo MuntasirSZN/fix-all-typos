@@ -3129,10 +3129,9 @@ end
 
 --- Clears markdown previews.
 ---@param buffer integer
----@param _ any
 ---@param from integer?
 ---@param to integer?
-markdown.clear = function (buffer, _, from, to)
+markdown.clear = function (buffer, from, to)
 	vim.api.nvim_buf_clear_namespace(buffer, markdown.ns, from or 0, to or -1);
 end
 
