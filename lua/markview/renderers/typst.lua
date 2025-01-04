@@ -18,7 +18,7 @@ typst.ns = vim.api.nvim_create_namespace("markview/typst");
 typst.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
-	---@type typst.code_block?
+	---@type typst.code_blocks?
 	local config = spec.get({ "typst", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -144,8 +144,8 @@ typst.code_block = function (buffer, item)
 end
 
 ---@param buffer integer
----@param item __typst.code_inline
-typst.code_inline = function (buffer, item)
+---@param item __typst.code_spans
+typst.code_span = function (buffer, item)
 	---+${lua}
 
 	---@type typst.code_spans?
@@ -1309,10 +1309,9 @@ end
 
 --- Clear typst previews.
 ---@param buffer integer
----@param _ any
 ---@param from integer?
 ---@param to integer?
-typst.clear = function (buffer, _, from, to)
+typst.clear = function (buffer, from, to)
 	vim.api.nvim_buf_clear_namespace(buffer, typst.ns, from or 0, to or -1);
 end
 
