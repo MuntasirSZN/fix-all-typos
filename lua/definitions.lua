@@ -1063,42 +1063,58 @@ M.inline_uri_autolinks = {
 
 ---@class config.preview
 ---
----@field callbacks preview.callbacks
----@field enable boolean
----@field hybrid_modes string[]
----@field icon_provider "internal" | "devicons" | "mini"
----@field ignore_previews preview.ignore
----@field modes string[]
----@field debounce integer
----@field edit_range [ integer, integer ]
----@field draw_range [ integer, integer ]
----@field filetypes string[]
----@field ignore_buftypes string[]
----@field splitview_winopts table
+---@field enable boolean Enables preview when attaching to new buffers.
+---@field enable_hybrid_mode? boolean Enables `hybrid mode` when attaching to new buffers.
+---
+---@field callbacks preview.callbacks Callback functions.
+---@field icon_provider "internal" | "devicons" | "mini" Icon provider.
+---
+---@field hybrid_modes string[] VIM-modes where `hybrid mode` is enabled.
+---@field ignore_previews preview.ignore Options that should/shouldn't be previewed in `hybrid_modes`.
+---@field linewise_hybrid_mode? boolean Clear lines around the cursor in `hybrid mode`, instead of nodes?
+---@field modes string[] VIM-modes where previews will be shown.
+---
+---@field debounce integer Debounce delay for updating previews.
+---@field filetypes string[] Buffer filetypes where the plugin should attach.
+---@field ignore_buftypes string[] Buftypes that should be ignored(e.g. nofile).
+---@field max_buf_lines integer Maximum number of lines a buffer can have before switching to partial rendering.
+---
+---@field edit_range [ integer, integer ] Lines before & after the cursor that shouldn't be rendered in `hybrid mode`.
+---@field draw_range [ integer, integer ] Lines before & after the cursor that should be rendering preview.
+---
+---@field splitview_winopts table Window options for the `splitview` window.
 M.preview = {
 	enable = true,
+
 	callbacks = {},
+	icon_provider = "internal",
+
+	hybrid_modes = {},
 	modes = { "n" },
+
 	debounce = 50,
 	filetypes = { "md" },
-	draw_range = { 10, 10 },
 	ignore_buftypes = {},
-	icon_provider = "internal",
-	splitview_winopts = {},
+	ignore_previews = {},
+
+	draw_range = { 10, 10 },
 	edit_range = { 1, 1 },
-	hybrid_modes = {},
-	ignore_previews = {}
+
+	splitview_winopts = {},
 };
 
 ---@class preview.callbacks
 ---
----@field on_attach? fun(buf: integer, wins: integer[]): nil
----@field on_enable? fun(buf: integer, wins: integer[]): nil
----@field on_disable? fun(buf: integer, wins: integer[]): nil
----@field on_detach? fun(buf: integer, wins: integer[]): nil
----@field on_mode_change? fun(buf: integer, wins: integer[], mode: string): nil
----@field on_splitview_open? fun(source: integer, buf: integer, win: integer, mode: string): nil
----@field on_splitview_close? fun(source: integer, buf: integer, win: integer, mode: string): nil
+---@field on_attach? fun(buf: integer, wins: integer[]): nil Called when attaching to a buffer.
+---@field on_detach? fun(buf: integer, wins: integer[]): nil Called when detaching from a buffer.
+---
+---@field on_disable? fun(buf: integer, wins: integer[]): nil Called when disabling preview of a buffer.
+---@field on_enable? fun(buf: integer, wins: integer[]): nil Called when enabling preview of a buffer.
+---
+---@field on_mode_change? fun(buf: integer, wins: integer[], mode: string): nil Called when changing VIM-modes(only on active buffers).
+---
+---@field on_splitview_close? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called before closing splitview.
+---@field on_splitview_open? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called when opening splitview.
 M.preview_callbacks = {
 	on_attach = function (_, wins)
 		vim.print(wins);
@@ -2583,12 +2599,12 @@ M.__typst_codes = {
 	}
 };
 
----@class __typst.code_inline
----@field class "typst_code_inline"
+---@class __typst.code_spans
+---@field class "typst_code_span"
 ---@field text string[]
 ---@field range node.range
 M.__typst_codes = {
-	class = "typst_code_inline",
+	class = "typst_code_span",
 
 	text = { "#{ let a = 1 }" },
 	range = {
