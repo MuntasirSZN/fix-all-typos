@@ -3,36 +3,7 @@ local html = {};
 local utils = require("markview.utils");
 local spec = require("markview.spec");
 
-html.__ns = {
-	__call = function (self, key)
-		return self[key] or self.default;
-	end
-}
-
-html.ns = {
-	default = vim.api.nvim_create_namespace("markview/html"),
-};
-setmetatable(html.ns, html.__ns)
-
-html.set_ns = function ()
-	local ns_pref = spec.get({ "html", "use_seperate_ns" }, { fallback = true });
-	if not ns_pref then ns_pref = true; end
-
-	local available = vim.api.nvim_get_namespaces();
-	local ns_list = {
-		["headings"] = "markview/html/headings",
-		["container_elements"] = "markview/html/container_elements",
-		["void_elements"] = "markview/html/void_elements"
-	};
-
-	if ns_pref == true then
-		for ns, name in pairs(ns_list) do
-			if vim.list_contains(available, ns) == false then
-				html.ns[ns] = vim.api.nvim_create_namespace(name);
-			end
-		end
-	end
-end
+html.ns = vim.api.nvim_create_namespace("markview/html");
 
 --- Renders container elements
 ---@param buffer integer
@@ -62,7 +33,7 @@ html.container_element = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
-			html.ns("element_container"),
+			html.ns,
 			range[1],
 			range[2],
 			vim.tbl_extend("force", {
@@ -85,7 +56,7 @@ html.container_element = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
-			html.ns("element_container"),
+			html.ns,
 			range[1],
 			range[2],
 			vim.tbl_extend("force", {
@@ -105,7 +76,7 @@ html.container_element = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
-			html.ns("element_container"),
+			html.ns,
 			range[1],
 			range[2],
 			vim.tbl_extend("force", {
@@ -141,7 +112,7 @@ html.heading = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(
 		buffer,
-		html.ns("headings"),
+		html.ns,
 
 		range.row_start,
 		range.col_start,
@@ -186,7 +157,7 @@ html.void_element = function (buffer, item)
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
-			html.ns("element_void"),
+			html.ns,
 			range[1],
 			range[2],
 			vim.tbl_extend("force", {
@@ -224,15 +195,10 @@ end
 
 --- Clears decorations of HTML elements
 ---@param buffer integer
----@param ignore_ns string[]?
 ---@param from integer
 ---@param to integer
-html.clear = function (buffer, ignore_ns, from, to)
-	for name, ns in pairs(html.ns) do
-		if ignore_ns and vim.list_contains(ignore_ns, name) == false then
-			vim.api.nvim_buf_clear_namespace(buffer, ns, from or 0, to or -1);
-		end
-	end
+html.clear = function (buffer, from, to)
+	vim.api.nvim_buf_clear_namespace(buffer, html.ns, from or 0, to or -1);
 end
 
 return html;
