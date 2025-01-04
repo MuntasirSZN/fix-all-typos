@@ -49,9 +49,9 @@ typst.code = function (buffer, TSNode, text, range)
 	end
 
 	if inline == true then
-		---@type __typst.code_inline
+		---@type __typst.code_spans
 		typst.insert({
-			class = "typst_code_inline",
+			class = "typst_code_span",
 
 			text = text,
 			range = range
