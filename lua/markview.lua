@@ -243,7 +243,33 @@ markview.render = function (buffer, state)
 	---_
 end
 
-markview.splitview_render = function ()
+markview.update_splitview_cursor = function ()
+	local utils = require("markview.utils");
+	local buffer = markview.state.splitview_source;
+
+	if markview.buf_is_safe(buffer) == false then
+		--- Buffer isn't safe.
+		-- markview.state.splitview_source = nil;
+		pcall(markview.actions.splitClose);
+		return;
+	elseif markview.win_is_safe(utils.buf_getwin(buffer)) == false then
+		--- Buffer doesn't have any windows attached.
+		pcall(markview.actions.splitClose);
+		return;
+	end
+
+	--- In case the preview buffer/window got
+	--- deleted, we should regenerate them.
+	markview.actions.__splitview_setup();
+
+	local pre_buf = markview.state.splitview_buffer;
+	local pre_win = markview.state.splitview_window;
+
+	local cursor = vim.api.nvim_win_get_cursor(utils.buf_getwin(buffer));
+	pcall(vim.api.nvim_win_set_cursor, pre_win, cursor);
+end
+
+markview.splitview_render = function (update_content, update_preview)
 	---+${lua}
 
 	local utils = require("markview.utils");
@@ -267,17 +293,21 @@ markview.splitview_render = function ()
 	local pre_buf = markview.state.splitview_buffer;
 	local pre_win = markview.state.splitview_window;
 
-	local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false);
-	vim.api.nvim_buf_set_lines(pre_buf, 0, -1, false, lines);
+	if update_content ~= false then
+		local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false);
+		vim.api.nvim_buf_set_lines(pre_buf, 0, -1, false, lines);
+	end
 
 	local cursor = vim.api.nvim_win_get_cursor(utils.buf_getwin(buffer));
-	vim.api.nvim_win_set_cursor(pre_win, cursor);
+	pcall(vim.api.nvim_win_set_cursor, pre_win, cursor);
 
-	markview.render(pre_buf, {
-		enable = true,
-		hybrid_mode = false,
-		events = false
-	});
+	if update_preview ~= false then
+		markview.render(pre_buf, {
+			enable = true,
+			hybrid_mode = false,
+			events = false
+		});
+	end
 	---_
 end
 

@@ -239,7 +239,7 @@ spec.default = {
 		linewise_hybrid_mode = false,
 		max_buf_lines = 1000,
 		modes = { "n", "no", "c" },
-		draw_range = { vim.o.lines, vim.o.lines },
+		draw_range = { 2 * vim.o.lines, 2 * vim.o.lines },
 		splitview_winopts = {
 			split = "right"
 		}
@@ -783,7 +783,6 @@ spec.default = {
 				icon = "󰿨 ",
 				hl = "Comment"
 			},
-			patterns = {}
 		},
 
 		checkboxes = {
@@ -829,7 +828,6 @@ spec.default = {
 				icon = " ",
 				hl = "Hyperlink"
 			},
-			patterns = {}
 		},
 
 		highlights = {
@@ -838,7 +836,6 @@ spec.default = {
 			default = {
 				hl = "Palette1"
 			},
-			patterns = {}
 		},
 
 		inline_codes = {
@@ -856,7 +853,6 @@ spec.default = {
 				icon = " ",
 				hl = "Email"
 			},
-			patterns = {}
 		},
 
 		uri_autolinks = {
@@ -866,7 +862,6 @@ spec.default = {
 				icon = " ",
 				hl = "MarkviewEmail"
 			},
-			patterns = {}
 		},
 
 		images = {
@@ -888,7 +883,6 @@ spec.default = {
 				icon = "󰠮 ",
 				hl = "Palette2Fg"
 			},
-			patterns = {}
 		},
 
 		internal_links = {
@@ -899,7 +893,6 @@ spec.default = {
 				icon = "󰌷 ",
 				hl = "Hyperlink",
 			},
-			patterns = {}
 		},
 
 		hyperlinks = {
@@ -935,11 +928,52 @@ spec.default = {
 	html = {
 		container_elements = {
 			enable = true,
-			["u"] = {
+
+			["^b$"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "Bold" },
+				on_closing_tag = { conceal = "" },
+			},
+			["^code$"] = {
+				on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { " ", "MarkviewInlineCode" } } },
+				on_node = { hl_group = "MarkviewInlineCode" },
+				on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { " ", "MarkviewInlineCode" } } },
+			},
+			["^em$"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "@text.emphasis" },
+				on_closing_tag = { conceal = "" },
+			},
+			["^i$"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "Italic" },
+				on_closing_tag = { conceal = "" },
+			},
+			["^mark$"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "MarkviewPalette1" },
+				on_closing_tag = { conceal = "" },
+			},
+			["^strong$"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "@text.strong" },
+				on_closing_tag = { conceal = "" },
+			},
+			["^sub$"] = {
+				on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "↓[", "MarkviewSubscript" } } },
+				on_node = { hl_group = "MarkviewSubscript" },
+				on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "]", "MarkviewSubscript" } } },
+			},
+			["^sup$"] = {
+				on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "↑[", "MarkviewSuperscript" } } },
+				on_node = { hl_group = "MarkviewSuperscript" },
+				on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "]", "MarkviewSuperscript" } } },
+			},
+			["^u$"] = {
 				on_opening_tag = { conceal = "" },
 				on_node = { hl_group = "Underlined" },
 				on_closing_tag = { conceal = "" },
-			}
+			},
 		},
 
 		headings = {
@@ -1882,22 +1916,26 @@ spec.__markdown_inline = function (config)
 				spec.notify({
 					{ " markdown_inline." .. opt .. ".custom ", "DiagnosticVirtualTextError" },
 					{ " is deprecated! Use" },
-					{ " markdown_inline." .. opt .. ".patterns ", "DiagnosticVirtualTextHint" },
+					{ " markdown_inline." .. opt .. ".[string] ", "DiagnosticVirtualTextHint" },
 					{ "instead." },
 				}, {
 					class = "markview_opt_name_change",
 
 					old = "markdown_inline." .. opt .. ".custom",
-					new = "markdown_inline." .. opt .. ".patterns",
+					new = "markdown_inline." .. opt .. ".[string]",
 				});
 			end
 
 			config[opt] = {
 				enable = val.enable,
 				default = val.default or { text = val.text, hl = val.hl },
-
-				patterns = val.patterns or val.custom
 			};
+
+			for _, item in ipairs(val.patterns or val.custom or {}) do
+				if type(item.match_string) == "string" then
+					config[item.match_string] = item;
+				end
+			end
 		end
 	end
 
