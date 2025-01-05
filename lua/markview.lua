@@ -369,6 +369,8 @@ markview.actions = {
 			};
 		end
 
+		vim.api.nvim_buf_set_keymap(buffer, "n", "gx", "<CMD>Markview open<CR>", { desc = "Tree-sitter based link opener from `markview.nvim`." });
+
 		--- Execute the attaching autocmd.
 		markview.actions.__exec_callback("on_attach", buffer, vim.fn.win_findbuf(buffer))
 		--- Execute the autocmd too.
@@ -768,6 +770,10 @@ markview.commands = {
 
 	["splitClose"] = function ()
 		markview.actions.splitClose()
+	end,
+
+	["open"] = function ()
+		require("markview.links").open();
 	end
 	---_
 };
