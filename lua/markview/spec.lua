@@ -878,9 +878,7 @@ spec.default = {
 				hl = "MarkviewImage",
 			},
 
-			patterns = {
-				{ match_string = "%.svg$", icon = "󰜡 " },
-			},
+			["%.svg$"] = { icon = "󰜡 " },
 		},
 
 		embed_files = {
@@ -913,23 +911,21 @@ spec.default = {
 				hl = "MarkviewHyperlink",
 			},
 
-			patterns = {
 				---+ ${conf, Stack*}
-				{ match_string = "stackoverflow%.com", icon = " " },
-				{ match_string = "stackexchange%.com", icon = " " },
-				---_
+			["stackoverflow%.com"] = { icon = " " },
+			["stackexchange%.com"] = { icon = " " },
+			---_
 
-				{ match_string = "neovim%.org", icon = " " },
+			["neovim%.org"] = { icon = " " },
 
-				{ match_string = "dev%.to", icon = " " },
-				{ match_string = "github%.com", icon = " " },
-				{ match_string = "reddit%.com", icon = " " },
-				{ match_string = "freecodecamp%.org", icon = " " },
+			["dev%.to"] = { icon = " " },
+			["github%.com"] = { icon = " " },
+			["reddit%.com"] = { icon = " " },
+			["freecodecamp%.org"] = { icon = " " },
 
-				{ match_string = "https://(.+)$", icon = "󰞉 " },
-				{ match_string = "http://(.+)$", icon = "󰕑 " },
-				{ match_string = "[%.]md$", icon = " " }
-			}
+			["https://(.+)$"] = { icon = "󰞉 " },
+			["http://(.+)$"] = { icon = "󰕑 " },
+			["[%.]md$"] = { icon = " " }
 		},
 
 		escapes = {
@@ -937,6 +933,15 @@ spec.default = {
 		},
 	},
 	html = {
+		container_elements = {
+			enable = true,
+			["u"] = {
+				on_opening_tag = { conceal = "" },
+				on_node = { hl_group = "Underlined" },
+				on_closing_tag = { conceal = "" },
+			}
+		},
+
 		headings = {
 			enable = true,
 
@@ -959,14 +964,7 @@ spec.default = {
 				hl_group = "MarkviewPalette6Bg"
 			},
 		},
-		container_elements = {
-			enable = true,
-			["u"] = {
-				on_opening_tag = { conceal = "" },
-				on_node = { hl_group = "Underlined" },
-				on_closing_tag = { conceal = "" },
-			}
-		},
+
 		void_elements = {
 			enable = true,
 			-- ["img"] = {
@@ -1109,7 +1107,7 @@ spec.default = {
 
 		escapes = { enable = true },
 		symbols = { enable = true, hl = "Comment" },
-		fonts = { enable = true, default = {}, patterns = {} },
+		fonts = { enable = true, default = {}, },
 		subscripts = { enable = true, hl = "Subscript" },
 		superscripts = { enable = true, hl = "Superscript" },
 		texts = { enable = true },
@@ -1233,7 +1231,6 @@ spec.default = {
 				padding_left = "  ",
 				padding_right = " "
 			},
-			patterns = {}
 		},
 
 		list_items = {
@@ -1297,7 +1294,6 @@ spec.default = {
 				icon = " ",
 				hl = "MarkviewEmail"
 			},
-			patterns = {}
 		},
 
 		reference_links = {
@@ -1307,7 +1303,6 @@ spec.default = {
 				icon = " ",
 				hl = "Hyperlink"
 			},
-			patterns = {}
 		},
 
 		subscripts = { enable = true, hl = "Subscript" },
@@ -1324,7 +1319,6 @@ spec.default = {
 				text = " ",
 				hl = "Palette6Fg"
 			},
-			patterns = {}
 		}
 	},
 	yaml = {
@@ -1368,66 +1362,65 @@ spec.default = {
 
 				border_hl = "Comment"
 			},
-			patterns = {
-				{
-					match_string = "^tags$",
-					use_types = false,
 
-					text = " 󰓹 ",
-					hl = nil
-				},
-				{
-					match_string = "^aliases$",
-					use_types = false,
+			["^tags$"] = {
+				match_string = "^tags$",
+				use_types = false,
 
-					text = " 󱞫 ",
-					hl = nil
-				},
-				{
-					match_string = "^cssclasses$",
-					use_types = false,
+				text = " 󰓹 ",
+				hl = nil
+			},
+			["^aliases$"] = {
+				match_string = "^aliases$",
+				use_types = false,
 
-					text = "  ",
-					hl = nil
-				},
+				text = " 󱞫 ",
+				hl = nil
+			},
+			["^cssclasses$"] = {
+				match_string = "^cssclasses$",
+				use_types = false,
+
+				text = "  ",
+				hl = nil
+			},
 
 
-				{
-					match_string = "^publish$",
-					use_types = false,
+			["^publish$"] = {
+				match_string = "^publish$",
+				use_types = false,
 
-					text = "  ",
-					hl = nil
-				},
-				{
-					match_string = "^permalink$",
-					use_types = false,
+				text = "  ",
+				hl = nil
+			},
+			["^permalink$"] = {
+				match_string = "^permalink$",
+				use_types = false,
 
-					text = "  ",
-					hl = nil
-				},
-				{
-					match_string = "^description$",
-					use_types = false,
+				text = "  ",
+				hl = nil
+			},
+			["^description$"] = {
+				match_string = "^description$",
+				use_types = false,
 
-					text = " 󰋼 ",
-					hl = nil
-				},
-				{
-					match_string = "^image$",
-					use_types = false,
+				text = " 󰋼 ",
+				hl = nil
+			},
+			["^image$"] = {
+				match_string = "^image$",
+				use_types = false,
 
-					text = " 󰋫 ",
-					hl = nil
-				},
-				{
-					match_string = "^cover$",
-					use_types = false,
+				text = " 󰋫 ",
+				hl = nil
+			},
+			["^cover$"] = {
+				match_string = "^cover$",
+				use_types = false,
 
-					text = " 󰹉 ",
-					hl = nil
-				},
-			}
+				text = " 󰹉 ",
+				hl = nil
+			},
 		}
 	}
 	---_
