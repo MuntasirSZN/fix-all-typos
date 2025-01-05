@@ -87,22 +87,23 @@ M.config = {
 
  ------------------------------------------------------------------------------------------
 
---- Experimental options.
 ---@class config.experimental
 ---
----@field file_open_command string Command used to open links inside Neovim.
----@field link_open_alerts boolean When `true`, alert when opening links.
----@field list_empty_line_tolerance integer Number of empty lines between text in a list item.
----@field read_chunk_size integer Number of bytes to check to see if a file is a text file.
----@field text_filetypes? string[] Filetypes to open inside `Neovim`.
----@field date_formats? string[] For detecting dates in YAML metadata.
----@field date_time_formats? string[] For detecting date & time in YAML metadata.
+---@field file_open_command string Command used to open files inside Neovim.
+---@field read_chunk_size integer Number of `bytes` to check before opening a link. Used for detecting when to open files inside Neovim.
+---
+---@field list_empty_line_tolerance integer Maximum number of empty lines that can stay between text of a list item.
+---
+---@field date_formats? string[] String formats for detecting date in YAML.
+---@field date_time_formats? string[] String formats for detecting date & time in YAML
 M.experimental = {
-	list_empty_line_tolerance = 3,
-	text_filetypes = { "markdown" },
-	link_open_alerts = false,
 	file_open_command = "tabnew",
-	read_chunk_size = 1000
+	read_chunk_size = 1000,
+
+	list_empty_line_tolerance = 3,
+
+	date_formats = { "%d%d-%d%d-%d%d%d%d" },
+	date_time_formats = { "%d%d-%d%d-%d%d%d%d %d%d:%d%d [ap]?m" }
 };
 
  ------------------------------------------------------------------------------------------
@@ -821,15 +822,12 @@ M.tables_parts = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns? config.inline_generic[]
+---@field [string] config.inline_generic
 M.markdown_ref_def = {
 	enable = true,
 	default = { hl = "Title" },
-	patterns = {
-		{
-			match_string = "^mkv",
-			hl = "Special"
-		}
+	["^mkv"] = {
+		hl = "Special"
 	}
 };
 
@@ -895,15 +893,12 @@ M.checkboxes_opts = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_block_ref = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "^obs",
-			hl = "Special"
-		}
+	["^obs"] = {
+		hl = "Special"
 	}
 };
 
@@ -915,15 +910,12 @@ M.inline_block_ref = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_emails = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "teams",
-			hl = "Special"
-		}
+	["teams"] = {
+		hl = "Special"
 	}
 };
 
@@ -932,15 +924,12 @@ M.inline_emails = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_embed_files = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "img$",
-			hl = "Special"
-		}
+	["img$"] = {
+		hl = "Special"
 	}
 };
 
@@ -962,15 +951,13 @@ M.inline_entities = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_footnotes = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "^from",
-			hl = "Special"
-		}
+	["^from"] = {
+		match_string = "^from",
+		hl = "Special"
 	}
 };
 
@@ -979,15 +966,12 @@ M.inline_footnotes = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_highlights = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "^!",
-			hl = "Special"
-		}
+	["^!"] = {
+		hl = "Special"
 	}
 };
 
@@ -996,15 +980,12 @@ M.inline_highlights = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_hyperlinks = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "neovim%.org",
-			hl = "Special"
-		}
+	["^neovim%.org"] = {
+		hl = "Special"
 	}
 };
 
@@ -1013,15 +994,12 @@ M.inline_hyperlinks = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_images = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "svg$",
-			hl = "Special"
-		}
+	["svg$"] = {
+		hl = "Special"
 	}
 };
 
@@ -1030,15 +1008,13 @@ M.inline_images = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_internal_links = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "^vault",
-			hl = "Special"
-		}
+	["^vault"] = {
+		match_string = "^vault",
+		hl = "Special"
 	}
 };
 
@@ -1047,15 +1023,13 @@ M.inline_internal_links = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.inline_uri_autolinks = {
 	enable = true,
 	default = {},
-	patterns = {
-		{
-			match_string = "^https",
-			hl = "Special"
-		}
+	["^https"] = {
+		match_string = "^https",
+		hl = "Special"
 	}
 };
 
@@ -1257,15 +1231,12 @@ M.headings_typst = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.typst_labels = {
 	enable = true,
 	default = { hl = "MarkviewInlineCode" },
-	patterns = {
-		{
-			match_string = "^nv",
-			hl = "MarkviewPalette1"
-		}
+	["^nv"] = {
+		hl = "MarkviewPalette1"
 	}
 };
 
@@ -1273,15 +1244,13 @@ M.typst_labels = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.typst_link_ref = {
 	enable = true,
 	default = { hl = "MarkviewHyperlink" },
-	patterns = {
-		{
-			match_string = "neovim.org",
-			hl = "MarkviewPalette1"
-		}
+	["neovim.org"] = {
+		match_string = "",
+		hl = "MarkviewPalette1"
 	}
 };
 
@@ -1289,15 +1258,12 @@ M.typst_link_ref = {
 ---
 ---@field enable boolean
 ---@field default config.inline_generic
----@field patterns config.inline_generic[]
+---@field [string] config.inline_generic
 M.typst_link_ref = {
 	enable = true,
 	default = { hl = "MarkviewHyperlink" },
-	patterns = {
-		{
-			match_string = "neovim.org",
-			hl = "MarkviewPalette1"
-		}
+	["neovim.org"] = {
+		hl = "MarkviewPalette1"
 	}
 };
 
@@ -1415,11 +1381,10 @@ M.typst_fonts = {
 ---
 ---@field enable boolean
 ---@field default term.opts
----@field patterns term.opts[]
+---@field [string] term.opts
 M.typst_term = {
 	enable = true,
 	default = {},
-	patterns = {}
 };
 
 ---@class term.opts
@@ -1447,17 +1412,15 @@ M.yaml = {
 ---@field enable boolean
 ---@field data_types { [string]: properties.opts }
 ---@field default properties.opts
----@field patterns properties.opts
+---@field [string] properties.opts
 M.yaml_properties = {
 	enable = true,
 	default = {},
 	data_types = {},
-	patterns = {}
 };
 
 ---@class properties.opts
 ---
----@field match_string? string
 ---@field border_bottom? string
 ---@field border_bottom_hl? string
 ---@field border_hl? string
