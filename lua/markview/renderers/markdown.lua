@@ -1396,9 +1396,7 @@ markdown.code_block = function (buffer, item)
 				virt_text = {
 					{ string.rep(" ", offset),},
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				},
-
-				hl_mode = "combine"
+				}
 			});
 
 			--- Right padding
@@ -1409,9 +1407,7 @@ markdown.code_block = function (buffer, item)
 				virt_text = {
 					{ string.rep(config.pad_char or " ", block_width - vim.fn.strdisplaywidth(final)), utils.set_hl(config.hl) },
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				},
-
-				hl_mode = "combine"
+				}
 			});
 
 			--- Background color
