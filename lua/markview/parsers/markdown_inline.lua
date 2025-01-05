@@ -264,7 +264,7 @@ end
 ---@param buffer integer
 ---@param text string[]
 ---@param range inline_link.range
-inline.inline_hyperlink = function (buffer, TSNode, text, range)
+inline.hyperlink = function (buffer, TSNode, text, range)
 	---+${lua}
 
 	local link_desc;
@@ -369,7 +369,7 @@ inline.reference_link = function (buffer, TSNode, text, range)
 		end
 	end
 
-	range.label = range.label or { range.row_start, range.col_start + 2, range.row_end, range.col_start - 3 };
+	range.label = range.label or { range.row_start, range.col_start + 2, range.row_end, range.col_end - 3 };
 
 	inline.insert({
 		class = "inline_link_hyperlink",
@@ -521,7 +521,7 @@ inline.parse = function (buffer, TSTree, from, to)
 
 		([
 			(inline_link)
-			(collapsed_reference_link)] @markdown_inline.inline_hyperlink)
+			(collapsed_reference_link)] @markdown_inline.hyperlink)
 
 		((full_reference_link
 			(link_text)
