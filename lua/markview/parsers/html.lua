@@ -76,7 +76,7 @@ html.element = function (buffer, TSNode, text, range)
 	---@type __html.container_elements
 	html.insert({
 		class = "html_container_element",
-		name = vim.treesitter.get_node_text(opening_tag:child(1), buffer),
+		name = string.lower(vim.treesitter.get_node_text(opening_tag:child(1), buffer) or ""),
 
 		opening_tag = {
 			text = vim.treesitter.get_node_text(opening_tag, buffer),
@@ -100,12 +100,12 @@ end
 ---@param range node.range
 html.element_void = function (buffer, TSNode, text, range)
 	---+${func}
-	local opening_tag = TSNode:child(0);
+	local tag = TSNode:child(0);
 
 	---@type __html.void_elements
 	html.insert({
 		class = "html_void_element",
-		name = vim.treesitter.get_node_text(opening_tag:child(1), buffer),
+		name = string.lower(vim.treesitter.get_node_text(tag:child(1), buffer) or ""),
 
 		text = text,
 		range = range
@@ -131,13 +131,12 @@ html.parse = function (buffer, TSTree, from, to)
 			(start_tag
 				(
 					((tag_name) @heading.name)
-					(#match? @heading.name "^h[0-6]$")
+					(#match? @heading.name "^[hH][0-6]$")
 				) @heading.start)
 			(end_tag
 				(
 					(tag_name) @heading.end
 				)))
-			(#eq? @heading.start @heading.end)
 			) @html.heading)
 
 		((element 
@@ -148,7 +147,7 @@ html.parse = function (buffer, TSTree, from, to)
 		(((element
 			(start_tag ((tag_name) @element.start))
 			(end_tag ((tag_name) @element.end)))
-			(#eq? @element.start @element.end)) @html.element)
+			) @html.element)
 	]]);
 
 	for capture_id, capture_node, _, _ in scanned_queries:iter_captures(TSTree:root(), buffer, from, to) do
