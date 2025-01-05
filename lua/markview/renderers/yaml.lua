@@ -18,7 +18,7 @@ yaml.property = function (buffer, item)
 		return;
 	end
 
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.key,
 		{
@@ -29,13 +29,15 @@ yaml.property = function (buffer, item)
 	if config == nil then
 		return;
 	elseif config.use_types == true then
-		config = spec.get(
+		--- Merge with data type configuration
+		--- if the config has `use_types == true`. 
+		config = vim.tbl_extend("force", spec.get(
 			{ "data_types", item.type },
 			{
 				source = main_config,
 				eval_args = { buffer, item }
 			}
-		) or config;
+		), config);
 	end
 
 	vim.api.nvim_buf_set_extmark(buffer, yaml.ns, range.row_start, range.col_start, {
