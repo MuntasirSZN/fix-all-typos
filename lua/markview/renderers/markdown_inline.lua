@@ -215,7 +215,7 @@ inline.footnote = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -282,7 +282,7 @@ inline.highlight = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.text,
 		{
@@ -349,7 +349,7 @@ inline.link_block_ref = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -435,7 +435,7 @@ inline.link_embed_file = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -498,7 +498,7 @@ inline.link_email = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -561,9 +561,9 @@ inline.link_hyperlink = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
-		item.label,
+		item.description,
 		{
 			eval_args = { buffer, item }
 		}
@@ -685,7 +685,7 @@ inline.link_image = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.description,
 		{
@@ -809,7 +809,7 @@ inline.link_shortcut = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -926,7 +926,7 @@ inline.link_uri_autolink = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -990,7 +990,7 @@ inline.link_internal = function (buffer, item)
 	end
 
 	---@type config.inline_generic
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -1043,7 +1043,8 @@ end
 ---@param content table[]
 inline.render = function (buffer, content)
 	for _, item in ipairs(content or {}) do
-		pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
+		-- pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
+		inline[item.class:gsub("^inline_", "")]( buffer, item);
 	end
 end
 

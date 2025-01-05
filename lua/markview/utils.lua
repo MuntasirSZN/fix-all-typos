@@ -297,7 +297,6 @@ utils.create_user_command_class = function (config)
 		---_
 	end
 
-	-- class = setmetatable(class, class);
 	return class;
 end
 
@@ -305,24 +304,47 @@ end
 --- NOTE, {name} will be used to index the config.
 ---@param config table
 ---@param name string
----@param opts { eval_args: any[], ignore_keys?: any[] }
+---@param opts { default: boolean, eval_args: any[], ignore_keys?: any[] }
 ---@return any
 utils.match = function (config, name, opts)
-	local spec = require("markview.spec");
-	local keys = vim.tbl_keys(config or {});
-	local _o;
+	config = config or {};
+	name = name or "";
+	opts = opts or {};
 
-	if vim.list_contains(opts.ignore_keys or {}, name) then
-		_o = spec.get({ "default" }, { source = config, eval_args = opts.eval_args })
-	elseif vim.list_contains(keys, string.lower(name)) then
-		_o = spec.get({ string.lower(name) }, { source = config, eval_args = opts.eval_args })
-	elseif vim.list_contains(keys, string.upper(name)) then
-		_o = spec.get({ string.upper(name) }, { source = config, eval_args = opts.eval_args })
-	elseif vim.list_contains(keys, name) then
-		_o = spec.get({ name }, { source = config, eval_args = opts.eval_args })
+	local spec = require("markview.spec");
+
+	--- Default configuration
+	local default = {};
+
+	if opts.default ~= false then
+		default = spec.get({ "default" }, vim.tbl_extend("keep", {
+			source = config,
+			fallback = {}
+		}, opts));
 	end
 
-	return _o;
+	local match = {};
+
+	local function is_valid (value, pattern)
+		local ignore = opts.ignore_keys or {};
+
+		if vim.list_contains(ignore, pattern) then
+			return false;
+		elseif string.match(value, pattern) then
+			return true;
+		else
+			return false;
+		end
+	end
+
+	for key, val in pairs(config) do
+		if is_valid(name, key) == true then
+			match = val;
+			break
+		end
+	end
+
+	return vim.tbl_deep_extend("force", default, match);
 end
 
 --- Checks if a string only contains {chars}

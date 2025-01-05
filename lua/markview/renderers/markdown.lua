@@ -133,12 +133,12 @@ markdown.output = function (str, buffer)
 	for ref in str:gmatch("%!%[%[([^%]]+)%]%]") do
 		---+${custom, Handle embed files & block references}
 		if ref:match("%#%^(.+)") and blref then
-			local _blref = utils.pattern(
+			local _blref = utils.match(
 				blref,
 				ref,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_block_ref",
@@ -171,12 +171,12 @@ markdown.output = function (str, buffer)
 				_blref.corner_right or ""
 			}));
 		elseif embed then
-			local _embed = utils.pattern(
+			local _embed = utils.match(
 				embed,
 				ref,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_embed_file",
@@ -216,12 +216,12 @@ markdown.output = function (str, buffer)
 		---+${custom, Handle block references}
 		if not blref then goto continue; end
 
-		local _blref = utils.pattern(
+		local _blref = utils.match(
 			blref,
 			ref,
 			{
 				fallback = {},
-				args = {
+				eval_args = {
 					buffer,
 					{
 						class = "inline_link_block_ref",
@@ -272,12 +272,12 @@ markdown.output = function (str, buffer)
 			}));
 		else
 			local alias = link:match("%|(.+)$");
-			local _int = utils.pattern(
+			local _int = utils.match(
 				int,
 				link,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_internal",
@@ -324,12 +324,12 @@ markdown.output = function (str, buffer)
 				address,
 			}), concat({ link }))
 		else
-			local _image = utils.pattern(
+			local _image = utils.match(
 				image,
 				address,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_image",
@@ -380,12 +380,12 @@ markdown.output = function (str, buffer)
 				utils.escape_string(link):gsub(".", "X"),
 			}))
 		else
-			local _image = utils.pattern(
+			local _image = utils.match(
 				image,
 				address,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_image",
@@ -432,12 +432,12 @@ markdown.output = function (str, buffer)
 				address
 			}), concat({ utils.escape_string(link):gsub(".", "X") }))
 		else
-			local _hyper = utils.pattern(
+			local _hyper = utils.match(
 				hyper,
 				address,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_hyperlink",
@@ -488,12 +488,12 @@ markdown.output = function (str, buffer)
 				utils.escape_string(link):gsub(".", "X"),
 			}))
 		else
-			local _hyper = utils.pattern(
+			local _hyper = utils.match(
 				hyper,
 				link,
 				{
 					fallback = {},
-					args = {
+					eval_args = {
 						buffer,
 						{
 							class = "inline_link_shortcut",
@@ -535,12 +535,12 @@ markdown.output = function (str, buffer)
 			break;
 		end
 
-		local _email = utils.pattern(
+		local _email = utils.match(
 			email,
 			string.format("%s@%s", address, domain),
 			{
 				fallback = {},
-				args = {
+				eval_args = {
 					buffer,
 					{
 						class = "inline_link_email",
@@ -581,12 +581,12 @@ markdown.output = function (str, buffer)
 			goto continue;
 		end
 
-		local _uri = utils.pattern(
+		local _uri = utils.match(
 			uri,
 			address,
 			{
 				fallback = {},
-				args = {
+				eval_args = {
 					buffer,
 					{
 						class = "inline_link_uri_autolink",
@@ -659,12 +659,12 @@ markdown.output = function (str, buffer)
 		---+${custom, Handle highlighted text}
 		if not hls then goto continue; end
 
-		local _hls = utils.pattern(
+		local _hls = utils.match(
 			hls,
 			highlight,
 			{
 				fallback = {},
-				args = {
+				eval_args = {
 					buffer,
 					{
 						class = "inline_highlight",
@@ -1506,11 +1506,11 @@ markdown.link_ref_definition = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
-			args = { buffer, item }
+			eval_args = { buffer, item }
 		}
 	);
 
@@ -1731,7 +1731,7 @@ markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
 	---@type markdown.metadata_minus
-	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil, args = { buffer, item } });
+	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
 	if not config then

@@ -344,7 +344,7 @@ typst.label = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		string.sub(item.text[1], 1, #item.text[1] - 1),
 		{
@@ -481,7 +481,7 @@ typst.link_ref = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -545,7 +545,7 @@ typst.link_url = function (buffer, item)
 	end
 
 	---@type config.inline_generic?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
@@ -1196,7 +1196,7 @@ typst.term = function (buffer, item)
 	end
 
 	---@type term.opts?
-	local config = utils.pattern(
+	local config = utils.match(
 		main_config,
 		item.label,
 		{
