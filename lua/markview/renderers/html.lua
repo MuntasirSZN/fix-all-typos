@@ -18,18 +18,25 @@ html.container_element = function (buffer, item)
 		return;
 	end
 
-	---@type container_elements.opts
-	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
+	---@type container_elements.opts?
+	local config = utils.match(main_config, item.name, {
+		ignore_keys = { "enable" },
+		default = false,
+		eval_args = { buffer, item }
+	});
 
 	if not config then
 		return;
 	end
 
 	if item.opening_tag and config.on_opening_tag then
-		local open_conf = spec.get({ "on_opening_tag" }, { source = config, args = { item.opening_tag } });
+		local open_conf = spec.get({ "on_opening_tag" }, { source = config, eval_args = { item.opening_tag } });
 		local range = item.opening_tag.range;
 
-		if pcall(config.opening_tag_offset, range) then range = config.opening_tag_offset(range) end
+		if pcall(config.opening_tag_offset, range) then
+			range = config.opening_tag_offset(range);
+		end
+
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
@@ -46,13 +53,15 @@ html.container_element = function (buffer, item)
 	end
 
 	if config.on_node then
-		local node_conf = spec.get({ "on_node" }, { source = config, args = { item } });
+		local node_conf = spec.get({ "on_node" }, { source = config, eval_args = { item } });
 		local range = {
 			item.range.row_start, item.range.col_start,
 			item.range.row_end,   item.range.col_end
 		};
 
-		if pcall(config.node_offset, range) then range = config.node_offset(range) end
+		if pcall(config.node_offset, range) then
+			range = config.node_offset(range);
+		end
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
@@ -69,10 +78,12 @@ html.container_element = function (buffer, item)
 	end
 
 	if item.closing_tag and config.on_closing_tag then
-		local close_conf = spec.get({ "on_closing_tag" }, { source = config, args = { item.closing_tag } });
+		local close_conf = spec.get({ "on_closing_tag" }, { source = config, eval_args = { item.closing_tag } });
 		local range = item.closing_tag.range;
 
-		if pcall(config.closing_tag_offset, range) then range = config.closing_tag_offset(range) end
+		if pcall(config.closing_tag_offset, range) then
+			range = config.closing_tag_offset(range);
+		end
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
@@ -147,7 +158,7 @@ html.void_element = function (buffer, item)
 	end
 
 	if config.on_node then
-		local node_conf = spec.get({ "on_node" }, { source = config, args = { item } });
+		local node_conf = spec.get({ "on_node" }, { source = config, eval_args = { item } });
 		local range = {
 			item.range.row_start, item.range.col_start,
 			item.range.row_end,   item.range.col_end
@@ -186,8 +197,8 @@ html.render = function (buffer, content)
 
 	for _, item in ipairs(content or {}) do
 		if html[item.class:gsub("^html_", "")] then
-			pcall(html[item.class:gsub("^html_", "")], buffer, item);
-			-- html[item.class:gsub("^html_", "")](buffer, item);
+			-- pcall(html[item.class:gsub("^html_", "")], buffer, item);
+			html[item.class:gsub("^html_", "")](buffer, item);
 		end
 	end
 	---_
