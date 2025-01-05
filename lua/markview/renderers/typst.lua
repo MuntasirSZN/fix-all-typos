@@ -853,9 +853,7 @@ typst.raw_block = function (buffer, item)
 				virt_text_pos = "inline",
 				virt_text = {
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-				},
-
-				hl_mode = "combine"
+				}
 			});
 
 			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start + #line, {
@@ -865,9 +863,7 @@ typst.raw_block = function (buffer, item)
 				virt_text = {
 					{ string.rep(config.pad_char or " ", block_width - #line), utils.set_hl(config.hl) },
 					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-				},
-
-				hl_mode = "combine"
+				}
 			});
 
 			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, range.col_start, {
