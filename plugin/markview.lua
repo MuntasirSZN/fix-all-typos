@@ -175,6 +175,10 @@ vim.api.nvim_create_autocmd({
 
 		if markview.actions.__is_attached(buffer) == false then
 			return;
+		elseif markview.state.enable == false then
+			return;
+		elseif markview.actions.__is_enabled(buffer) == false then
+			return;
 		elseif vim.list_contains(modes, mode) == false then
 			return;
 		end
