@@ -181,54 +181,70 @@ vim.api.nvim_create_autocmd({
 
 		local delay = spec.get({ "preview", "debounce" }, { fallback = 25, ignore_enable = true });
 
-		--- Like `vim.list_contains` but on a
-		--- list of items.
-		---@param list any[]
-		---@param items any[]
-		---@return boolean
-		local list_contains = function (list, items)
-			---+${lua}
-			for _, item in ipairs(items) do
-				if vim.list_contains(list, item) then
-					return true;
+		local function immediate_render ()
+			if vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) == false then
+				return false;
+			end
+
+			local utils = require("markview.utils");
+			local win = utils.buf_getwin(buffer);
+
+			if type(win) ~= "number" or markview.win_is_safe(win) == false then
+				return false;
+			end
+
+			local distance_threshold = math.floor(vim.o.lines * 0.75);
+			local pos_y = vim.api.nvim_win_get_cursor(win)[1];
+
+			local old = markview.state.buffer_states[buffer].y or 0;
+			local diff = math.abs(pos_y - old);
+
+			markview.state.buffer_states[buffer].y = pos_y;
+
+			if diff >= distance_threshold then
+				return true;
+			else
+				return false;
+			end
+		end
+
+		if buffer == markview.state.splitview_source then
+			--- Splitview renderer.
+			local max_l = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
+			local lines = vim.api.nvim_buf_line_count(buffer);
+
+			if lines >= max_l then
+				if immediate_render() == true then
+					markview.splitview_render(true, true);
+				elseif vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) then
+					markview.update_splitview_cursor();
+				else
+					timer:start(delay, 0, vim.schedule_wrap(function ()
+						if vim.v.exiting ~= vim.NIL then
+							return;
+						end
+
+						markview.splitview_render(true, true);
+					end));
 				end
+				--- Partial render is used.
+			else
+				markview.update_splitview_cursor();
 			end
-
-			return false;
-			---_
-		end
-
-		--- Should we render things?
-		---@return boolean
-		local function should_draw()
-			---+${lua}
-			local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-
-			if markview.actions.__is_attached(buffer) == false then
-				return false;
-			elseif markview.state.enable == false then
-				return false;
-			elseif markview.state.buffer_states[buffer] and markview.state.buffer_states[buffer].enable == false then
-				return false;
-			elseif vim.list_contains({ "CursorMoved", "TextChanged" }, name) and list_contains(modes, { "n", "v" }) then
-				return true;
-			elseif vim.list_contains({ "CursorMovedI", "TextChangedI" }, name) and list_contains(modes, { "i" }) then
-				return true;
-			end
-
-			return false;
-			---_
-		end
-
-		timer:start(delay, 0, vim.schedule_wrap(function ()
-			if buffer == markview.state.splitview_source then
-				markview.splitview_render();
-			elseif should_draw() == true then
+		else
+			--- Normal renderer.
+			if immediate_render() == true then
 				markview.render(buffer);
 			else
-				markview.clear(buffer);
+				timer:start(delay, 0, vim.schedule_wrap(function ()
+					if vim.v.exiting ~= vim.NIL then
+						return;
+					end
+
+					markview.render(buffer);
+				end));
 			end
-		end));
+		end
 		---_
 	end
 });
