@@ -1043,8 +1043,7 @@ end
 ---@param content table[]
 inline.render = function (buffer, content)
 	for _, item in ipairs(content or {}) do
-		-- pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
-		inline[item.class:gsub("^inline_", "")]( buffer, item);
+		pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
 	end
 end
 
