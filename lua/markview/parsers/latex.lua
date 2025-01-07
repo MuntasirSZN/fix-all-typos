@@ -60,7 +60,7 @@ latex.block = function (buffer, _, text, range)
 	---+${lua}
 
 	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
-	local inline, closed = false, true;
+	local inline = false;
 
 	if from:match("^(%s*)$") == nil or to:match("^(%s*)%$%$$") == nil then
 		inline = true;
@@ -68,15 +68,10 @@ latex.block = function (buffer, _, text, range)
 		inline = true;
 	end
 
-	if text[#text]:match("%$%$$") == nil then
-		closed = false;
-	end
-
 	---@class __latex.blocks
 	latex.insert({
 		class = inline == true and "latex_inline" or "latex_block",
 		marker = inline == true and "$$" or nil,
-		closed = closed,
 
 		text = text,
 		range = range
