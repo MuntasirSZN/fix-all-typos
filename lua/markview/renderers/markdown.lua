@@ -25,6 +25,14 @@ end
 ---@type table[]
 markdown.cache = {};
 
+local concat = function (list)
+	for i, item in ipairs(list) do
+		list[i] = utils.escape_string(item);
+	end
+
+	return table.concat(list);
+end
+
 --- Gets the preview text from a string containing markdown
 --- syntax.
 ---
@@ -36,14 +44,6 @@ markdown.cache = {};
 ---@return integer
 markdown.output = function (str, buffer)
 	---+${func}
-	local concat = function (list)
-		for i, item in ipairs(list) do
-			list[i] = utils.escape_string(item);
-		end
-
-		return table.concat(list);
-	end
-
 	local decorations = 0;
 
 	--- Inline codes config
@@ -740,7 +740,7 @@ markdown.get_visual_text = {
 				"`",
 				inline_code,
 				"`"
-			}), concat({ content }));
+			}), inline_code);
 			---_
 		end
 
@@ -1118,7 +1118,11 @@ markdown.code_block = function (buffer, item)
 
 	---@type markdown.code_blocks?
 	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
+
+	local delims = item.delimiters;
 	local range = item.range;
+
+	local info_range = range.info_string or {};
 
 	if not config then
 		return;
@@ -1128,295 +1132,329 @@ markdown.code_block = function (buffer, item)
 	local label = { string.format(" %s%s ", decorations.icon, decorations.name), config.label_hl or decorations.icon_hl };
 	local win = utils.buf_getwin(buffer);
 
-	if config.style == "simple" or ( vim.o.wrap == true or vim.wo[win].wrap == true ) then
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-			end_col = range.col_start + item.text[1]:len(),
-			conceal = "",
-		});
+	--- Column end for concealing code block language string.
+	---@return integer
+	local function lang_conceal_to ()
+		---+${lua}
+		if item.info_string == nil then
+			return range.col_start + #delims[1];
+		elseif item.info_string:match("^%{[^%}]+%}%s?") then
+			--- Info string: {lang}
+			local _to = item.info_string:match("^%{[^%}]+%}%s?"):len();
+			return info_range[2] + _to;
+		else
+			--- Info string: ```lang`
+			local _to = item.info_string:match("^%S+%s?"):len();
+			return info_range[2] + _to;
+		end
+		---_
+	end
+
+	--- Renders simple style code blocks.
+	local function render_simple()
+		---+${lua}
+
+		local conceal_to = lang_conceal_to();
 
 		if config.label_direction == nil or config.label_direction == "left" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-				end_col = range.col_end,
 				undo_restore = false, invalidate = true,
 
-				virt_text_pos = "inline",
-				virt_text = { label },
-
-				line_hl_group = utils.set_hl(config.info_hl or config.hl),
+				end_col = conceal_to,
+				conceal = "",
 
 				sign_text = config.sign == true and decorations.sign or nil,
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
+
+				virt_text_pos = "inline",
+				virt_text = { label }
 			});
-		elseif config.label_direction == "right" then
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + vim.fn.strchars(item.info_string or ""), {
+		else
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 
-				virt_text_pos = "right_align",
-				virt_text = { label },
-
-				line_hl_group = utils.set_hl(config.info_hl or config.hl),
+				end_col = conceal_to,
+				conceal = "",
 
 				sign_text = config.sign == true and decorations.sign or nil,
-				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl)
+				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
+
+				virt_text_pos = "right_align",
+				virt_text = { label }
 			});
 		end
 
-		--- NOTE: Don't highlight extra line after the closing ```
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start, {
-			line_hl_group = utils.set_hl(config.hl),
-			end_row = range.row_end - 1, end_col = range.col_end
-		});
+		if item.info_string then
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, info_range[1], info_range[2], {
+				undo_restore = false, invalidate = true,
 
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start, {
-			end_col = range.col_start + #item.text[#item.text],
-			conceal = "",
-			undo_restore = false, invalidate = true
+				end_row = info_range[3],
+				end_col = #item.text[1],
+
+				hl_group = utils.set_hl(config.info_hl or config.hl)
+			});
+		end
+
+		--- Background
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end - 1,
+			end_col = range.col_end,
+
+			line_hl_group = utils.set_hl(config.hl)
 		});
-	elseif config.style == "block" then
+		---_
+	end
+
+	--- Renders block style code blocks.
+	local function render_block ()
+		---+${lua}
+
 		local pad_amount = config.pad_amount or 0;
-		local block_width = config.min_width - (2 * pad_amount);
+		local block_width = config.min_width or 60;
+
+		local line_widths = {};
 
 		--- Get maximum length of the lines within the code block
 		for l, line in ipairs(item.text) do
-			if (l ~= 1 and l ~= #item.text) and vim.fn.strdisplaywidth(line) > block_width then
-				block_width = vim.fn.strdisplaywidth(line);
+			local final = markdown.get_visual_text:init(decorations.name, line);
+
+			if l ~= 1 and l ~= #item.text then
+				table.insert(line_widths, vim.fn.strdisplaywidth(final));
+
+				if vim.fn.strdisplaywidth(final) > block_width then
+					block_width = vim.fn.strdisplaywidth(final);
+				end
 			end
 		end
 
-		local preview = utils.virt_len({ label });
+		local label_width = utils.virt_len({ label });
+		local conceal_to = lang_conceal_to();
 
+		--- Render top
 		if config.label_direction == nil or config.label_direction == "left" then
+			---+${Left aligned label}
+			local avail_top  = block_width - (label_width + 2);
+
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
 
-				end_col = range.col_start + (range.info_start or range.lang_end or 0),
+				end_col = conceal_to,
 				conceal = "",
-
-				hl_group = utils.set_hl(config.hl),
-				hl_mode = "combine"
-			});
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + (range.lang_end or 0), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = { label },
 
 				sign_text = config.sign == true and decorations.sign or nil,
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 
-				hl_mode = "combine"
+				virt_text_pos = "inline",
+				virt_text = { label }
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-				end_col = range.col_start + item.text[1]:len(),
-				hl_group = utils.set_hl(config.info_hl or config.hl),
-				undo_restore = false, invalidate = true,
-			});
-
-			if item.info_string then
-				if ((preview + 1) + vim.fn.strdisplaywidth(item.info_string)) >= block_width then
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, (range.col_start + range.info_start) + pad_amount + (block_width - (preview + 1)), {
-						end_col = range.col_start + item.text[1]:len(),
-						conceal = "",
-						hl_group = utils.set_hl(config.hl),
-
-						undo_restore = false, invalidate = true,
-						hl_mode = "combine"
-					});
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + item.text[1]:len(), {
-						undo_restore = false, invalidate = true,
-
-						virt_text_pos = "inline",
-						virt_text = {
-							{ "…", utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-						},
-
-						hl_mode = "combine"
-					});
-				else
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
-						undo_restore = false, invalidate = true,
-
-						virt_text_pos = "inline",
-						virt_text = {
-							{ string.rep(config.pad_char or " ", (block_width - (preview + #item.info_string))), utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-						},
-
-						hl_mode = "combine"
-					});
-				end
-			else
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+			if not item.info_string then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + #delims[1], {
 					undo_restore = false, invalidate = true,
-					end_col = range.col_start + item.text[1]:len(),
-					conceal = "",
-
-					hl_mode = "combine"
-				});
-
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + item.text[1]:len(), {
-					undo_restore = false, invalidate = true,
-					hl_group = utils.set_hl(config.hl),
 
 					virt_text_pos = "inline",
 					virt_text = {
-						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
-						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-					},
-
-					hl_mode = "combine"
+						{
+							string.rep(config.pad_char or " ", block_width + (2 * pad_amount) - label_width),
+							utils.set_hl(config.hl)
+						}
+					}
 				});
+				goto no_info;
 			end
-		elseif config.label_direction == "right" then
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-				end_col = range.col_start + (range.info_start or range.lang_end or 0),
-				conceal = "",
+
+			local relative_y = conceal_to - info_range[2];
+			local info_width = #item.info_string - relative_y;
+
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, info_range[1], info_range[2], {
 				undo_restore = false, invalidate = true,
 
-				virt_text_pos = "inline",
-				virt_text = {
-					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				},
+				end_row = info_range[3],
+				end_col = #item.text[1],
 
-				sign_text = config.sign == true and sign or nil,
-				sign_hl_group = utils.set_hl(config.sign_hl or sign_hl or hl),
-
-				hl_group = utils.set_hl(config.hl)
-			});
-
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-
-				end_col = range.col_start + item.text[1]:len(),
 				hl_group = utils.set_hl(config.info_hl or config.hl)
 			});
 
-			if item.info_string then
-				if (preview + 1 + vim.fn.strdisplaywidth(item.info_string)) >= (block_width - (2 * pad_amount)) then
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, (range.col_start + range.info_start) + (block_width - (preview + 1)), {
-						undo_restore = false, invalidate = true,
-						end_col = range.col_start + item.text[1]:len(),
-						hl_group = utils.set_hl(config.hl),
-
-						conceal = ""
-					});
-
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
-						undo_restore = false, invalidate = true,
-
-						virt_text_pos = "inline",
-						virt_text = {
-							{ "…", utils.set_hl(config.info_hl or config.hl) },
-							{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-							label
-						},
-
-						hl_mode = "combine"
-					});
-				else
-					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + range.info_end, {
-						undo_restore = false, invalidate = true,
-
-						virt_text_pos = "inline",
-						virt_text = {
-							{ string.rep(config.pad_char or " ", pad_amount + (block_width - (preview + #item.info_string))), utils.set_hl(config.hl) },
-							label
-						},
-
-						hl_mode = "combine"
-					});
-				end
-			else
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+			if info_width >= avail_top then
+				--- Exceeds.
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, conceal_to + avail_top, {
 					undo_restore = false, invalidate = true,
-					end_col = range.col_start + item.text[1]:len(),
 
+					end_col = info_range[4],
 					conceal = "",
-				});
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + item.text[1]:len(), {
-					undo_restore = false, invalidate = true,
 					virt_text_pos = "inline",
 					virt_text = {
-						{ string.rep(config.pad_char or " ", block_width - preview), utils.set_hl(config.hl) },
-						{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-						label
-					},
+						{ "…", utils.set_hl(config.info_hl or config.hl) },
+						{ " ", utils.set_hl(config.hl) }
+					}
+				});
+			else
+				local spaces = avail_top - info_width + 2;
 
-					hl_mode = "combine"
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, #item.text[1], {
+					undo_restore = false, invalidate = true,
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(config.pad_char or " ", spaces),
+							utils.set_hl(config.hl)
+						}
+					}
 				});
 			end
+
+			::no_info::
+			---_
+		else
+			---+${Right aligned label}
+			local avail_top  = block_width - (label_width + 3);
+
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+				undo_restore = false, invalidate = true,
+
+				end_col = conceal_to,
+				conceal = "",
+
+				sign_text = config.sign == true and decorations.sign or nil,
+				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{
+						" ",
+						utils.set_hl(config.hl)
+					}
+				}
+			});
+
+			if not item.info_string then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + #delims[1], {
+					undo_restore = false, invalidate = true,
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(config.pad_char or " ", avail_top + 2),
+							utils.set_hl(config.hl)
+						},
+						label
+					}
+				});
+				goto no_info;
+			end
+
+			local relative_y = conceal_to - info_range[2];
+			local info_width = #item.info_string - relative_y;
+
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, info_range[1], info_range[2], {
+				undo_restore = false, invalidate = true,
+
+				end_row = info_range[3],
+				end_col = #item.text[1],
+
+				hl_group = utils.set_hl(config.info_hl or config.hl)
+			});
+
+			if info_width >= avail_top then
+				--- Exceeds.
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, conceal_to + avail_top, {
+					undo_restore = false, invalidate = true,
+
+					end_col = info_range[4],
+					conceal = "",
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{ "…", utils.set_hl(config.info_hl or config.hl) },
+						{ " ", utils.set_hl(config.hl) },
+						label
+					}
+				});
+			else
+				local spaces = avail_top - info_width + 2;
+
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, #item.text[1], {
+					undo_restore = false, invalidate = true,
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(config.pad_char or " ", spaces),
+							utils.set_hl(config.hl)
+						},
+						label
+					}
+				});
+			end
+
+			::no_info::
+			---_
 		end
 
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start, {
+		--- Render bottom
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, #delims[2], {
 			undo_restore = false, invalidate = true,
+			end_col = #item.text[#item.text],
 
-			end_col = range.col_start + #item.text[#item.text],
-			conceal = "",
+			virt_text_pos = "inline",
+			virt_text = {
+				{
+					string.rep(" ", block_width),
+					utils.set_hl(config.hl)
+				}
+			}
+		});
+
+		--- Background
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end,
+			end_col = range.col_end,
 
 			hl_group = utils.set_hl(config.hl)
 		});
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text], {
-			undo_restore = false, invalidate = true,
-			virt_text_pos = "inline",
-			virt_text = {
-				{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) },
-				{ string.rep(config.pad_char or " ", block_width), utils.set_hl(config.hl) },
-				{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-			},
 
-			hl_mode = "combine"
-		});
+		--- Line padding
+		for l, width in ipairs(line_widths) do
+			---+${lua}
 
-		for l = range.row_start + 1, range.row_end - 2, 1 do
-			local line = item.text[(l + 1) - range.row_start];
-			local final = markdown.get_visual_text:init(decorations.name, line);
+			local line = item.text[l + 1];
 
-			--- If the line inside the code block is somehow shorter than
-			--- the start column of this node.
-			local offset = 0;
-
-			if final == "" then
-				local _t = vim.api.nvim_buf_get_lines(buffer, l, l + 1, false)[1]:sub(0, range.col_start);
-
-				if #_t < range.col_start then
-					offset = range.col_start - #_t;
-				end
-			end
-
-			--- Left padding
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, range.col_start - offset, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, math.min(#line, range.col_start), {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ string.rep(" ", offset),},
-					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				}
+					{
+						string.rep(" ", pad_amount),
+						utils.set_hl(config.hl)
+					}
+				},
 			});
 
-			--- Right padding
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, offset > 0 and range.col_start - offset or range.col_start + #line, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, #line, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ string.rep(config.pad_char or " ", block_width - vim.fn.strdisplaywidth(final)), utils.set_hl(config.hl) },
-					{ string.rep(config.pad_char or " ", pad_amount), utils.set_hl(config.hl) }
-				}
+					{
+						string.rep(" ", block_width - (pad_amount + width)),
+						utils.set_hl(config.hl)
+					}
+				},
 			});
-
-			--- Background color
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, offset > 0 and range.col_start - offset or range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_col = offset > 0 and range.col_start - offset or range.col_start + #line,
-				hl_group = utils.set_hl(config.hl)
-			});
+			---_
 		end
+		---_
+	end
+
+	if config.style == "simple" or ( vim.o.wrap == true or vim.wo[win].wrap == true ) then
+		render_simple();
+	elseif config.style == "block" then
+		render_block()
 	end
 	---_
 end
@@ -1637,7 +1675,7 @@ markdown.list_item = function (buffer, item)
 			class = "inline_checkbox",
 
 			text = item.checkbox,
-			range = {}
+			range = nil
 		}
 	};
 
@@ -1652,12 +1690,13 @@ markdown.list_item = function (buffer, item)
 		end
 
 		if state == "x" or state == "X" then
-			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+			return spec.get({ "checked" }, { source = checkboxes, eval_args = chk_args });
 		elseif state == " " then
-			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+			return spec.get({ "unchecked" }, { source = checkboxes, eval_args = chk_args });
 		end
 
-		return utils.match(checkboxes, state, { eval_args = chk_args });
+		local _state = utils.escape_string(state) or "";
+		return utils.match(checkboxes, "^" .. _state .. "$", { default = false, ignore_keys = { "checked", "unchecked", "enable" }, eval_args = chk_args });
 	end
 
 	local checkbox = get_state(item.checkbox);
@@ -2887,7 +2926,7 @@ markdown.__list_item = function (buffer, item)
 			class = "inline_checkbox",
 
 			text = item.checkbox,
-			range = {}
+			range = nil
 		}
 	};
 
@@ -2902,9 +2941,9 @@ markdown.__list_item = function (buffer, item)
 		end
 
 		if state == "x" or state == "X" then
-			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+			return spec.get({ "checked" }, { source = checkboxes, eval_args = chk_args });
 		elseif state == " " then
-			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+			return spec.get({ "unchecked" }, { source = checkboxes, eval_args = chk_args });
 		end
 
 		return utils.match(checkboxes, state, { eval_args = chk_args });
