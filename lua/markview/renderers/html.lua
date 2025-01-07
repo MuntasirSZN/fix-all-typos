@@ -151,7 +151,7 @@ html.void_element = function (buffer, item)
 	end
 
 	---@type void_elements.opts
-	local config = utils.match(main_config, item.name, { ignore_keys = { "enable" }, eval_args = { buffer, item } })
+	local config = utils.match(main_config, item.name, { default = false, eval_args = { buffer, item } })
 
 	if not main_config then
 		return;
@@ -164,7 +164,9 @@ html.void_element = function (buffer, item)
 			item.range.row_end,   item.range.col_end
 		};
 
-		if pcall(config.node_offset, range) then range = config.node_offset(range) end
+		if pcall(config.node_offset, range) then
+			range = config.node_offset(range);
+		end
 
 		vim.api.nvim_buf_set_extmark(
 			buffer,
