@@ -144,7 +144,7 @@ end
 
 --- Code block parser
 ---@param range __code_blocks.range
-markdown.code_block = function (buffer, _, _, range)
+markdown.code_block = function (buffer, TSNode, _, range)
 	---+${lua}
 
 	--- Parser is unreliable.
@@ -158,35 +158,37 @@ markdown.code_block = function (buffer, _, _, range)
 		text[l] = line:sub(range.col_start + 1);
 	end
 
-	local tmp, before = text[1], nil;
-	local language, info;
+	local language, info_string;
+	local info_node = TSNode:named_child(1);
 
-	before = #tmp:match("^[%`%~][%`%~][%`%~]%s*");
-	tmp = tmp:gsub("^[%`%~][%`%~][%`%~]%s*", "");
+	if info_node and info_node:type() == "info_string" then
+		--- Info string found
+		local lang_node = info_node:named_child(0);
 
-	if tmp:match("^(%S+)") then
-		language = tmp:match("^(%S+)");
+		if lang_node then
+			language = vim.treesitter.get_node_text(lang_node, buffer);
+			range.language = { lang_node:range() };
+		end
 
-		range.lang_start = before;
-		range.lang_end = range.lang_start + #tmp:match("^(%S+)");
-		tmp = tmp:gsub("^(%S*)", "");
+		info_string = vim.treesitter.get_node_text(info_node, buffer);
+		range.info_string = { info_node:range() };
 	end
 
-	if tmp:match("^%s(.+)$") then
-		info = tmp:match("^%s(.+)$");
-
-		range.info_start = range.lang_end + 1;
-		range.info_end = range.info_start + #info;
-	end
+	local start_delim = TSNode:child(0);
+	local end_delim   = TSNode:child(TSNode:child_count() - 1);
 
 	---@type __markdown.code_blocks
 	markdown.insert({
 		class = "markdown_code_block",
 
 		language = language,
-		info_string = info,
-		text = text,
+		info_string = info_string,
+		delimiters = {
+			start_delim and vim.treesitter.get_node_text(start_delim, buffer) or "",
+			end_delim and vim.treesitter.get_node_text(end_delim, buffer) or "",
+		},
 
+		text = text,
 		range = range
 	});
 	---_
