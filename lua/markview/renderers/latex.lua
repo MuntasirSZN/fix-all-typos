@@ -206,18 +206,28 @@ latex.font = function (buffer, item)
 	---+${func}
 
 	---@type latex.fonts?
-	local config = spec.get({ "latex", "fonts" }, { fallback = nil });
+	local main_config = spec.get({ "latex", "fonts" }, { fallback = nil });
 
-	if not config then
+	if main_config == nil then
 		return;
-	elseif symbols.fonts[item.name] == nil or spec.get({ "latex", "fonts", item.name, "enable" }, { fallback = true }) == false then
+	elseif symbols.fonts[item.name] == nil then
 		return;
 	end
+
+	---@type fonts.opts?
+	local config = utils.match(main_config, item.name, { eval_args = { buffer, item } });
+
+	if config == nil then
+		return;
+	elseif vim.tbl_isempty(config) == true then
+		return;
+	end
+
+	table.insert(latex.cache.font_regions, item);
 
 	local range = item.range;
 	---@type integer[]
 	local font = range.font;
-	table.insert(latex.cache.font_regions, vim.tbl_extend("force", item.range, { name = item.name }));
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, font[1], font[2], {
 		undo_restore = false, invalidate = true,
@@ -230,6 +240,18 @@ latex.font = function (buffer, item)
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
+	});
+
+	if config.hl == nil then
+		return;
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		hl_group = utils.set_hl(config.hl)
 	});
 	---_
 end
@@ -370,6 +392,13 @@ latex.subscript = function (buffer, item)
 	end
 
 	local range = item.range;
+	local hl;
+
+	if vim.islist(config.hl) then
+		hl = config.hl[utils.clamp(item.level, 1, #config.hl)];
+	elseif type(config.hl) == "string" then
+		hl = config.hl;
+	end
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -377,23 +406,21 @@ latex.subscript = function (buffer, item)
 		conceal = "",
 
 		virt_text_pos = "inline",
-		virt_text = item.preview == false and { { "↓(", utils.set_hl(config.hl) } } or nil,
+		virt_text = item.preview == false and { { "↓(", utils.set_hl(hl) } } or nil,
 
 		hl_mode = "combine"
 	});
 
 	if item.parenthesis then
-		if item.preview then
-			table.insert(latex.cache.style_regions.subscripts, item.range);
-		else
-			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
-				undo_restore = false, invalidate = true,
-				end_row = range.row_end,
-				end_col = range.col_end,
+		table.insert(latex.cache.style_regions.subscripts, item);
 
-				hl_group = utils.set_hl(config.hl)
-			});
-		end
+		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
+			undo_restore = false, invalidate = true,
+			end_row = range.row_end,
+			end_col = range.col_end,
+
+			hl_group = utils.set_hl(hl)
+		});
 
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - 1, {
 			undo_restore = false, invalidate = true,
@@ -401,7 +428,7 @@ latex.subscript = function (buffer, item)
 			conceal = "",
 
 			virt_text_pos = "inline",
-			virt_text = item.preview == false and { { ")", utils.set_hl(config.hl) } } or nil,
+			virt_text = item.preview == false and { { ")", utils.set_hl(hl) } } or nil,
 
 			hl_mode = "combine"
 		});
@@ -409,11 +436,19 @@ latex.subscript = function (buffer, item)
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start + 1, {
 			undo_restore = false, invalidate = true,
 			virt_text_pos = "overlay",
-			virt_text = { { symbols.subscripts[item.text[1]:sub(2)], utils.set_hl(config.hl) } },
+			virt_text = { { symbols.subscripts[item.text[1]:sub(2)], utils.set_hl(hl) } },
 
 			hl_mode = "combine"
 		});
 	end
+
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		hl_group = utils.set_hl(hl)
+	});
 	---_
 end
 
@@ -444,7 +479,7 @@ latex.superscript = function (buffer, item)
 
 	if item.parenthesis then
 		if item.preview then
-			table.insert(latex.cache.style_regions.superscripts, item.range);
+			table.insert(latex.cache.style_regions.superscripts, item);
 		else
 			vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 				undo_restore = false, invalidate = true,
@@ -477,6 +512,156 @@ latex.superscript = function (buffer, item)
 	---_
 end
 
+--------------------------------------------------------------------------------------------
+
+--- Gets text style.
+---@param buffer integer
+---@param range node.range
+---@param opts { symbol: string?, text: string? }
+---@return string | nil
+---@return string | nil
+local get_style = function (buffer, range, opts)
+	---+${lua}
+	opts = opts or {};
+
+	local function is_smaller (range_1, range_2)
+		local r_diff_1 = range_1.row_end - range_1.row_start;
+		local r_diff_2 = range_2.row_end - range_2.row_start;
+
+		local c_diff_1 = range_1.col_end - range_1.col_start;
+		local c_diff_2 = range_2.col_end - range_2.col_start;
+
+		if r_diff_1 ~= r_diff_2 then
+			return r_diff_2 > r_diff_1 and 1 or 2;
+		else
+			return c_diff_2 > c_diff_1 and 1 or 2;
+		end
+	end
+
+	local function result_text (tbl)
+		tbl = tbl or {};
+
+		if opts.symbol then
+			return tbl[opts.symbol] or symbols.entries[opts.symbol];
+		elseif opts.text then
+			local _t = "";
+
+			for letter in opts.text:gmatch(".") do
+				if tbl[letter] then
+					_t = _t .. tbl[letter];
+				else
+					_t = _t .. letter;
+				end
+			end
+
+			return _t;
+		end
+	end
+
+	local _o;
+	local text, hl;
+	local styles = latex.cache.style_regions or {};
+
+	---+${lua, Get the smallest style node that contains this range}
+	for _, entry in ipairs(styles.subscripts or {}) do
+		if utils.within_range(entry.range, range) then
+			if _o == nil then
+				_o = entry;
+			elseif is_smaller(entry.range, _o.range) == 1 then
+				_o = entry;
+			end
+		end
+	end
+
+	for _, entry in ipairs(styles.superscripts or {}) do
+		if utils.within_range(entry.range, range) then
+			if _o == nil then
+				_o = entry;
+			elseif is_smaller(entry.range, _o.range) == 1 then
+				_o = entry;
+			end
+		end
+	end
+
+	for _, entry in ipairs(latex.cache.font_regions or {}) do
+		if utils.within_range(entry.range, range) then
+			if _o == nil then
+				_o = entry;
+			elseif is_smaller(entry.range, _o.range) == 1 then
+				_o = entry;
+			end
+		end
+	end
+	---_
+
+	if _o == nil then
+		if opts.symbol then
+			text = result_text(symbols.entries);
+		elseif opts.text then
+			text = result_text(symbols.fonts.default);
+		end
+	elseif _o.class == "latex_subscript" then
+		---@type latex.subscripts?
+		local config = spec.get({ "latex", "subscripts" }, { fallback = nil, eval_args = { buffer, _o } });
+
+		if not config then
+			return;
+		end
+
+		if vim.islist(config.hl) then
+			---@type string
+			hl = config.hl[utils.clamp(_o.level, 1, #config.hl)];
+		elseif type(config.hl) == "string" then
+			---@type string | nil
+			hl = config.hl;
+		end
+
+		text = result_text(symbols.subscripts);
+	elseif _o.class == "latex_superscript" then
+		---@type latex.subscripts?
+		local config = spec.get({ "latex", "superscripts" }, { fallback = nil, eval_args = { buffer, _o } });
+
+		if not config then
+			return;
+		end
+
+		if vim.islist(config.hl) then
+			---@type string
+			hl = config.hl[utils.clamp(_o.level, 1, #config.hl)];
+		elseif type(config.hl) == "string" then
+			---@type string | nil
+			hl = config.hl;
+		end
+
+		text = result_text(symbols.superscripts);
+	elseif _o.class == "latex_font" then
+		---@type latex.fonts?
+		local main_config = spec.get({ "latex", "fonts" }, { fallback = nil });
+
+		if main_config == nil then
+			return;
+		elseif symbols.fonts[_o.name] == nil then
+			return;
+		end
+
+		---@type fonts.opts?
+		local config = utils.match(main_config, _o.name, { eval_args = { buffer, item } });
+
+		if config == nil then
+			return;
+		elseif vim.tbl_isempty(config) == true then
+			return;
+		end
+
+		---@type string | nil
+		hl = config.hl;
+		text = result_text( symbols.fonts[_o.name] ) or result_text( symbols.fonts.default );
+	end
+
+	return text, hl;
+	---_
+end
+
 ---@param buffer integer
 ---@param item __latex.symbols
 latex.symbol = function (buffer, item)
@@ -492,63 +677,11 @@ latex.symbol = function (buffer, item)
 	end
 
 	local range = item.range;
-	local within_font, font;
+	local _o, hl = get_style(buffer, range, { symbol = item.name });
 
-	for _, region in ipairs(latex.cache.font_regions) do
-		if utils.within_range(region, range) then
-			within_font = true;
-			font = region.name;
-			break;
-		end
+	if type(hl) ~= "string" then
+		hl = config.hl;
 	end
-
-	local _o, _h = "", nil;
-
-	---+${lua, Apply text style}
-	if item.style and spec.get({ "latex", item.style }, { fallback = nil }) then
-		_o = symbols[item.style][item.name] or symbols.entries[item.name];
-		_h = spec.get({ "latex", item.style, "hl" }, { fallback = nil });
-	elseif within_font == true and ( symbols.fonts[font] and symbols.fonts[font][item.name] ) then
-		_o = symbols.fonts[font][item.name];
-
-		_h = utils.match(
-			spec.get({ "latex", "fonts" }, { fallback = nil }),
-			font,
-			{
-				eval_args = {
-					buffer,
-					{
-						class = "inline_font",
-						name = font,
-
-						text = string.format("\\%s{%s}", font, symbol)
-					}
-				}
-			}
-		).hl or config.hl;
-	elseif symbols.entries[item.name] then
-		_o = symbols.entries[item.name];
-
-		_h = config.hl or utils.match(
-			spec.get({ "latex", "fonts" }, { fallback = nil }),
-			font,
-			{
-				eval_args = {
-					buffer,
-					{
-						class = "inline_font",
-						name = font,
-
-						text = string.format("\\%s{%s}", font, symbol)
-					}
-				}
-			}
-		).hl;
-	else
-		return;
-	end
-	---_
-
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -556,7 +689,8 @@ latex.symbol = function (buffer, item)
 		conceal = "",
 
 		virt_text_pos = "inline",
-		virt_text = { { _o, utils.set_hl(_h) } },
+		virt_text = { { _o or "", utils.set_hl(hl) } },
+
 		hl_mode = "combine"
 	});
 	---_
@@ -603,78 +737,11 @@ latex.word = function (buffer, item)
 	end
 
 	local range = item.range;
-	---@type boolean, string?
-	local within_font, font;
-	---@type boolean, string?
-	local within_style, style;
+	local _o, hl = get_style(buffer, range, { text = item.text[1] or "" });
 
-	---+${lua, Check text style}
-	for _, region in ipairs(latex.cache.font_regions) do
-		if utils.within_range(region, range) then
-			within_font = true;
-			font = region.name;
-			break;
-		end
+	if _o == nil then
+		return;
 	end
-
-	for _, region in ipairs(latex.cache.style_regions.superscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "superscripts";
-			break;
-		end
-	end
-
-	for _, region in ipairs(latex.cache.style_regions.subscripts) do
-		if utils.within_range(region, range) then
-			within_style = true;
-			style = "subscripts";
-			break;
-		end
-	end
-	---_
-
-	local _o, _h = "", nil;
-
-	---+${lua, Apply text style}
-	if within_style == true and spec.get({ "latex", style }, { fallback = nil }) then
-		for letter in item.text[1]:gmatch(".") do
-			if symbols[style][letter] then
-				_o = _o .. symbols[style][letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = spec.get({ "latex", style, "hl" }, { fallback = nil });
-	elseif within_font == true then
-		local _font = font or "default";
-
-		for letter in item.text[1]:gmatch(".") do
-			if symbols.fonts[_font][letter] then
-				_o = _o .. symbols.fonts[_font][letter];
-			else
-				_o = _o .. letter;
-			end
-		end
-
-		_h = utils.match(
-			spec.get({ "latex", "fonts" }, { fallback = nil }),
-			_font,
-			{
-				eval_args = {
-					buffer,
-					{
-						class = "inline_font",
-						name = font,
-
-						text = string.format("\\%s{%s}", font, symbol)
-					}
-				}
-			}
-		).hl;
-	end
-	---_
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
@@ -682,7 +749,7 @@ latex.word = function (buffer, item)
 		end_col = range.col_end,
 
 		virt_text_pos = "overlay",
-		virt_text = { { _o, utils.set_hl(_h) } },
+		virt_text = { { _o, utils.set_hl(hl) } },
 		hl_mode = "combine"
 	});
 	---_
@@ -701,9 +768,18 @@ latex.render = function (buffer, content)
 		},
 	};
 
+	local post = {};
+
 	for _, item in ipairs(content or {}) do
+		if vim.list_contains({ "latex_ord", "latex_symbol" }, item.class) == true then
+			table.insert(post, item);
+		else
+			pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+		end
+	end
+
+	for _, item in ipairs(post) do
 		pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
-		-- latex[item.class:gsub("^latex_", "")]( buffer, item);
 	end
 end
 
