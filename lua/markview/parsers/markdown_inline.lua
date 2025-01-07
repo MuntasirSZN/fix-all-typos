@@ -164,16 +164,19 @@ end
 
 --- Footnote parser.
 ---@param text string[]
----@param range node.range
+---@param range inline_link.range
 inline.footnote = function (_, _, text, range)
 	---+${lua}
+
+	local label = table.concat(text, ""):gsub("^%[%^", ""):gsub("%]$", "");
+	range.label = { range.row_start, range.col_start + 2, range.row_end, range.col_end - 1 };
 
 	---@type __inline.footnotes
 	inline.insert({
 		class = "inline_footnote",
 
 		text = text[1],
-		label = text[1]:sub(range.col_start + 2, range.col_end - 1),
+		label = label,
 
 		range = range
 	});
@@ -332,7 +335,7 @@ inline.internal_link = function (_, _, text, range)
 			range.alias = { range.row_start, range.col_start + alias_start, range.row_end, range.col_end - 1 };
 		end
 
-		range.label = { range.row_start, range.col_start + 2, range.row_end, alias_start };
+		range.label = { range.row_start, range.col_start + 2, range.row_end, range.col_end - 2 };
 
 		---@type __inline.internal_links
 		inline.insert({

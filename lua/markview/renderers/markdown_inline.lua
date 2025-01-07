@@ -180,7 +180,7 @@ end
 
 --- Render escaped characters.
 ---@param buffer integer
----@param item __inline.escaped
+---@param item __inline.escapes
 inline.escaped = function (buffer, item)
 	---+${func, Render Escaped characters}
 
