@@ -1637,7 +1637,7 @@ markdown.list_item = function (buffer, item)
 			class = "inline_checkbox",
 
 			text = item.checkbox,
-			range = {}
+			range = nil
 		}
 	};
 
@@ -1652,12 +1652,13 @@ markdown.list_item = function (buffer, item)
 		end
 
 		if state == "x" or state == "X" then
-			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+			return spec.get({ "checked" }, { source = checkboxes, eval_args = chk_args });
 		elseif state == " " then
-			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+			return spec.get({ "unchecked" }, { source = checkboxes, eval_args = chk_args });
 		end
 
-		return utils.match(checkboxes, state, { eval_args = chk_args });
+		local _state = utils.escape_string(state) or "";
+		return utils.match(checkboxes, "^" .. _state .. "$", { default = false, ignore_keys = { "checked", "unchecked", "enable" }, eval_args = chk_args });
 	end
 
 	local checkbox = get_state(item.checkbox);
@@ -2887,7 +2888,7 @@ markdown.__list_item = function (buffer, item)
 			class = "inline_checkbox",
 
 			text = item.checkbox,
-			range = {}
+			range = nil
 		}
 	};
 
@@ -2902,9 +2903,9 @@ markdown.__list_item = function (buffer, item)
 		end
 
 		if state == "x" or state == "X" then
-			return utils.match(checkboxes, "checked", { eval_args = chk_args });
+			return spec.get({ "checked" }, { source = checkboxes, eval_args = chk_args });
 		elseif state == " " then
-			return utils.match(checkboxes, "unchecked", { eval_args = chk_args });
+			return spec.get({ "unchecked" }, { source = checkboxes, eval_args = chk_args });
 		end
 
 		return utils.match(checkboxes, state, { eval_args = chk_args });
