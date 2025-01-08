@@ -1222,8 +1222,8 @@ markdown.code_block = function (buffer, item)
 			if l ~= 1 and l ~= #item.text then
 				table.insert(line_widths, vim.fn.strdisplaywidth(final));
 
-				if vim.fn.strdisplaywidth(final) > block_width then
-					block_width = vim.fn.strdisplaywidth(final);
+				if vim.fn.strdisplaywidth(final) > (block_width - (2 * pad_amount)) then
+					block_width = vim.fn.strdisplaywidth(final) + (2 * pad_amount);
 				end
 			end
 		end
@@ -1558,7 +1558,7 @@ markdown.link_ref_definition = function (buffer, item)
 	---@type config.inline_generic?
 	local config = utils.match(
 		main_config,
-		item.label,
+		item.description or "",
 		{
 			eval_args = { buffer, item }
 		}
