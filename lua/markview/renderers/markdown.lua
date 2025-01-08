@@ -1256,7 +1256,7 @@ markdown.code_block = function (buffer, item)
 					virt_text_pos = "inline",
 					virt_text = {
 						{
-							string.rep(config.pad_char or " ", block_width + (2 * pad_amount) - label_width),
+							string.rep(config.pad_char or " ", block_width - label_width),
 							utils.set_hl(config.hl)
 						}
 					}
@@ -1271,7 +1271,7 @@ markdown.code_block = function (buffer, item)
 				undo_restore = false, invalidate = true,
 
 				end_row = info_range[3],
-				end_col = #item.text[1],
+				end_col = range.col_start + #item.text[1],
 
 				hl_group = utils.set_hl(config.info_hl or config.hl)
 			});
@@ -1293,7 +1293,7 @@ markdown.code_block = function (buffer, item)
 			else
 				local spaces = avail_top - info_width + 2;
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, #item.text[1], {
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + #item.text[1], {
 					undo_restore = false, invalidate = true,
 
 					virt_text_pos = "inline",
@@ -1353,7 +1353,7 @@ markdown.code_block = function (buffer, item)
 				undo_restore = false, invalidate = true,
 
 				end_row = info_range[3],
-				end_col = #item.text[1],
+				end_col = range.col_start + #item.text[1],
 
 				hl_group = utils.set_hl(config.info_hl or config.hl)
 			});
@@ -1376,7 +1376,7 @@ markdown.code_block = function (buffer, item)
 			else
 				local spaces = avail_top - info_width + 2;
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, #item.text[1], {
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + #item.text[1], {
 					undo_restore = false, invalidate = true,
 
 					virt_text_pos = "inline",
@@ -1394,36 +1394,13 @@ markdown.code_block = function (buffer, item)
 			---_
 		end
 
-		--- Render bottom
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, #delims[2], {
-			undo_restore = false, invalidate = true,
-			end_col = #item.text[#item.text],
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{
-					string.rep(" ", block_width),
-					utils.set_hl(config.hl)
-				}
-			}
-		});
-
-		--- Background
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
-
-			hl_group = utils.set_hl(config.hl)
-		});
-
 		--- Line padding
 		for l, width in ipairs(line_widths) do
 			---+${lua}
 
 			local line = item.text[l + 1];
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, math.min(#line, range.col_start), {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, line ~= "" and range.col_start or 0, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -1435,7 +1412,7 @@ markdown.code_block = function (buffer, item)
 				},
 			});
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, #line, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, range.col_start + #line, {
 				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
@@ -1446,7 +1423,46 @@ markdown.code_block = function (buffer, item)
 					}
 				},
 			});
+
+			if line ~= "" then
+				--- Background
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, range.col_start, {
+					undo_restore = false, invalidate = true,
+					end_col = range.col_start + #line,
+
+					hl_group = utils.set_hl(config.hl)
+				});
+			end
 			---_
+		end
+
+		--- Render bottom
+
+		if item.text[#item.text] ~= "" then
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text] - #delims[2], {
+				undo_restore = false, invalidate = true,
+				end_col = range.col_start + #item.text[#item.text],
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{
+						string.rep(" ", block_width),
+						utils.set_hl(config.hl)
+					}
+				}
+			});
+		else
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start, {
+				undo_restore = false, invalidate = true,
+
+				virt_text_pos = "inline",
+				virt_text = {
+					{
+						string.rep(" ", block_width),
+						utils.set_hl(config.hl)
+					}
+				}
+			});
 		end
 		---_
 	end
