@@ -166,6 +166,7 @@ vim.api.nvim_create_autocmd({
 	callback = function (event)
 		---+${lua}
 		timer:stop();
+
 		local buffer = event.buf;
 		local name = event.event;
 		local mode = vim.api.nvim_get_mode().mode;
@@ -218,6 +219,7 @@ vim.api.nvim_create_autocmd({
 			local lines = vim.api.nvim_buf_line_count(buffer);
 
 			if lines >= max_l then
+				--- Partial render is used.
 				if immediate_render() == true then
 					markview.splitview_render(true, true);
 				elseif vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) then
@@ -231,9 +233,14 @@ vim.api.nvim_create_autocmd({
 						markview.splitview_render(true, true);
 					end));
 				end
-				--- Partial render is used.
 			else
-				markview.update_splitview_cursor();
+				local edit_events = { "TextChanged", "TextChangedI" };
+
+				if vim.list_contains(edit_events, name) then
+					markview.splitview_render(true, true);
+				else
+					markview.update_splitview_cursor();
+				end
 			end
 		else
 			--- Normal renderer.
