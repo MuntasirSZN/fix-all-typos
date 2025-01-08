@@ -553,8 +553,8 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
@@ -615,14 +615,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH1", "@markup.heading.1.markdown", "@markup.heading" },
-			"#F38BA8",
-			"#D20F39"
+			"#D20F39",
+			"#F38BA8"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -677,14 +677,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH2", "@markup.heading.2.markdown", "@markup.heading" },
-			"#FE640B",
-			"#FAB387"
+			"#FAB387",
+			"#FE640B"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -739,14 +739,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH3", "@markup.heading.3.markdown", "@markup.heading" },
-			"#F9E2AF",
-			"#DF8E1D"
+			"#DF8E1D",
+			"#F9E2AF"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -801,14 +801,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH4", "@markup.heading.4.markdown", "@markup.heading" },
-			"#A6E3A1",
-			"#40A02B"
+			"#40A02B",
+			"#A6E3A1"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -863,14 +863,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH5", "@markup.heading.5.markdown", "@markup.heading" },
-			"#74C7EC",
-			"#209FB5"
+			"#209FB5",
+			"#74C7EC"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -925,14 +925,14 @@ highlights.dynamic = {
 		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
 			"bg",
 			{ "Normal" },
-			"#1E1E2E",
-			"#EFF1F5"
+			"#EFF1F5",
+			"#1E1E2E"
 		));
 		local h_fg = highlights.rgb_to_lab(highlights.get_property(
 			"fg",
 			{ "markdownH6", "@markup.heading.6.markdown", "@markup.heading" },
-			"#B4BEFE",
-			"#7287FD"
+			"#7287FD",
+			"#B4BEFE"
 		));
 
 		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
@@ -1325,7 +1325,7 @@ highlights.dynamic = {
 	---_
 
 	["Gradient0"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 
 		return {
 			default = true,
@@ -1333,7 +1333,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient1"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1346,7 +1346,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient2"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1359,7 +1359,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient3"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1372,7 +1372,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient4"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1385,7 +1385,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient5"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1398,7 +1398,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient6"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1411,7 +1411,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient7"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1424,7 +1424,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient8"] = function ()
-		local from = highlights.get_property("bg", { "Normal" }, "#1E1E2E", "#CDD6F4");
+		local from = highlights.get_property("bg", { "Normal" }, "#CDD6F4", "#1E1E2E");
 		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
 
 		return {
@@ -1437,7 +1437,7 @@ highlights.dynamic = {
 		};
 	end,
 	["Gradient9"] = function ()
-		local to   = highlights.get_property("fg", { "Title" }, "#1e66f5", "#89b4fa");
+		local to   = highlights.get_property("fg", { "Title" }, "#CDD6F4", "#1E1E2E");
 
 		return {
 			default = true,
