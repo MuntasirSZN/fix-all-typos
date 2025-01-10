@@ -7,6 +7,9 @@
     a + [ the ] + b
 }
 
+Inline: #{ a + [ the ] +
+b }
+
 ; Escaped characters
 
 \$ \# \& \. \|
