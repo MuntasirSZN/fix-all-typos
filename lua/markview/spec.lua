@@ -7,12 +7,12 @@
 local spec = {};
 local symbols = require("markview.symbols");
 
---- Creates a configuration table 
----@param name any
----@param text_pos any
----@param cmd_conceal any
----@param cmd_hl any
----@return table
+--- Creates a configuration table for a LaTeX command.
+---@param name string Command name(Text to show).
+---@param text_pos? "overlay" | "inline" `virt_text_pos` extmark options.
+---@param cmd_conceal? integer Characters to conceal.
+---@param cmd_hl? string Highlight group for the command.
+---@return commands.opts
 local operator = function (name, text_pos, cmd_conceal, cmd_hl)
 	---+${func}
 	return {
@@ -112,14 +112,38 @@ end
 ---@type mkv.config
 spec.default = {
 	---+${conf}
+
 	experimental = {
 		---+${conf}
-		read_chunk_size = 1000,
+
+		read_chunk_size = 1024,
+
 		file_open_command = "tabnew",
 		list_empty_line_tolerance = 3,
-		link_open_alerts = false,
 
-		--- date_formats = { "%d%d%d%-%d%d%-%d%d" }
+		date_formats = {
+			"^%d%d%d%d%-%d%d%-%d%d$",                   --- YYYY-MM-DD
+			"^%d%d%-%d%d%-%d%d%d%d$",                   --- DD-MM-YYYY, MM-DD-YYYY
+			"^%d%d%-%d%d%-%d%d$",                       --- DD-MM-YY, MM-DD-YY, YY-MM-DD
+
+			"^%d%d%d%d%/%d%d%/%d%d$",                   --- YYYY/MM/DD
+			"^%d%d%/%d%d%/%d%d%d%d$",                   --- DD/MM/YYYY, MM/DD/YYYY
+
+			"^%d%d%d%d%.%d%d%.%d%d$",                   --- YYYY.MM.DD
+			"^%d%d%.%d%d%.%d%d%d%d$",                   --- DD.MM.YYYY, MM.DD.YYYY
+
+			"^%d%d %a+ %d%d%d%d$",                      --- DD Month YYYY
+			"^%a+ %d%d %d%d%d%d$",                      --- Month DD, YYYY
+			"^%d%d%d%d %a+ %d%d$",                      --- YYYY Month DD
+
+			"^%a+%, %a+ %d%d%, %d%d%d%d$",              --- Day, Month DD, YYYY
+		},
+
+		date_time_formats = {
+			"^%a%a%a %a%a%a %d%d %d%d%:%d%d%:%d%d ... %d%d%d%d$", --- UNIX date time
+			"^%d%d%d%d%-%d%d%-%d%dT%d%d%:%d%d%:%d%dZ$",           --- ISO 8601
+		}
+
 		---_
 	};
 
@@ -127,48 +151,76 @@ spec.default = {
 
 	preview = {
 		---+${conf}
+
 		enable = true,
+
 		callbacks = {
 			---+${func}
-			on_attach = function (_, wins)
-				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
-				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
+			on_attach = function (_, wins)
+				---+${lua}
+
+				--- Initial state for attached buffers.
+				---@type string
+				local attach_state = spec.get({ "preview", "enable" }, { fallback = true, ignore_enable = true });
+
+				if attach_state == false then
+					--- Attached buffers will not have their previews
+					--- enabled.
+					--- So, don't set options.
+					return;
+				end
+
+				---@type string[]
+				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				---@type string[]
+				local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+				--- Concealcursor option.
 				local concealcursor = "";
 
-				for _, mde in ipairs(preview_modes) do
-					if
-						vim.list_contains(hybrid_modes, mde) == false and
-						vim.list_contains({ "n", "v", "i", "c" }, mde)
-					then
-						concealcursor = concealcursor .. mde;
+				for _, mode in ipairs(prev_modes) do
+					if vim.list_contains(hybd_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+						--- Only add modes that aren't used by hybrid mode
+						--- and are inside the valid modes for concealcursor.
+						concealcursor = concealcursor .. mode;
 					end
 				end
 
 				for _, win in ipairs(wins) do
+					--- Preferred conceal level should
+					--- be 3.
 					vim.wo[win].conceallevel = 3;
 					vim.wo[win].concealcursor = concealcursor;
 				end
+
+				---_
 			end,
 			on_detach = function (_, wins)
+				---+${lua}
 				for _, win in ipairs(wins) do
+					--- Conceallevel & concealcursor
+					--- should be reset for every
+					--- window.
 					vim.wo[win].conceallevel = 0;
 					vim.wo[win].concealcursor = "";
 				end
+				---_
 			end,
 
 			on_enable = function (_, wins)
-				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
-				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+				---+${lua}
+
+				---@type string[]
+				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				---@type string[]
+				local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
-				for _, mde in ipairs(preview_modes) do
-					if
-						vim.list_contains(hybrid_modes, mde) == false and
-						vim.list_contains({ "n", "v", "i", "c" }, mde)
-					then
-						concealcursor = concealcursor .. mde;
+				for _, mode in ipairs(prev_modes) do
+					if vim.list_contains(hybd_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+						concealcursor = concealcursor .. mode;
 					end
 				end
 
@@ -176,34 +228,35 @@ spec.default = {
 					vim.wo[win].conceallevel = 3;
 					vim.wo[win].concealcursor = concealcursor;
 				end
+				---_
 			end,
 			on_disable = function (_, wins)
+				---+${lua}
 				for _, win in ipairs(wins) do
 					vim.wo[win].conceallevel = 0;
 					vim.wo[win].concealcursor = "";
 				end
+				---_
 			end,
 
-			on_mode_change = function (_, wins, mode)
+			on_mode_change = function (_, wins, current_mode)
+				---+${lua}
+
+				---@type string[]
 				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				---@type string[]
 				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
-				for _, mde in ipairs(preview_modes) do
-					if
-						vim.list_contains(hybrid_modes, mde) == false and
-						vim.list_contains({ "n", "v", "i", "c" }, mde)
-					then
-						concealcursor = concealcursor .. mde;
+				for _, mode in ipairs(preview_modes) do
+					if vim.list_contains(hybrid_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+						concealcursor = concealcursor .. mode;
 					end
 				end
 
 				for _, win in ipairs(wins) do
-					if
-						vim.list_contains(preview_modes, mode) and
-						require("markview").state.enable == true
-					then
+					if vim.list_contains(preview_modes, current_mode) and require("markview").state.enable == true then
 						vim.wo[win].conceallevel = 3;
 						vim.wo[win].concealcursor = concealcursor;
 					else
@@ -211,51 +264,52 @@ spec.default = {
 						vim.wo[win].concealcursor = "";
 					end
 				end
+				---_
 			end,
 
 			on_splitview_open = function (_, _, win)
+				---+${lua}
 				vim.wo[win].conceallevel = 3;
 				vim.wo[win].concealcursor = "n";
+				---_
 			end
 			---_
 		},
+		debounce = 150,
 		icon_provider = "internal",
 
-		debounce = 50,
+		draw_range = { 2 * vim.o.lines, 2 * vim.o.lines },
 		edit_range = { 0, 0 },
 
-		filetypes = { "markdown", "typst" },
+		modes = { "n", "no", "c" },
 		hybrid_modes = {},
-		ignore_buftypes = { "nofile" },
-		ignore_previews = {
-			-- markdown = {},
-			-- typst = {},
-			-- html = {},
-			-- yaml = {},
-			-- latex = {},
-			-- markdown_inline = { "hyperlinks" }
-			-- markdown = { "list_items" }
-		},
 		linewise_hybrid_mode = false,
 		max_buf_lines = 1000,
-		modes = { "n", "no", "c" },
-		draw_range = { 2 * vim.o.lines, 2 * vim.o.lines },
+
+		filetypes = { "markdown", "quarto", "rmd", "typst" },
+		ignore_buftypes = { "nofile" },
+		ignore_previews = {},
+
 		splitview_winopts = {
 			split = "right"
 		}
+
 		---_
 	},
 
 	renderers = {},
 
 	markdown = {
+		enable = true,
+
 		block_quotes = {
 			---+${class}
 			enable = true,
 			wrap = true,
 
 			default = {
-				border = "▋", hl = "MarkviewBlockQuoteDefault"
+				border = "▋",
+				hl = "MarkviewBlockQuoteDefault"
 			},
 
 			---+${conf}
@@ -495,15 +549,18 @@ spec.default = {
 				border = "▋"
 			}
 			---_
+
 			---_
 		},
 
 		code_blocks = {
 			---+${conf, Code blocks}
+
 			enable = true,
-			icons = "internal",
 
 			style = "block",
+
+			label_direction = "right",
 			hl = "MarkviewCode",
 			info_hl = "MarkviewCodeInfo",
 
@@ -511,19 +568,22 @@ spec.default = {
 			pad_amount = 3,
 			pad_char = " ",
 
-			language_names = nil,
-			label_direction = "right",
+			sign = true
 
-			sign = true, sign_hl = nil
 			---_
 		},
 
 		headings = {
 			---+ ${class, Headings}
+
 			enable = true,
+
 			shift_width = 1,
+
 			org_indent = false,
 			org_indent_wrap = true,
+			org_shift_char = " ",
+			org_shift_width = 1,
 
 			heading_1 = {
 				---+ ${conf, Heading 1}
@@ -588,6 +648,7 @@ spec.default = {
 				border = "▁"
 				---_
 			}
+
 			---_
 		},
 
@@ -596,11 +657,13 @@ spec.default = {
 			enable = true,
 
 			parts = {
-				---@diagnostic disable
 				{
 					---+ ${conf, Left portion}
+
 					type = "repeating",
-					repeat_amount = function (buffer) --[[@as function]]
+					direction = "left",
+
+					repeat_amount = function (buffer)
 						local utils = require("markview.utils");
 						local window = utils.buf_getwin(buffer)
 
@@ -611,6 +674,7 @@ spec.default = {
 					end,
 
 					text = "─",
+
 					hl = {
 						"MarkviewGradient1", "MarkviewGradient1",
 						"MarkviewGradient2", "MarkviewGradient2",
@@ -626,12 +690,15 @@ spec.default = {
 				},
 				{
 					type = "text",
+
 					text = "  ",
 					hl = "MarkviewIcon3Fg"
 				},
 				{
 					---+ ${conf, Right portion}
 					type = "repeating",
+					direction = "right",
+
 					repeat_amount = function (buffer) --[[@as function]]
 						local utils = require("markview.utils");
 						local window = utils.buf_getwin(buffer)
@@ -642,7 +709,6 @@ spec.default = {
 						return math.ceil((width - textoff - 3) / 2);
 					end,
 
-					direction = "right",
 					text = "─",
 					hl = {
 						"MarkviewGradient1", "MarkviewGradient1",
@@ -657,7 +723,6 @@ spec.default = {
 					}
 					---_
 				}
-				---@diagnostic enable
 			}
 			---_
 		},
@@ -696,48 +761,241 @@ spec.default = {
 
 			marker_dot = {
 				add_padding = true,
-				conceal_on_checkboxes = true,
+				conceal_on_checkboxes = true
 			},
 
 			marker_parenthesis = {
 				add_padding = true,
-				conceal_on_checkboxes = true,
+				conceal_on_checkboxes = true
 			}
 			---_
 		},
 
 		metadata_minus = {
+			---+${lua}
+
 			enable = true,
 
-			hl = "Code",
-			border_hl = "CodeFg",
+			hl = "MarkviewCode",
+			border_hl = "MarkviewCodeFg",
 
 			border_top = "▄",
 			border_bottom = "▀"
+
+			---_
 		},
 
 		metadata_plus = {
+			---+${lua}
+
 			enable = true,
 
-			hl = "Code",
-			border_hl = "CodeFg",
+			hl = "MarkviewCode",
+			border_hl = "MarkviewCodeFg",
 
 			border_top = "▄",
 			border_bottom = "▀"
+
+			---_
 		},
 
 		reference_definitions = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
 				icon = " ",
-				hl = "Palette4Fg"
-			}
+				hl = "MarkviewPalette4Fg"
+			},
+
+			---+${lua, Github sites}
+
+			["github%.com/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>
+
+				icon = "󰳐 ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/tree/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/tree/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/commits/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/commits/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/releases$"] = {
+				--- github.com/<user>/<repo>/releases
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/tags$"] = {
+				--- github.com/<user>/<repo>/tags
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/issues$"] = {
+				--- github.com/<user>/<repo>/issues
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/pulls$"] = {
+				--- github.com/<user>/<repo>/pulls
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/wiki$"] = {
+				--- github.com/<user>/<repo>/wiki
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			---_
+			---+${lua, Commonly used sites by programmers}
+
+			["developer%.mozilla%.org"] = {
+				priority = 9999,
+
+				icon = "󰖟 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["w3schools%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette4Fg"
+			},
+
+			["stackoverflow%.com"] = {
+				priority = 9999,
+
+				icon = "󰓌 ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["reddit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["github%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["gitlab%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["dev%.to"] = {
+				priority = 9999,
+
+				icon = "󱁴 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["codepen%.io"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["replit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["jsfiddle%.net"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["npmjs%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["pypi%.org"] = {
+				priority = 9999,
+
+				icon = "󰆦 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["mvnrepository%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette1Fg"
+			},
+
+			["medium%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["linkedin%.com"] = {
+				priority = 9999,
+
+				icon = "󰌻 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["news%.ycombinator%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			---_
+
+			---_
 		},
 
 		tables = {
 			---+ ${class, Tables}
+
 			enable = true,
+
+			col_min_width = 10,
+			block_decorator = true,
+			use_virt_lines = false,
 
 			parts = {
 				top = { "╭", "─", "╮", "┬" },
@@ -765,11 +1023,8 @@ spec.default = {
 				align_left = "TableAlignLeft",
 				align_right = "TableAlignRight",
 				align_center = { "TableAlignCenter", "TableAlignCenter" }
-			},
+			}
 
-			col_min_width = 10,
-			block_decorator = true,
-			use_virt_lines = false
 			---_
 		},
 	},
@@ -781,7 +1036,7 @@ spec.default = {
 
 			default = {
 				icon = "󰿨 ",
-				hl = "Comment"
+				hl = "MarkviewComment"
 			},
 		},
 
@@ -789,10 +1044,10 @@ spec.default = {
 			---+ ${conf, Minimal style checkboxes}
 			enable = true,
 
-			checked = { text = "󰗠", hl = "MarkviewCheckboxChecked" },
-			unchecked = { text = "󰄰", hl = "MarkviewCheckboxUnchecked" },
+			checked = { text = "󰗠", hl = "MarkviewCheckboxChecked", scope_hl = "MarkviewCheckboxChecked" },
+			unchecked = { text = "󰄰", hl = "MarkviewCheckboxUnchecked", scope_hl = "MarkviewCheckboxUnchecked" },
 
-			["/"] = { text = "󱎖", hl = "MarkviewCheckboxPending", scope_hl = "Special" },
+			["/"] = { text = "󱎖", hl = "MarkviewCheckboxPending" },
 			[">"] = { text = "", hl = "MarkviewCheckboxCancelled" },
 			["<"] = { text = "󰃖", hl = "MarkviewCheckboxCancelled" },
 			["-"] = { text = "󰍶", hl = "MarkviewCheckboxCancelled", scope_hl = "MarkviewCheckboxStriked" },
@@ -825,22 +1080,29 @@ spec.default = {
 			enable = true,
 
 			default = {
-				icon = " ",
-				hl = "Hyperlink"
+				icon = "󰯓 ",
+				hl = "MarkviewHyperlink"
 			},
+			["^%d+$"] = {
+				icon = "󰯓 ",
+				hl = "MarkviewPalette4Fg"
+			}
 		},
 
 		highlights = {
 			enable = true,
 
 			default = {
-				hl = "Palette1"
+				padding_left = " ",
+				padding_right = " ",
+
+				hl = "MarkviewPalette3"
 			},
 		},
 
 		inline_codes = {
 			enable = true,
-			hl = "InlineCode",
+			hl = "MarkviewInlineCode",
 
 			padding_left = " ",
 			padding_right = " "
@@ -851,7 +1113,7 @@ spec.default = {
 
 			default = {
 				icon = " ",
-				hl = "Email"
+				hl = "MarkviewEmail"
 			},
 		},
 
@@ -866,7 +1128,6 @@ spec.default = {
 
 		images = {
 			enable = true,
-			__emoji_link_compatibility = true,
 
 			default = {
 				icon = "󰥶 ",
@@ -881,33 +1142,29 @@ spec.default = {
 
 			default = {
 				icon = "󰠮 ",
-				hl = "Palette2Fg"
+				hl = "MarkviewPalette2Fg"
 			},
 		},
 
 		internal_links = {
 			enable = true,
-			__emoji_link_compatibility = true,
 
 			default = {
 				icon = "󰌷 ",
-				hl = "Hyperlink",
+				hl = "MarkviewHyperlink",
 			},
 		},
 
 		hyperlinks = {
 			enable = true,
-			__emoji_link_compatibility = true,
 
 			default = {
 				icon = "󰌷 ",
 				hl = "MarkviewHyperlink",
 			},
 
-				---+ ${conf, Stack*}
 			["stackoverflow%.com"] = { icon = " " },
 			["stackexchange%.com"] = { icon = " " },
-			---_
 
 			["neovim%.org"] = { icon = " " },
 
@@ -1001,12 +1258,40 @@ spec.default = {
 
 		void_elements = {
 			enable = true,
-			-- ["img"] = {
-			-- 	on_node = { conceal = "" }
-			-- }
+
+			["^hr$"] = {
+				on_node = {
+					conceal = "",
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{ "─", "MarkviewGradient2" },
+						{ "─", "MarkviewGradient3" },
+						{ "─", "MarkviewGradient4" },
+						{ "─", "MarkviewGradient5" },
+						{ " ◉ ", "MarkviewGradient9" },
+						{ "─", "MarkviewGradient5" },
+						{ "─", "MarkviewGradient4" },
+						{ "─", "MarkviewGradient3" },
+						{ "─", "MarkviewGradient2" },
+					}
+				}
+			},
+			["^br$"] = {
+				on_node = {
+					conceal = "",
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{ "󱞦", "Comment" },
+					}
+				}
+			},
 		}
 	},
 	latex = {
+		enable = true,
+
 		commands = {
 			enable = true,
 
@@ -1140,10 +1425,14 @@ spec.default = {
 		},
 
 		escapes = { enable = true },
-		symbols = { enable = true, hl = "Comment" },
-		fonts = { enable = true, default = {}, },
-		subscripts = { enable = true, hl = "Subscript" },
-		superscripts = { enable = true, hl = "Superscript" },
+		symbols = { enable = true, hl = "MarkviewComment" },
+		fonts = {
+			enable = true,
+			default = { hl = "MarkviewSpecial", enable = true },
+			-- ["^mathtt$"] = { hl = "MarkviewPalette1" }
+		},
+		subscripts = { enable = true, hl = "MarkviewSubscript" },
+		superscripts = { enable = true, hl = "MarkviewSuperscript" },
 		texts = { enable = true },
 
 		inlines = {
@@ -1152,16 +1441,17 @@ spec.default = {
 			padding_left = " ",
 			padding_right = " ",
 
-			hl = "InlineCode"
+			hl = "MarkviewInlineCode"
 		},
 		blocks = {
 			enable = true,
-			hl = "Code",
-			text = " 󱥬 LaTeX ",
-			text_hl = "CodeInfo",
 
+			hl = "MarkviewCode",
+			pad_char = " ",
 			pad_amount = 3,
-			pad_char = " "
+
+			text = "  LaTeX ",
+			text_hl = "MarkviewCodeInfo"
 		},
 	},
 	typst = {
@@ -1230,15 +1520,16 @@ spec.default = {
 
 			text = "󰣖 Code",
 
-			hl = "Code",
-			text_hl = "Icon5"
+			hl = "MarkviewCode",
+			text_hl = "MarkviewIcon5"
 		},
 		code_spans = {
 			enable = true,
 
 			padding_left = " ",
 			padding_right = " ",
-			hl = "Code"
+
+			hl = "MarkviewCode"
 		},
 
 		raw_blocks = {
@@ -1252,7 +1543,7 @@ spec.default = {
 			pad_amount = 3,
 			pad_char = " ",
 
-			hl = "Code"
+			hl = "MarkviewCode"
 		},
 
 		escapes = { enable = true },
@@ -1261,8 +1552,9 @@ spec.default = {
 			enable = true,
 
 			default = {
-				hl = "InlineCode",
-				padding_left = "  ",
+				hl = "MarkviewInlineCode",
+				padding_left = " ",
+				icon = " ",
 				padding_right = " "
 			},
 		},
@@ -1300,13 +1592,13 @@ spec.default = {
 			padding_left = " ",
 			padding_right = " ",
 
-			hl = "InlineCode"
+			hl = "MarkviewInlineCode"
 		},
 		math_blocks = {
 			enable = true,
-			hl = "Code",
+			hl = "MarkviewCode",
 			text = " 󰪚 Math ",
-			text_hl = "CodeInfo",
+			text_hl = "MarkviewCodeInfo",
 
 			pad_amount = 3,
 			pad_char = " "
@@ -1317,7 +1609,7 @@ spec.default = {
 			padding_left = " ",
 			padding_right = " ",
 
-			hl = "InlineCode"
+			hl = "MarkviewInlineCode"
 		},
 
 		url_links = {
@@ -1335,12 +1627,12 @@ spec.default = {
 
 			default = {
 				icon = " ",
-				hl = "Hyperlink"
+				hl = "MarkviewHyperlink"
 			},
 		},
 
-		subscripts = { enable = true, hl = "Subscript" },
-		superscripts = { enable = true, hl = "Superscript" },
+		subscripts = { enable = true, hl = "MarkviewSubscript" },
+		superscripts = { enable = true, hl = "MarkviewSuperscript" },
 		symbols = {
 			enable = true,
 			hl = "Special"
@@ -1351,7 +1643,7 @@ spec.default = {
 
 			default = {
 				text = " ",
-				hl = "Palette6Fg"
+				hl = "MarkviewPalette6Fg"
 			},
 		}
 	},
@@ -1394,7 +1686,7 @@ spec.default = {
 				border_middle = " │ ",
 				border_bottom = " ╰╸",
 
-				border_hl = "Comment"
+				border_hl = "MarkviewComment"
 			},
 
 			["^tags$"] = {
@@ -1996,7 +2288,7 @@ spec.setup = function (config)
 end
 
 ---@param keys ( string | integer )[]
----@param opts { fallback: any, eval_ignore: string[]?, source: table?, eval_args: any[]?, args: any[] | { __is_arg_list: boolean, [integer]: any } }
+---@param opts { fallback: any, eval_ignore: string[]?, ignore_enable: boolean?, source: table?, eval_args: any[]?, args: any[] | { __is_arg_list: boolean, [integer]: any } }
 ---@return any
 spec.get = function (keys, opts)
 	--- In case the values are correctly provided..
@@ -2064,8 +2356,12 @@ spec.get = function (keys, opts)
 	for k, key in ipairs(keys) do
 		val = to_static(val[key], val.args);
 
-		if k ~= #keys and type(val) ~= "table" then
-			return opts.fallback;
+		if k ~= #keys then
+			if type(val) ~= "table" then
+				return opts.fallback;
+			elseif opts.ignore_enable ~= true and val.enable == false then
+				return opts.fallback;
+			end
 		end
 	end
 
@@ -2083,10 +2379,12 @@ spec.get = function (keys, opts)
 
 		val = _e;
 	elseif vim.islist(opts.eval_args) == true and type(val) == "function" then
-		val = to_static(val, opts.eval_args)
+		val = to_static(val, opts.eval_args);
 	end
 
 	if val == nil and opts.fallback then
+		return opts.fallback;
+	elseif type(val) == "table" and ( opts.ignore_enable ~= true and val.enable == false ) then
 		return opts.fallback;
 	else
 		return val;
