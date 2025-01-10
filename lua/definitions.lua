@@ -87,6 +87,7 @@ M.config = {
 
  ------------------------------------------------------------------------------------------
 
+--- Experimental options.
 ---@class config.experimental
 ---
 ---@field file_open_command string Command used to open files inside Neovim.
@@ -95,7 +96,7 @@ M.config = {
 ---@field list_empty_line_tolerance integer Maximum number of empty lines that can stay between text of a list item.
 ---
 ---@field date_formats? string[] String formats for detecting date in YAML.
----@field date_time_formats? string[] String formats for detecting date & time in YAML
+---@field date_time_formats? string[] String formats for detecting date & time in YAML.
 M.experimental = {
 	file_open_command = "tabnew",
 	read_chunk_size = 1000,
@@ -1352,19 +1353,22 @@ M.hr_text = {
 ---@field type "repeating" Part name.
 ---
 ---@field direction "left" | "right" Direction from which the highlight groups are applied from.
----@field repeat_amount integer How many times to repeat the text.
----@field repeat_hl? boolean Whether to repeat the highlight groups.
----@field repeat_text? boolean Whether to repeat the text.
+---
+---@field repeat_amount integer | fun(buffer: integer, item: __markdown.horizontal_rules): integer How many times to repeat the text.
+---@field repeat_hl? boolean | fun(buffer: integer, item: __markdown.horizontal_rules): boolean Whether to repeat the highlight groups.
+---@field repeat_text? boolean | fun(buffer: integer, item: __markdown.horizontal_rules): boolean Whether to repeat the text.
+---
 ---@field text string | string[] Text to repeat.
 ---@field hl? string | string[] Highlight group for the text.
 M.hr_repeating = {
 	type = "repeating",
 
 	repeat_amount = math.floor(vim.o.columns / 2),
-	text = "-",
-	hl = { "MarkviewPalette0", "MarkviewPalette1", "MarkviewPalette2", "MarkviewPalette3" },
 	repeat_hl = false,
-	repeat_text = true
+	repeat_text = true,
+
+	text = "-",
+	hl = { "MarkviewPalette0", "MarkviewPalette1", "MarkviewPalette2", "MarkviewPalette3" }
 };
 
 -- [ Markdown | Horizontal rules > Parameters ] -------------------------------------------
@@ -2494,12 +2498,12 @@ M.preview_callbacks = {
 
 ---@class preview.ignore
 ---
----@field html string[]
----@field latex string[]
----@field markdown string[]
----@field markdown_inline string[]
----@field typst string[]
----@field yaml string[]
+---@field html? string[]
+---@field latex? string[]
+---@field markdown? string[]
+---@field markdown_inline? string[]
+---@field typst? string[]
+---@field yaml? string[]
 M.preview_ignore = {
 	markdown = { "!block_quotes", "!code_blocks" }
 };
