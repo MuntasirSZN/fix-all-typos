@@ -17,9 +17,12 @@
 - [📚 Requirements](#-requirements)
 - [📐 Installation](#-installation)
 - [🧭 Configuration](#-configuration)
+
 - [🎇 Commands](#-commands)
 - [📞 Autocmds](#-autocmds)
 - [🎨 Highlight groups](#-highlight-groups)
+
+- [🎁 Extra modules](#-extra-modules)
 
 ## 📚 Requirements
 
@@ -147,6 +150,11 @@ return {
     lazy = false
 };
 ```
+
+## 🪲 Known bugs
+
+- `code span`s don't get recognized when on the line after a `code block`(if the line after the `code span` is empty).
+  This is most likely due to some bug in either the `markdown` or the `markdown_inline` parser.
 
 ## 🧭 Configuration
 
@@ -327,6 +335,18 @@ It comes with the following sub-commands,
 
 `markview.nvim` emits various *autocmd events* during different parts of the rendering allowing users to extend the plugin's functionality.
 
+```lua
+vim.api.nvim_create_autocmd("User", {
+    pattern = "MarkviewAttach",
+    callback = function (event)
+        --- This will have all the data you need.
+        local data = event.data;
+
+        vim.print(data);
+    end
+})
+```
+
 >[!NOTE]
 > Autocmds are executed **after** callbacks!
 
@@ -411,7 +431,7 @@ Currently emitted autocmds are,
 >[!IMPORTANT]
 > These groups are all **generated** during runtime and as such their colors may look different.
 
-If you want to create your own *dynamic* highlight groups or modify existing ones, see the [custom highlight groups](placeholder) section
+If you want to create your own *dynamic* highlight groups or modify existing ones, see the [custom highlight groups](placeholder) section.
 
 
 | Highlight group      | Generated from                          | Default                     |
@@ -538,6 +558,7 @@ These groups are then used as links by other groups responsible for various prev
 
 The options and the highlight groups they use are given below,
 
+
 | Option name               | Group(s)                                                             |
 |---------------------------|----------------------------------------------------------------------|
 | block_quotes              | `MarkviewBlockQuote*`                                                |
@@ -596,4 +617,31 @@ The options and the highlight groups they use are given below,
 | url_links                 | `MarkviewEmail`                                                      |
 | ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
 | properties                | None                                                                 |
+
+
+## 🎁 Extra modules
+
+`markview.nvim` comes with a few *extra* things for added functionality. Currently available modules are,
+
+- [checkboxes.lua]()
+  Checkbox toggle, state change & more! Supports visual mode too with checkbox state caching!
+
+- [editor.lua]()
+  A simple `code block` creator & editor with support for nested elements!
+
+- [headings.lua]()
+  Simple heading level changer with support for `setext` headings.
+
+Example usage,
+
+```lua
+-- Load the checkboxes module.
+require("markview.extras.checkboxes").setup();
+```
+
+Go over a line with a checkbox and run,
+
+```vim
+:Checkbox interactive
+```
 
