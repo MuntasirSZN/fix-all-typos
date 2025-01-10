@@ -18,7 +18,6 @@ typst.ns = vim.api.nvim_create_namespace("markview/typst");
 typst.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
-	---@type typst.code_blocks?
 	local config = spec.get({ "typst", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -346,7 +345,7 @@ typst.label = function (buffer, item)
 	---@type config.inline_generic?
 	local config = utils.match(
 		main_config,
-		string.sub(item.text[1], 1, #item.text[1] - 1),
+		item.text[1]:gsub("^%@", ""),
 		{
 			eval_args = { buffer, item }
 		}
