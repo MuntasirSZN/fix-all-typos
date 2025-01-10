@@ -325,6 +325,36 @@ utils.match = function (config, name, opts)
 
 	local match = {};
 
+	local sort_keys = function (values)
+		local w_priority = {};
+		local n_priority = {};
+
+		for k, v in pairs(values or {}) do
+			if type(v) == "table" and type(v.priority) == "number" then
+				table.insert(w_priority, {
+					key = k,
+					priority = v.priority
+				});
+			elseif k ~= "default" and vim.list_contains(opts.ignore_keys or {}, k) == false then
+				table.insert(n_priority, k);
+			end
+		end
+
+		table.sort(w_priority, function (a, b)
+			return a.priority > b.priority;
+		end)
+
+		local keys = {};
+
+		for _, item in ipairs(w_priority) do
+			table.insert(keys, item.key);
+		end
+
+		keys = vim.list_extend(n_priority, keys);
+
+		return keys;
+	end
+
 	local function is_valid (value, pattern)
 		local ignore = opts.ignore_keys or {};
 
@@ -337,9 +367,16 @@ utils.match = function (config, name, opts)
 		end
 	end
 
-	for key, val in pairs(config) do
+	--- NOTE, We should sort the keys so that we
+	--- don't get different results every time
+	--- when multiple patterns can be matched.
+	---
+	---@type string[]
+	local keys = sort_keys(config or {});
+
+	for _, key in ipairs(keys) do
 		if is_valid(name, key) == true then
-			match = val;
+			match = config[key];
 			break
 		end
 	end
