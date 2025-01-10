@@ -316,8 +316,13 @@ end
 --- Various actions(provides core functionalities of `markview.nvim`).
 markview.actions = {
 	["__exec_callback"] = function (autocmd, ...)
-		local callback = spec.get({ "preview", "callbacks", autocmd }, { fallback = nil, ignore_enable = true });
-		pcall(callback, ...);
+		if vim.list_contains({ "string", "integer" }, type(autocmd)) == false then
+			--- Invalid data type.
+			return;
+		end
+
+		local callbacks = spec.get({ "preview", "callbacks" }, { fallback = nil, ignore_enable = true });
+		pcall(callbacks[autocmd], ...);
 	end,
 	["__is_attached"] = function (buffer)
 		buffer = buffer or vim.api.nvim_get_current_buf();
