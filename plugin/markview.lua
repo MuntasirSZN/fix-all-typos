@@ -132,24 +132,44 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		elseif buffer == markview.state.splitview_source then
 			markview.splitview_render();
 			return;
+		elseif markview.state.enable == false then
+			markview.clear(buffer);
+			return;
 		elseif markview.actions.__is_enabled(buffer) == false then
 			--- Markview disabled on this buffer.
+			markview.clear(buffer);
 			return;
 		end
 
 		---@type string[] List of modes where preview is shown.
-		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local old_mode = vim.v.event.old_mode;
 
-		if markview.state.enable == false then
-			markview.clear(buffer);
-		elseif markview.state.buffer_states[buffer] and markview.state.buffer_states[buffer].enable == false then
-			markview.clear(buffer);
-		elseif vim.list_contains(modes, mode) then
-			markview.render(buffer);
+		if vim.list_contains(preview_modes, mode) then
+			--- Preview
+			if vim.list_contains(preview_modes, old_mode) then
+				--- Previous mode was a preview
+				--- mode.
+				--- Most likely the text hasn't
+				--- changed.
+				goto callback;
+			else
+				markview.render(buffer);
+			end
 		else
-			markview.clear(buffer);
+			--- Clear
+			if vim.list_contains(preview_modes, old_mode) == false then
+				--- Previous mode was not a preview
+				--- mode.
+				--- Most likely a preview shouldn't
+				--- have occurred.
+				goto callback;
+			else
+				markview.clear(buffer);
+			end
 		end
 
+		::callback::
 		markview.actions.__exec_callback("on_mode_change", buffer, vim.fn.win_findbuf(buffer), mode)
 		---_
 	end
