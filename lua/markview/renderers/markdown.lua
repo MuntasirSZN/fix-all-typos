@@ -1203,6 +1203,12 @@ markdown.code_block = function (buffer, item)
 
 			line_hl_group = utils.set_hl(config.hl)
 		});
+
+		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, (range.col_start + #item.text[#item.text]) - #delims[2], {
+			undo_restore = false, invalidate = true,
+			end_col = range.col_start + #item.text[#item.text],
+			conceal = ""
+		});
 		---_
 	end
 
@@ -1400,31 +1406,31 @@ markdown.code_block = function (buffer, item)
 
 			local line = item.text[l + 1];
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, line ~= "" and range.col_start or 0, {
-				undo_restore = false, invalidate = true,
+			if width ~= 0 then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, line ~= "" and range.col_start or 0, {
+					undo_restore = false, invalidate = true,
 
-				virt_text_pos = "inline",
-				virt_text = {
-					{
-						string.rep(" ", pad_amount),
-						utils.set_hl(config.hl)
-					}
-				},
-			});
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(" ", pad_amount),
+							utils.set_hl(config.hl)
+						}
+					},
+				});
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, range.col_start + #line, {
-				undo_restore = false, invalidate = true,
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, range.col_start + #line, {
+					undo_restore = false, invalidate = true,
 
-				virt_text_pos = "inline",
-				virt_text = {
-					{
-						string.rep(" ", block_width - (pad_amount + width)),
-						utils.set_hl(config.hl)
-					}
-				},
-			});
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(" ", block_width - (pad_amount + width)),
+							utils.set_hl(config.hl)
+						}
+					},
+				});
 
-			if line ~= "" then
 				--- Background
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, range.col_start, {
 					undo_restore = false, invalidate = true,
@@ -1432,18 +1438,35 @@ markdown.code_block = function (buffer, item)
 
 					hl_group = utils.set_hl(config.hl)
 				});
+			else
+				local buf_line = vim.api.nvim_buf_get_lines(buffer, range.row_start + l, range.row_start + l + 1, false)[1];
+
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, #buf_line, {
+					undo_restore = false, invalidate = true,
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{
+							string.rep(" ", range.col_start - #buf_line)
+						},
+						{
+							string.rep(" ", block_width),
+							utils.set_hl(config.hl)
+						}
+					},
+				});
 			end
 			---_
 		end
 
 		--- Render bottom
-
 		if item.text[#item.text] ~= "" then
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, (range.col_start + #item.text[#item.text]) - #delims[2], {
 				undo_restore = false, invalidate = true,
 				end_col = range.col_start + #item.text[#item.text],
-				conceal = "X"
+				conceal = ""
 			});
+
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text], {
 				undo_restore = false, invalidate = true,
 
