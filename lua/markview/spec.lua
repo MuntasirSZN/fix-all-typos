@@ -300,6 +300,8 @@ spec.default = {
 	renderers = {},
 
 	markdown = {
+		---+${lua}
+
 		enable = true,
 
 		block_quotes = {
@@ -1027,8 +1029,12 @@ spec.default = {
 
 			---_
 		},
+
+		---_
 	},
 	markdown_inline = {
+		---+${lua}
+
 		enable = true,
 
 		block_references = {
@@ -1181,8 +1187,12 @@ spec.default = {
 		escapes = {
 			enable = true
 		},
+
+		---_
 	},
 	html = {
+		---+${lua}
+
 		container_elements = {
 			enable = true,
 
@@ -1288,8 +1298,12 @@ spec.default = {
 				}
 			},
 		}
+
+		---_
 	},
 	latex = {
+		---+${lua}
+
 		enable = true,
 
 		commands = {
@@ -1453,8 +1467,12 @@ spec.default = {
 			text = "  LaTeX ",
 			text_hl = "MarkviewCodeInfo"
 		},
+
+		---_
 	},
 	typst = {
+		---+${lua}
+
 		enable = true,
 
 		headings = {
@@ -1538,6 +1556,8 @@ spec.default = {
 			style = "block",
 			icons = "internal",
 			label_direction = "right",
+
+			sign = true,
 
 			min_width = 60,
 			pad_amount = 3,
@@ -1646,8 +1666,12 @@ spec.default = {
 				hl = "MarkviewPalette6Fg"
 			},
 		}
+
+		---_
 	},
 	yaml = {
+		---+${lua}
+
 		enable = true,
 
 		properties = {
@@ -1748,6 +1772,8 @@ spec.default = {
 				hl = nil
 			},
 		}
+
+		---_
 	}
 	---_
 };
