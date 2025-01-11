@@ -1439,9 +1439,13 @@ markdown.code_block = function (buffer, item)
 		--- Render bottom
 
 		if item.text[#item.text] ~= "" then
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text] - #delims[2], {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, (range.col_start + #item.text[#item.text]) - #delims[2], {
 				undo_restore = false, invalidate = true,
 				end_col = range.col_start + #item.text[#item.text],
+				conceal = "X"
+			});
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + #item.text[#item.text], {
+				undo_restore = false, invalidate = true,
 
 				virt_text_pos = "inline",
 				virt_text = {
