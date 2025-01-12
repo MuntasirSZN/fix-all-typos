@@ -138,7 +138,7 @@ end
 
 --- Renders preview.
 ---@param buffer integer?
----@param state { enable: boolean, hybrid_mode: boolean?, events: boolean }?
+---@param state { enable: boolean, hybrid_mode: boolean? }?
 markview.render = function (buffer, state)
 	---+${lua}
 
@@ -308,8 +308,7 @@ markview.splitview_render = function (update_content, update_preview)
 	if update_preview ~= false then
 		markview.render(pre_buf, {
 			enable = true,
-			hybrid_mode = false,
-			events = false
+			hybrid_mode = false
 		});
 	end
 	---_

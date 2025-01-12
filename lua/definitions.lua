@@ -8,22 +8,17 @@ local M = {};
 --- Table containing various plugin states.
 ---@class mkv.state
 ---
----@field enable boolean Is the plugin enabled?
----@field hybrid_mode boolean Is hybrid mode enabled?
 ---@field attached_buffers integer[] List of attached buffers.
 ---
----@field buffer_states { [integer]: { enable: boolean, hybrid_mode: boolean?, events: boolean } } Buffer local states.
+---@field buffer_states { [integer]: { enable: boolean, hybrid_mode: boolean? } } Buffer local states.
 ---
 ---@field splitview_source? integer Source buffer for hybrid mode.
 ---@field splitview_buffer? integer Preview buffer for hybrid mode.
 ---@field splitview_window? integer Preview window for hybrid mode.
 ---@field splitview_cstate? { enable: boolean, hybrid_mode: boolean?, events: boolean } Cached state for the source buffer.
 M.states = {
-	enable = true,
-	hybrid_mode = true,
 	buffer_states = {
 		[10] = {
-			events = false,
 			enable = true,
 			hybrid_mode = true
 		}
