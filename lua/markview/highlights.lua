@@ -982,6 +982,68 @@ highlights.dynamic = {
 		};
 		---_
 	end,
+	["7P"] = function ()
+		---+${hl}
+		local vim_bg = highlights.rgb_to_lab(highlights.get_property(
+			"bg",
+			{ "Normal" },
+			"#EFF1F5",
+			"#1E1E2E"
+		));
+		local h_fg = highlights.rgb_to_lab(highlights.get_property(
+			"fg",
+			{ "@conditional", "@keyword.conditional", "Conditional" },
+			"#8839EF",
+			"#CBA6F7"
+		));
+
+		local l_bg = highlights.lumen(highlights.lab_to_rgb(vim_bg));
+		local alpha = vim.g.__mkv_palette_alpha or (l_bg > 0.5 and 0.15 or 0.25);
+
+		local nr_bg = vim.api.nvim_get_hl(0, { name = "LineNr", link = false }).bg
+		local res_bg = highlights.lab_to_rgb(highlights.mix(h_fg, vim_bg, alpha, 1 - alpha));
+
+		vim_bg = highlights.lab_to_rgb(vim_bg);
+		h_fg = highlights.lab_to_rgb(h_fg);
+
+		return {
+			{
+				group_name = "MarkviewPalette7",
+				value = {
+					default = true,
+
+					bg = highlights.rgb_to_hex(res_bg),
+					fg = highlights.rgb_to_hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette7Fg",
+				value = {
+					default = true,
+
+					fg = highlights.rgb_to_hex(h_fg)
+				}
+			},
+			{
+				group_name = "MarkviewPalette7Bg",
+				value = {
+					default = true,
+
+					bg = highlights.rgb_to_hex(res_bg),
+				}
+			},
+			{
+				group_name = "MarkviewPalette7Sign",
+				value = {
+					default = true,
+
+					bg = nr_bg,
+					fg = highlights.rgb_to_hex(h_fg)
+				}
+			}
+		};
+		---_
+	end,
 
 	---+${hl, Block quotes}
 	["BlockQuoteDefault"] = function ()
