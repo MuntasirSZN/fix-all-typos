@@ -495,26 +495,26 @@ It comes with the following sub-commands,
 |--------------|---------------------|------------------------------------------|
 | `attach`     | **buffer**, integer | Attaches to **buffer**.                  |
 | `detach`     | **buffer**, integer | Detaches from **buffer**.                |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `Enable`     | none                | Enables preview *globally*.              |
 | `Disable`    | none                | Disables preview *globally*.             |
 | `Toggle`     | none                | Toggles preview *globally*.              |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `enable`     | **buffer**, integer | Enables preview for **buffer**.          |
 | `disable`    | **buffer**, integer | Disables preview for **buffer**.         |
 | `toggle`     | **buffer**, integer | Toggles preview for **buffer**.          |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `splitOpen`  | **buffer**, integer | Opens *splitview* for **buffer**.        |
 | `splitClose` | none                | Closes any open *splitview*.             |
 | `splitToggle`| none                | Toggles *splitview*.                     |
 | `splitRedraw`| none                | Updates *splitview* contents.            |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `Render`     | none                | Updates preview of all *active* buffers. |
 | `Clear`      | none                | Clears preview of all **active** buffer. |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `render`     | **buffer**, integer | Renders preview for **buffer**.          |
 | `clear`      | **buffer**, integer | Clears preview for **buffer**.           |
-|              |                     | ———————————————————————————————————————— |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
 | `toggleAll`  | none                | **Deprecated** version of `Toggle`.      |
 | `enableAll`  | none                | **Deprecated** version of `Enable`.      |
 | `disableAll` | none                | **Deprecated** version of `Disable`.     |
@@ -628,42 +628,47 @@ Currently emitted autocmds are,
 If you want to create your own *dynamic* highlight groups or modify existing ones, see the [custom highlight groups](placeholder) section.
 
 
-| Highlight group      | Generated from                          | Default                     |
-|----------------------|-----------------------------------------|-----------------------------|
-| MarkviewPalette0     | Normal(bg) + Comment(fg)                | fg: `#9399b2` bg: `#35374a` |
-| MarkviewPalette0Fg   | Comment(fg)                             | fg: `#9399b2`               |
-| MarkviewPalette0Bg   | Normal(bg) + Comment(fg)                | bg: `#35374a`               |
-| MarkviewPalette0Sign | Normal(bg) + Comment(fg), LineNr(bg)    | fg: `#9399b2`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette1     | Normal(bg) + markdownH1(fg)             | fg: `#f38ba8` bg: `#4d3649` |
-| MarkviewPalette1Fg   | markdownH1(fg)                          | fg: `#f38ba8`               |
-| MarkviewPalette1Bg   | Normal(bg) + markdownH1(fg)             | bg: `#4d3649`               |
-| MarkviewPalette1Sign | Normal(bg) + markdownH1(fg), LineNr(bg) | fg: `#f38ba8`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette2     | Normal(bg) + markdownH2(fg)             | fg: `#f9b387` bg: `#4d3d43` |
-| MarkviewPalette2Fg   | markdownH2(fg)                          | fg: `#f9b387`               |
-| MarkviewPalette2Bg   | Normal(bg) + markdownH2(fg)             | bg: `#4d3d43`               |
-| MarkviewPalette2Sign | Normal(bg) + markdownH2(fg), LineNr(bg) | fg: `#f9b387`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette3     | Normal(bg) + markdownH3(fg)             | fg: `#f9e2af` bg: `#4c474b` |
-| MarkviewPalette3Fg   | markdownH3(fg)                          | fg: `#f9e2af`               |
-| MarkviewPalette3Bg   | Normal(bg) + markdownH3(fg)             | bg: `#4c474b`               |
-| MarkviewPalette3Sign | Normal(bg) + markdownH3(fg), LineNr(bg) | fg: `#f9e2af`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette4     | Normal(bg) + markdownH4(fg)             | fg: `#a6e3a1` bg: `#3c4948` |
-| MarkviewPalette4Fg   | markdownH4(fg)                          | fg: `#a6e3a1`               |
-| MarkviewPalette4Bg   | Normal(bg) + markdownH4(fg)             | bg: `#3c4948`               |
-| MarkviewPalette4Sign | Normal(bg) + markdownH4(fg), LineNr(bg) | fg: `#a6e3a1`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette5     | Normal(bg) + markdownH5(fg)             | fg: `#74c7ec` bg: `#314358` |
-| MarkviewPalette5Fg   | markdownH5(fg)                          | fg: `#74c7ec`               |
-| MarkviewPalette5Bg   | Normal(bg) + markdownH5(fg)             | bg: `#314358`               |
-| MarkviewPalette5Sign | Normal(bg) + markdownH5(fg), LineNr(bg) | fg: `#74c7ec`               |
-| ———————————————————— | ——————————————————————————————————————— | ——————————————————————————— |
-| MarkviewPalette6     | Normal(bg) + markdownH6(fg)             | fg: `#b4befe` bg: `#3c405b` |
-| MarkviewPalette6Fg   | markdownH6(fg)                          | fg: `#b4befe`               |
-| MarkviewPalette6Bg   | Normal(bg) + markdownH6(fg)             | bg: `#3c405b`               |
-| MarkviewPalette6Sign | Normal(bg) + markdownH6(fg), LineNr(bg) | fg: `#b4befe`               |
+| Highlight group      | Generated from                           | Default                     |
+|----------------------|------------------------------------------|-----------------------------|
+| MarkviewPalette0     | Normal(bg) + Comment(fg)                 | fg: `#9399b2` bg: `#35374a` |
+| MarkviewPalette0Fg   | Comment(fg)                              | fg: `#9399b2`               |
+| MarkviewPalette0Bg   | Normal(bg) + Comment(fg)                 | bg: `#35374a`               |
+| MarkviewPalette0Sign | Normal(bg) + Comment(fg), LineNr(bg)     | fg: `#9399b2`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette1     | Normal(bg) + markdownH1(fg)              | fg: `#f38ba8` bg: `#4d3649` |
+| MarkviewPalette1Fg   | markdownH1(fg)                           | fg: `#f38ba8`               |
+| MarkviewPalette1Bg   | Normal(bg) + markdownH1(fg)              | bg: `#4d3649`               |
+| MarkviewPalette1Sign | Normal(bg) + markdownH1(fg), LineNr(bg)  | fg: `#f38ba8`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette2     | Normal(bg) + markdownH2(fg)              | fg: `#f9b387` bg: `#4d3d43` |
+| MarkviewPalette2Fg   | markdownH2(fg)                           | fg: `#f9b387`               |
+| MarkviewPalette2Bg   | Normal(bg) + markdownH2(fg)              | bg: `#4d3d43`               |
+| MarkviewPalette2Sign | Normal(bg) + markdownH2(fg), LineNr(bg)  | fg: `#f9b387`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette3     | Normal(bg) + markdownH3(fg)              | fg: `#f9e2af` bg: `#4c474b` |
+| MarkviewPalette3Fg   | markdownH3(fg)                           | fg: `#f9e2af`               |
+| MarkviewPalette3Bg   | Normal(bg) + markdownH3(fg)              | bg: `#4c474b`               |
+| MarkviewPalette3Sign | Normal(bg) + markdownH3(fg), LineNr(bg)  | fg: `#f9e2af`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette4     | Normal(bg) + markdownH4(fg)              | fg: `#a6e3a1` bg: `#3c4948` |
+| MarkviewPalette4Fg   | markdownH4(fg)                           | fg: `#a6e3a1`               |
+| MarkviewPalette4Bg   | Normal(bg) + markdownH4(fg)              | bg: `#3c4948`               |
+| MarkviewPalette4Sign | Normal(bg) + markdownH4(fg), LineNr(bg)  | fg: `#a6e3a1`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette5     | Normal(bg) + markdownH5(fg)              | fg: `#74c7ec` bg: `#314358` |
+| MarkviewPalette5Fg   | markdownH5(fg)                           | fg: `#74c7ec`               |
+| MarkviewPalette5Bg   | Normal(bg) + markdownH5(fg)              | bg: `#314358`               |
+| MarkviewPalette5Sign | Normal(bg) + markdownH5(fg), LineNr(bg)  | fg: `#74c7ec`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette6     | Normal(bg) + markdownH6(fg)              | fg: `#b4befe` bg: `#3c405b` |
+| MarkviewPalette6Fg   | markdownH6(fg)                           | fg: `#b4befe`               |
+| MarkviewPalette6Bg   | Normal(bg) + markdownH6(fg)              | bg: `#3c405b`               |
+| MarkviewPalette6Sign | Normal(bg) + markdownH6(fg), LineNr(bg)  | fg: `#b4befe`               |
+| ———————————————————— | ———————————————————————————————————————— | ——————————————————————————— |
+| MarkviewPalette7     | Normal(bg) + @conditional(fg)            | fg: `#cba6f7` bg: `#403b5a` |
+| MarkviewPalette7Fg   | @conditional(fg)                         | fg: `#cba6f7`               |
+| MarkviewPalette7Bg   | Normal(bg) + @conditional(fg)            | bg: `#403b5a`               |
+| MarkviewPalette7Sign | Normal(bg) + @conditional(fg), LineNr(bg)| fg: `#cba6f7`               |
 
 
 > The source highlight group's values are turned into `Lab` color-space and then mixed to reduce unwanted results.
@@ -748,71 +753,6 @@ These groups are then used as links by other groups responsible for various prev
 > 
 > \*\*\*\* = Linearly interpolated value between 2 highlight groups `fg`.
 
----
-
-The options and the highlight groups they use are given below,
-
-
-| Option name               | Group(s)                                                             |
-|---------------------------|----------------------------------------------------------------------|
-| block_quotes              | `MarkviewBlockQuote*`                                                |
-| code_blocks               | `MarkviewCode*`, `MarkviewIcon*`(icon), `MarkviewPalette[n]Fg`(sign) |
-| headings                  | `MarkviewHeading[n]`, `MarkviewPalette[n]Sign`(sign)                 |
-| horizontal_rules          | `MarkviewGradient[n]`                                                |
-| list_items                | `MarkviewListItem*`                                                  |
-| metadata_minus            | `MarkviewCode`, `MarkviewCodeFg`                                     |
-| metadata_plus             | `MarkviewCode`, `MarkviewCodeFg`                                     |
-| reference_definitions     | `MarkviewPalette4Fg`                                                 |
-| tables                    | `MarkviewTable*`                                                     |
-| ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
-| block_references          | `Comment`                                                            |
-| checkboxes                | `MarkviewCheckbox*`                                                  |
-| emails                    | `MarkviewEmail`                                                      |
-| embed_files               | `MarkviewPalette2Fg`                                                 |
-| entities                  | `Special`                                                            |
-| escapes                   | None                                                                 |
-| footnotes                 | `MarkviewHyperlink`                                                  |
-| highlights                | `MarkviewPalette1`                                                   |
-| hyperlinks                | `MarkviewHyperlink`                                                  |
-| images                    | `MarkviewImage`                                                      |
-| inline_codes              | `MarkviewInlineCode`                                                 |
-| internal_links            | `MarkviewHyperlink`                                                  |
-| uri_autolinks             | `MarkviewEmail`                                                      |
-| ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
-| container_elements        | None                                                                 |
-| headings                  | `MarkviewHeading[n]`, `MarkviewPalette[n]Sign`(sign)                 |
-| void_elements             | None                                                                 |
-| ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
-| blocks                    | `MarkviewCode*`                                                      |
-| commands                  | `@punctuation.bracket`, `@keyword.function`                          |
-| escapes                   | None                                                                 |
-| fonts                     | None                                                                 |
-| inlines                   | `MarkviewInlineCode`                                                 |
-| parenthesis               | `@punctuation.bracket`                                               |
-| subscripts                | `MarkviewSubscript`                                                  |
-| superscripts              | `MarkviewSuperscript`                                                |
-| symbols                   | `Comment`                                                            |
-| texts                     | None                                                                 |
-| ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
-| codes                     | `MarkviewCode`                                                       |
-| escapes                   | None                                                                 |
-| headings                  | `MarkviewHeading[n]`, `MarkviewPalette[n]Sign`(sign)                 |
-| labels                    | `MarkviewInlineCode`                                                 |
-| list_items                | `MarkviewListItemMinus`, `MarkviewListItemPlus`                      |
-| math_blocks               | `MarkviewCode*`                                                      |
-| math_spans                | `MarkviewInlineCode*`                                                |
-| raw_blocks                | `MarkviewCode`                                                       |
-| raw_spans                 | `MarkviewInlineCode`                                                 |
-| reference_links           | `MarkviewHyperlink`                                                  |
-| subscripts                | `MarkviewSubscript`                                                  |
-| superscripts              | `MarkviewSuperscript`                                                |
-| symbols                   | `Special`                                                            |
-| terms                     | `MarkviewPalette6Fg`                                                 |
-| url_links                 | `MarkviewEmail`                                                      |
-| ————————————————————————— | ———————————————————————————————————————————————————————————————————— |
-| properties                | None                                                                 |
-
-
 ## 🎁 Extra modules
 
 `markview.nvim` comes with a few *extra* things for added functionality. Currently available modules are,
@@ -838,4 +778,5 @@ Go over a line with a checkbox and run,
 ```vim
 :Checkbox interactive
 ```
+Now use `h`, `j`, `k`, `l` to change the checkbox state.
 
