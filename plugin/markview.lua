@@ -132,9 +132,6 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		elseif buffer == markview.state.splitview_source then
 			markview.splitview_render();
 			return;
-		elseif markview.state.enable == false then
-			markview.clear(buffer);
-			return;
 		elseif markview.actions.__is_enabled(buffer) == false then
 			--- Markview disabled on this buffer.
 			markview.clear(buffer);
@@ -195,8 +192,6 @@ vim.api.nvim_create_autocmd({
 		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
 
 		if markview.actions.__is_attached(buffer) == false then
-			return;
-		elseif markview.state.enable == false then
 			return;
 		elseif markview.actions.__is_enabled(buffer) == false then
 			return;
@@ -412,6 +407,103 @@ local get_complete_items = {
 		---_
 	end,
 	disable = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false or markview.actions.__is_enabled(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+
+	hybridToggle = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false or markview.actions.__is_enabled(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+	hybridDisable = function (args, cmd)
+		---+${lua}
+		if #args > 3 then
+			--- Too many arguments!
+			return {};
+		elseif #args >= 3 and string.match(cmd, "%s$") then
+			--- Attempting to get completion beyond
+			--- the argument count.
+			return {};
+		end
+
+		local buf = args[3];
+		local _o = {};
+
+		for _, buffer in ipairs(markview.state.attached_buffers) do
+			if markview.buf_is_safe(buffer) == false or markview.actions.__is_enabled(buffer) == false then
+				goto continue;
+			end
+
+			if buf == nil then
+				table.insert(_o, tostring(buffer));
+			elseif string.match(tostring(buffer), "^" .. buf) then
+				table.insert(_o, tostring(buffer));
+			end
+
+		    ::continue::
+		end
+
+		table.sort(_o);
+		return _o;
+		---_
+	end,
+	hybridEnable = function (args, cmd)
 		---+${lua}
 		if #args > 3 then
 			--- Too many arguments!

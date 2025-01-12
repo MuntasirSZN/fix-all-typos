@@ -13,8 +13,6 @@ local spec = require("markview.spec");
 ---@type mkv.state
 markview.state = {
 	attached_buffers = {},
-	enable = true,
-	hybrid_mode = true,
 	buffer_states = {},
 
 	splitview_buffer = nil,
@@ -30,6 +28,11 @@ markview.augroup = vim.api.nvim_create_augroup("markview", { clear = true });
 
 --- Cleans up invalid buffers.
 markview.clean = function ()
+	---+${lua}
+
+	--- Should a buffer be cleaned?
+	---@param bufnr integer
+	---@return boolean
 	local function should_clean(bufnr)
 		if not bufnr then
 			return true;
@@ -53,6 +56,7 @@ markview.clean = function ()
 			end
 		end
 	end
+	---_
 	---_
 end
 
@@ -118,8 +122,6 @@ markview.can_draw = function (buffer)
 
 	if not markview.buf_is_safe(buffer) then
 		return false;
-	elseif markview.state.enable == false then
-		return false;
 	elseif markview.state.buffer_states[buffer] == false then
 		return false;
 	end
@@ -167,9 +169,7 @@ markview.render = function (buffer, state)
 	state = state or markview.state.buffer_states[buffer];
 
 	local function hybrid_mode()
-		if markview.state.hybrid_mode == false then
-			return false;
-		elseif type(markview.state.buffer_states[buffer]) == "table" and markview.state.buffer_states[buffer].hybrid_mode == false then
+		if type(state) == "table" and state.hybrid_mode == false then
 			return false;
 		else
 			return vim.list_contains(hybrid_modes, mode);
@@ -243,7 +243,10 @@ markview.render = function (buffer, state)
 	---_
 end
 
+--- Updates cursor position in splitview.
 markview.update_splitview_cursor = function ()
+	---+${lua}
+
 	local utils = require("markview.utils");
 	local buffer = markview.state.splitview_source;
 
@@ -262,11 +265,12 @@ markview.update_splitview_cursor = function ()
 	--- deleted, we should regenerate them.
 	markview.actions.__splitview_setup();
 
-	local pre_buf = markview.state.splitview_buffer;
 	local pre_win = markview.state.splitview_window;
 
 	local cursor = vim.api.nvim_win_get_cursor(utils.buf_getwin(buffer));
 	pcall(vim.api.nvim_win_set_cursor, pre_win, cursor);
+
+	---_
 end
 
 markview.splitview_render = function (update_content, update_preview)
@@ -315,6 +319,8 @@ end
 
 --- Various actions(provides core functionalities of `markview.nvim`).
 markview.actions = {
+	---+${lua}
+
 	["__exec_callback"] = function (autocmd, ...)
 		if vim.list_contains({ "string", "integer" }, type(autocmd)) == false then
 			--- Invalid data type.
@@ -340,6 +346,8 @@ markview.actions = {
 		end
 	end,
 	["__splitview_setup"] = function ()
+		--+${lua}
+
 		if markview.buf_is_safe(markview.state.splitview_source) == false then
 			return;
 		end
@@ -372,6 +380,8 @@ markview.actions = {
 
 		vim.wo[markview.state.splitview_window].wrap = vim.wo[win].wrap;
 		vim.wo[markview.state.splitview_window].linebreak = vim.wo[win].linebreak;
+
+		---_
 	end,
 
 	--- Registers a buffer to be preview-able.
@@ -427,7 +437,7 @@ markview.actions = {
 
 		--- Execute the enable/disable one too.
 		vim.api.nvim_exec_autocmds("User", {
-			pattern = enable == true and "MarkviewAttach" or "MarkviewDetach",
+			pattern = enable == true and "MarkviewEnable" or "MarkviewDisable",
 			data = {
 				buffer = buffer,
 				windows = vim.fn.win_findbuf(buffer)
@@ -436,6 +446,25 @@ markview.actions = {
 
 		if enable == true then
 			markview.render(buffer);
+
+			local mode = vim.api.nvim_get_mode().mode;
+			---@type string[]
+			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+			if vim.list_contains(hybd_modes, mode) == false then
+				return;
+			end
+
+			--- Execute the attaching autocmd.
+			markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
+			--- Execute the autocmd too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewHybridEnable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 		end
 		---_
 	end,
@@ -505,6 +534,25 @@ markview.actions = {
 				windows = vim.fn.win_findbuf(buffer)
 			}
 		});
+
+		local mode = vim.api.nvim_get_mode().mode;
+		---@type string[]
+		local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+		if vim.list_contains(hybd_modes, mode) == false then
+			return;
+		end
+
+		--- Execute the attaching autocmd.
+		markview.actions.__exec_callback("on_hybrid_disable", buffer, vim.fn.win_findbuf(buffer))
+		--- Execute the autocmd too.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewHybridDisable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
 		---_
 	end,
 	["enable"] = function (buffer)
@@ -520,6 +568,17 @@ markview.actions = {
 		end
 
 		markview.state.buffer_states[buffer].enable = true;
+
+		local mode = vim.api.nvim_get_mode().mode;
+		---@type string[]
+		local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+		---@type string[]
+		local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+		if vim.list_contains(prev_modes, mode) == false then
+			return;
+		end
+
 		markview.render(buffer);
 
 		--- Execute the attaching autocmd.
@@ -532,6 +591,103 @@ markview.actions = {
 				windows = vim.fn.win_findbuf(buffer)
 			}
 		});
+
+		if vim.list_contains(hybd_modes, mode) == false then
+			return;
+		end
+
+		--- Execute the attaching autocmd.
+		markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
+		--- Execute the autocmd too.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewHybridEnable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
+		---_
+	end,
+
+	["hybridEnable"] = function (buffer)
+		---+${lua}
+
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if markview.actions.__is_attached(buffer) == false then
+			return;
+		elseif markview.state.buffer_states[buffer] then
+			markview.state.buffer_states[buffer].hybrid_mode = true;
+
+			if markview.state.buffer_states[buffer].enable == false then
+				return;
+			elseif buffer == markview.state.splitview_source then
+				return;
+			end
+
+			markview.render(buffer);
+
+			local mode = vim.api.nvim_get_mode().mode;
+			---@type string[]
+			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+			if vim.list_contains(hybd_modes, mode) == false then
+				return;
+			end
+
+			--- Execute the attaching autocmd.
+			markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
+			--- Execute the autocmd too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewHybridEnable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
+		end
+
+		---_
+	end,
+
+	["hybridDisable"] = function (buffer)
+		--+${lua}
+
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if markview.actions.__is_attached(buffer) == false then
+			return;
+		elseif markview.state.buffer_states[buffer] then
+			markview.state.buffer_states[buffer].hybrid_mode = false;
+
+			if markview.state.buffer_states[buffer].enable == false then
+				return;
+			elseif buffer == markview.state.splitview_source then
+				return;
+			end
+
+			markview.render(buffer);
+
+			local mode = vim.api.nvim_get_mode().mode;
+			---@type string[]
+			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+			if vim.list_contains(hybd_modes, mode) == false then
+				return;
+			end
+
+			--- Execute the attaching autocmd.
+			markview.actions.__exec_callback("on_hybrid_disable", buffer, vim.fn.win_findbuf(buffer))
+			--- Execute the autocmd too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewHybridDisable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
+		end
+
 		---_
 	end,
 
@@ -633,6 +789,8 @@ markview.actions = {
 		end
 		---_
 	end
+
+	---_
 };
 
 --- Holds various functions that you can run
@@ -649,49 +807,25 @@ markview.commands = {
 
 	["Toggle"] = function ()
 		---+${class}
-		if markview.state.enable == false then
-			markview.commands.Enable()
-		else
-			markview.commands.Disable()
+		markview.clean();
+
+		for _, buf in ipairs(markview.state.attached_buffers) do
+			markview.commands.toggle(buf);
 		end
 		---_
 	end,
 	["Enable"] = function ()
 		markview.clean();
-		markview.state.enable = true;
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			markview.render(buf);
-
-			--- Execute the attaching autocmd.
-			markview.actions.__exec_callback("on_enable", buf, vim.fn.win_findbuf(buf))
-			--- Execute the autocmd too.
-			vim.api.nvim_exec_autocmds("User", {
-				pattern = "MarkviewEnable",
-				data = {
-					buffer = buf,
-					windows = vim.fn.win_findbuf(buf)
-				}
-			});
+			markview.actions.enable(buf);
 		end
 	end,
 	["Disable"] = function ()
 		markview.clean();
-		markview.state.enable = false;
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			markview.clear(buf);
-
-			--- Execute the attaching autocmd.
-			markview.actions.__exec_callback("on_disable", buf, vim.fn.win_findbuf(buf))
-			--- Execute the autocmd too.
-			vim.api.nvim_exec_autocmds("User", {
-				pattern = "MarkviewDisable",
-				data = {
-					buffer = buf,
-					windows = vim.fn.win_findbuf(buf)
-				}
-			});
+			markview.actions.disable(buf);
 		end
 	end,
 
@@ -699,7 +833,7 @@ markview.commands = {
 		markview.clean();
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			if markview.state.enable == true and markview.actions.__is_enabled(buf) then
+			if markview.actions.__is_enabled(buf) then
 				markview.render(buf);
 			end
 		end
@@ -708,7 +842,7 @@ markview.commands = {
 		markview.clean();
 
 		for _, buf in ipairs(markview.state.attached_buffers) do
-			if markview.state.enable == true and markview.actions.__is_enabled(buf) then
+			if markview.actions.__is_enabled(buf) then
 				markview.clear(buf);
 			end
 		end
@@ -779,6 +913,50 @@ markview.commands = {
 	end,
 	["disable"] = function (buffer)
 		markview.actions.disable(buffer)
+	end,
+
+	["hybridToggle"] = function (buffer)
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if markview.actions.__is_attached(buffer) == false then
+			return;
+		elseif type(markview.state.buffer_states[buffer]) ~= "table" then
+			return;
+		elseif markview.state.buffer_states[buffer].hybrid_mode == true then
+			markview.actions.hybridDisable(buffer);
+		else
+			markview.actions.hybridEnable(buffer);
+		end
+	end,
+	["hybridDisable"] = function (buffer)
+		markview.actions.hybridDisable(buffer);
+	end,
+	["hybridEnable"] = function (buffer)
+		markview.actions.hybridEnable(buffer);
+	end,
+
+	["HybridToggle"] = function ()
+		markview.clean();
+
+		for _, buf in ipairs(markview.state.attached_buffers) do
+			markview.commands.hybridToggle(buf);
+		end
+	end,
+
+	["HybridDisable"] = function ()
+		markview.clean();
+
+		for _, buf in ipairs(markview.state.attached_buffers) do
+			markview.commands.hybridDisable(buf);
+		end
+	end,
+
+	["HybridEnable"] = function ()
+		markview.clean();
+
+		for _, buf in ipairs(markview.state.attached_buffers) do
+			markview.commands.hybridEnable(buf);
+		end
 	end,
 
 	["splitToggle"] = function ()

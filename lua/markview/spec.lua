@@ -171,39 +171,22 @@ spec.default = {
 					return;
 				end
 
-				---@type string[]
-				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
-				---@type string[]
-				local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
-
-				--- Concealcursor option.
-				local concealcursor = "";
-
-				for _, mode in ipairs(prev_modes) do
-					if vim.list_contains(hybd_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
-						--- Only add modes that aren't used by hybrid mode
-						--- and are inside the valid modes for concealcursor.
-						concealcursor = concealcursor .. mode;
-					end
-				end
-
 				for _, win in ipairs(wins) do
 					--- Preferred conceal level should
 					--- be 3.
 					vim.wo[win].conceallevel = 3;
-					vim.wo[win].concealcursor = concealcursor;
 				end
 
 				---_
 			end,
+
 			on_detach = function (_, wins)
 				---+${lua}
 				for _, win in ipairs(wins) do
-					--- Conceallevel & concealcursor
-					--- should be reset for every
-					--- window.
+					--- Only set `conceallevel`.
+					--- `concealcursor` will be
+					--- set via `on_hybrid_disable`.
 					vim.wo[win].conceallevel = 0;
-					vim.wo[win].concealcursor = "";
 				end
 				---_
 			end,
@@ -211,6 +194,24 @@ spec.default = {
 			on_enable = function (_, wins)
 				---+${lua}
 
+				for _, win in ipairs(wins) do
+					vim.wo[win].conceallevel = 3;
+				end
+
+				---_
+			end,
+
+			on_disable = function (_, wins)
+				---+${lua}
+				for _, win in ipairs(wins) do
+					vim.wo[win].conceallevel = 0;
+				end
+				---_
+			end,
+
+			on_hybrid_enable = function (_, wins)
+				---+${lua}
+
 				---@type string[]
 				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
 				---@type string[]
@@ -225,17 +226,29 @@ spec.default = {
 				end
 
 				for _, win in ipairs(wins) do
-					vim.wo[win].conceallevel = 3;
 					vim.wo[win].concealcursor = concealcursor;
 				end
+
 				---_
 			end,
-			on_disable = function (_, wins)
+
+			on_hybrid_disable = function (_, wins)
 				---+${lua}
-				for _, win in ipairs(wins) do
-					vim.wo[win].conceallevel = 0;
-					vim.wo[win].concealcursor = "";
+
+				---@type string[]
+				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local concealcursor = "";
+
+				for _, mode in ipairs(prev_modes) do
+					if vim.list_contains({ "n", "v", "i", "c" }, mode) then
+						concealcursor = concealcursor .. mode;
+					end
 				end
+
+				for _, win in ipairs(wins) do
+					vim.wo[win].concealcursor = concealcursor;
+				end
+
 				---_
 			end,
 
@@ -256,7 +269,7 @@ spec.default = {
 				end
 
 				for _, win in ipairs(wins) do
-					if vim.list_contains(preview_modes, current_mode) and require("markview").state.enable == true then
+					if vim.list_contains(preview_modes, current_mode) then
 						vim.wo[win].conceallevel = 3;
 						vim.wo[win].concealcursor = concealcursor;
 					else
@@ -2509,7 +2522,7 @@ spec.default = {
 	---_
 };
 
-spec.config = spec.default;
+spec.config = vim.deepcopy(spec.default);
 
 ---+${custom, Option maps}
 spec.preview = {
