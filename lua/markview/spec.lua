@@ -1038,12 +1038,18 @@ spec.default = {
 		enable = true,
 
 		block_references = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
 				icon = "󰿨 ",
-				hl = "MarkviewComment"
+
+				hl = "MarkviewPalette6Fg",
+				file_hl = "MarkviewPalette0Fg",
 			},
+
+			---_
 		},
 
 		checkboxes = {
@@ -1077,25 +1083,100 @@ spec.default = {
 			---_
 		},
 
+		emails = {
+			---+${lua}
+
+			enable = true,
+
+			default = {
+				icon = " ",
+				hl = "MarkviewEmail"
+			},
+
+			---+${lua, Commonly used email service providers}
+
+			["%@gmail%.com$"] = {
+				--- user@gmail.com
+
+				icon = "󰊫 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["%@outlook%.com$"] = {
+				--- user@outlook.com
+
+				icon = "󰴢 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["%@yahoo%.com$"] = {
+				--- user@yahoo.com
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["%@icloud%.com$"] = {
+				--- user@icloud.com
+
+				icon = "󰀸 ",
+				hl = "MarkviewPalette6Fg"
+			}
+
+			---_
+
+			---_
+		},
+
+		embed_files = {
+			---+${lua}
+
+			enable = true,
+
+			default = {
+				icon = "󰠮 ",
+				hl = "MarkviewPalette7Fg"
+			}
+
+			---_
+		},
+
 		entities = {
+			---+${lua}
+
 			enable = true,
 			hl = "Special"
+
+			---_
+		},
+
+		escapes = {
+			enable = true
 		},
 
 		footnotes = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
 				icon = "󰯓 ",
 				hl = "MarkviewHyperlink"
 			},
+
 			["^%d+$"] = {
+				--- Numbered footnotes.
+
 				icon = "󰯓 ",
 				hl = "MarkviewPalette4Fg"
 			}
+
+			---_
 		},
 
 		highlights = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
@@ -1103,36 +1184,203 @@ spec.default = {
 				padding_right = " ",
 
 				hl = "MarkviewPalette3"
-			},
+			}
+
+			---_
 		},
 
-		inline_codes = {
-			enable = true,
-			hl = "MarkviewInlineCode",
+		hyperlinks = {
+			---+${lua}
 
-			padding_left = " ",
-			padding_right = " "
-		},
-
-		emails = {
 			enable = true,
 
 			default = {
-				icon = " ",
-				hl = "MarkviewEmail"
+				icon = "󰌷 ",
+				hl = "MarkviewHyperlink",
 			},
-		},
 
-		uri_autolinks = {
-			enable = true,
+			---+${lua, Github sites}
 
-			default = {
-				icon = " ",
-				hl = "MarkviewEmail"
+			["github%.com/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
 			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>
+
+				icon = "󰳐 ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/tree/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/tree/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/commits/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/commits/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/releases$"] = {
+				--- github.com/<user>/<repo>/releases
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/tags$"] = {
+				--- github.com/<user>/<repo>/tags
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/issues$"] = {
+				--- github.com/<user>/<repo>/issues
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/pulls$"] = {
+				--- github.com/<user>/<repo>/pulls
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/wiki$"] = {
+				--- github.com/<user>/<repo>/wiki
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			---_
+			---+${lua, Commonly used sites by programmers}
+
+			["developer%.mozilla%.org"] = {
+				priority = 9999,
+
+				icon = "󰖟 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["w3schools%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette4Fg"
+			},
+
+			["stackoverflow%.com"] = {
+				priority = 9999,
+
+				icon = "󰓌 ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["reddit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["github%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["gitlab%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["dev%.to"] = {
+				priority = 9999,
+
+				icon = "󱁴 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["codepen%.io"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["replit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["jsfiddle%.net"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["npmjs%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["pypi%.org"] = {
+				priority = 9999,
+
+				icon = "󰆦 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["mvnrepository%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette1Fg"
+			},
+
+			["medium%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["linkedin%.com"] = {
+				priority = 9999,
+
+				icon = "󰌻 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["news%.ycombinator%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			---_
+
+			---_
 		},
 
 		images = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
@@ -1141,51 +1389,226 @@ spec.default = {
 			},
 
 			["%.svg$"] = { icon = "󰜡 " },
+			["%.png$"] = { icon = "󰸭 " },
+			["%.jpg$"] = { icon = "󰈥 " },
+			["%.gif$"] = { icon = "󰵸 " },
+			["%.pdf$"] = { icon = " " }
+
+			---_
 		},
 
-		embed_files = {
-			enable = true,
+		inline_codes = {
+			---+${lua}
 
-			default = {
-				icon = "󰠮 ",
-				hl = "MarkviewPalette2Fg"
-			},
+			enable = true,
+			hl = "MarkviewInlineCode",
+
+			padding_left = " ",
+			padding_right = " "
+
+			---_
 		},
 
 		internal_links = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
-				icon = "󰌷 ",
-				hl = "MarkviewHyperlink",
+				icon = " ",
+				hl = "MarkviewPalette7Fg",
 			},
+
+			---_
 		},
 
-		hyperlinks = {
+		uri_autolinks = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
-				icon = "󰌷 ",
-				hl = "MarkviewHyperlink",
+				icon = " ",
+				hl = "MarkviewEmail"
 			},
 
-			["stackoverflow%.com"] = { icon = " " },
-			["stackexchange%.com"] = { icon = " " },
+			---+${lua, Github sites}
 
-			["neovim%.org"] = { icon = " " },
+			["github%.com/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>
 
-			["dev%.to"] = { icon = " " },
-			["github%.com"] = { icon = " " },
-			["reddit%.com"] = { icon = " " },
-			["freecodecamp%.org"] = { icon = " " },
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>
 
-			["https://(.+)$"] = { icon = "󰞉 " },
-			["http://(.+)$"] = { icon = "󰕑 " },
-			["[%.]md$"] = { icon = " " }
-		},
+				icon = "󰳐 ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/tree/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/tree/<branch>
 
-		escapes = {
-			enable = true
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/commits/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/commits/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/releases$"] = {
+				--- github.com/<user>/<repo>/releases
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/tags$"] = {
+				--- github.com/<user>/<repo>/tags
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/issues$"] = {
+				--- github.com/<user>/<repo>/issues
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/pulls$"] = {
+				--- github.com/<user>/<repo>/pulls
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/wiki$"] = {
+				--- github.com/<user>/<repo>/wiki
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			---_
+			---+${lua, Commonly used sites by programmers}
+
+			["developer%.mozilla%.org"] = {
+				priority = 9999,
+
+				icon = "󰖟 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["w3schools%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette4Fg"
+			},
+
+			["stackoverflow%.com"] = {
+				priority = 9999,
+
+				icon = "󰓌 ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["reddit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["github%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["gitlab%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["dev%.to"] = {
+				priority = 9999,
+
+				icon = "󱁴 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["codepen%.io"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["replit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["jsfiddle%.net"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["npmjs%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["pypi%.org"] = {
+				priority = 9999,
+
+				icon = "󰆦 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["mvnrepository%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette1Fg"
+			},
+
+			["medium%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["linkedin%.com"] = {
+				priority = 9999,
+
+				icon = "󰌻 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["news%.ycombinator%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			---_
+
+			---_
 		},
 
 		---_
@@ -1194,7 +1617,11 @@ spec.default = {
 		---+${lua}
 
 		container_elements = {
+			---+${lua}
+
 			enable = true,
+
+			---+${lua, Various inline elements used in markdown}
 
 			["^b$"] = {
 				on_opening_tag = { conceal = "" },
@@ -1241,9 +1668,14 @@ spec.default = {
 				on_node = { hl_group = "Underlined" },
 				on_closing_tag = { conceal = "" },
 			},
+
+			---_
+			---_
 		},
 
 		headings = {
+			---+${lua}
+
 			enable = true,
 
 			heading_1 = {
@@ -1264,10 +1696,16 @@ spec.default = {
 			heading_6 = {
 				hl_group = "MarkviewPalette6Bg"
 			},
+
+			---_
 		},
 
 		void_elements = {
+			---+${lua}
+
 			enable = true,
+
+			---+${lua, Various void elements used in markdown}
 
 			["^hr$"] = {
 				on_node = {
@@ -1297,6 +1735,10 @@ spec.default = {
 					}
 				}
 			},
+
+			---_
+
+			---_
 		}
 
 		---_
@@ -1306,8 +1748,27 @@ spec.default = {
 
 		enable = true,
 
-		commands = {
+		blocks = {
+			---+${lua}
+
 			enable = true,
+
+			hl = "MarkviewCode",
+			pad_char = " ",
+			pad_amount = 3,
+
+			text = "  LaTeX ",
+			text_hl = "MarkviewCodeInfo"
+
+			---_
+		},
+
+		commands = {
+			---+${lua}
+
+			enable = true,
+
+			---+${lua, Various commonly used LaTeX math commands}
 
 			["frac"] = {
 				condition = function (item)
@@ -1430,42 +1891,73 @@ spec.default = {
 			["sqrt"] = operator(symbols.entries.sqrt, "inline", 5),
 			["lvert"] = operator(symbols.entries.vert, "inline", 6),
 			["lVert"] = operator(symbols.entries.Vert, "inline", 6),
-		},
-		parenthesis = {
-			enable = true,
-			left = "(",
-			right = "(",
-			hl = "@punctuation.bracket"
+
+			---_
+
+			---_
 		},
 
-		escapes = { enable = true },
-		symbols = { enable = true, hl = "MarkviewComment" },
-		fonts = {
-			enable = true,
-			default = { hl = "MarkviewSpecial", enable = true },
-			-- ["^mathtt$"] = { hl = "MarkviewPalette1" }
+		escapes = {
+			enable = true
 		},
-		subscripts = { enable = true, hl = "MarkviewSubscript" },
-		superscripts = { enable = true, hl = "MarkviewSuperscript" },
-		texts = { enable = true },
+
+		fonts = {
+			---+${lua}
+
+			enable = true,
+
+			default = {
+				hl = "MarkviewSpecial", enable = true
+			},
+			-- ["^mathtt$"] = { hl = "MarkviewPalette1" }
+			---_
+		},
 
 		inlines = {
+			---+${lua}
+
 			enable = true,
 
 			padding_left = " ",
 			padding_right = " ",
 
 			hl = "MarkviewInlineCode"
+
+			---_
 		},
-		blocks = {
+
+		parenthesis = {
+			---+${lua}
+
 			enable = true,
 
-			hl = "MarkviewCode",
-			pad_char = " ",
-			pad_amount = 3,
+			left = "(",
+			right = "(",
+			hl = "@punctuation.bracket"
 
-			text = "  LaTeX ",
-			text_hl = "MarkviewCodeInfo"
+			---_
+		},
+
+		subscripts = {
+			enable = true,
+
+			hl = "MarkviewSubscript"
+		},
+
+		superscripts = {
+			enable = true,
+
+			hl = "MarkviewSuperscript"
+		},
+
+		symbols = {
+			enable = true,
+
+			hl = "MarkviewComment"
+		},
+
+		texts = {
+			enable = true
 		},
 
 		---_
@@ -1474,6 +1966,43 @@ spec.default = {
 		---+${lua}
 
 		enable = true,
+
+		code_blocks = {
+			---+${lua}
+
+			enable = true,
+
+			style = "block",
+			text_direction = "right",
+
+			min_width = 60,
+			pad_amount = 3,
+			pad_char = " ",
+
+			text = "󰣖 Code",
+
+			hl = "MarkviewCode",
+			text_hl = "MarkviewIcon5"
+
+			---_
+		},
+
+		code_spans = {
+			---+${lua}
+
+			enable = true,
+
+			padding_left = " ",
+			padding_right = " ",
+
+			hl = "MarkviewCode"
+
+			---_
+		},
+
+		escapes = {
+			enable = true
+		},
 
 		headings = {
 			---+ ${class, Headings}
@@ -1527,48 +2056,9 @@ spec.default = {
 			---_
 		},
 
-		code_blocks = {
-			enable = true,
-
-			style = "block",
-			text_direction = "right",
-			min_width = 60,
-			pad_char = " ",
-			pad_amount = 3,
-
-			text = "󰣖 Code",
-
-			hl = "MarkviewCode",
-			text_hl = "MarkviewIcon5"
-		},
-		code_spans = {
-			enable = true,
-
-			padding_left = " ",
-			padding_right = " ",
-
-			hl = "MarkviewCode"
-		},
-
-		raw_blocks = {
-			enable = true,
-
-			style = "block",
-			icons = "internal",
-			label_direction = "right",
-
-			sign = true,
-
-			min_width = 60,
-			pad_amount = 3,
-			pad_char = " ",
-
-			hl = "MarkviewCode"
-		},
-
-		escapes = { enable = true },
-
 		labels = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
@@ -1576,11 +2066,14 @@ spec.default = {
 				padding_left = " ",
 				icon = " ",
 				padding_right = " "
-			},
+			}
+
+			---_
 		},
 
 		list_items = {
 			---+${conf, List items}
+
 			enable = true,
 
 			indent_size = 2,
@@ -1603,68 +2096,301 @@ spec.default = {
 			marker_dot = {
 				add_padding = true,
 			}
+
+			---_
+		},
+
+		math_blocks = {
+			---+${lua}
+
+			enable = true,
+
+			text = " 󰪚 Math ",
+			pad_amount = 3,
+			pad_char = " ",
+
+			hl = "MarkviewCode",
+			text_hl = "MarkviewCodeInfo"
+
+			---_
+		},
+		math_spans = {
+			---+${lua}
+
+			enable = true,
+
+			padding_left = " ",
+			padding_right = " ",
+
+			hl = "MarkviewInlineCode"
+
+			---_
+		},
+
+		raw_blocks = {
+			---+${lua}
+
+			enable = true,
+
+			style = "block",
+			icons = "internal",
+			label_direction = "right",
+
+			sign = true,
+
+			min_width = 60,
+			pad_amount = 3,
+			pad_char = " ",
+
+			hl = "MarkviewCode"
+
 			---_
 		},
 
 		raw_spans = {
+			---+${lua}
+
 			enable = true,
 
 			padding_left = " ",
 			padding_right = " ",
 
 			hl = "MarkviewInlineCode"
-		},
-		math_blocks = {
-			enable = true,
-			hl = "MarkviewCode",
-			text = " 󰪚 Math ",
-			text_hl = "MarkviewCodeInfo",
 
-			pad_amount = 3,
-			pad_char = " "
-		},
-		math_spans = {
-			enable = true,
-
-			padding_left = " ",
-			padding_right = " ",
-
-			hl = "MarkviewInlineCode"
-		},
-
-		url_links = {
-			enable = true,
-			__emoji_link_compatibility = true,
-
-			default = {
-				icon = " ",
-				hl = "MarkviewEmail"
-			},
+			---_
 		},
 
 		reference_links = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
 				icon = " ",
 				hl = "MarkviewHyperlink"
 			},
+
+			---_
 		},
 
-		subscripts = { enable = true, hl = "MarkviewSubscript" },
-		superscripts = { enable = true, hl = "MarkviewSuperscript" },
+		subscripts = {
+			enable = true,
+
+			hl = "MarkviewSubscript"
+		},
+
+		superscripts = {
+			enable = true,
+
+			hl = "MarkviewSuperscript"
+		},
+
 		symbols = {
 			enable = true,
+
 			hl = "Special"
 		},
 
 		terms = {
+			---+${lua}
+
 			enable = true,
 
 			default = {
 				text = " ",
 				hl = "MarkviewPalette6Fg"
 			},
+
+			---_
+		},
+
+		url_links = {
+			---+${lua}
+
+			enable = true,
+
+			default = {
+				icon = " ",
+				hl = "MarkviewEmail"
+			},
+
+			---+${lua, Github sites}
+
+			["github%.com/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>
+
+				icon = "󰳐 ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/tree/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/tree/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+/commits/[%a%d%-%_%.]+%/?$"] = {
+				--- github.com/<user>/<repo>/commits/<branch>
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/releases$"] = {
+				--- github.com/<user>/<repo>/releases
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/tags$"] = {
+				--- github.com/<user>/<repo>/tags
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/issues$"] = {
+				--- github.com/<user>/<repo>/issues
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/pulls$"] = {
+				--- github.com/<user>/<repo>/pulls
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["github%.com/[%a%d%-%_%.]+/[%a%d%-%_%.]+%/wiki$"] = {
+				--- github.com/<user>/<repo>/wiki
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			---_
+			---+${lua, Commonly used sites by programmers}
+
+			["developer%.mozilla%.org"] = {
+				priority = 9999,
+
+				icon = "󰖟 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["w3schools%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette4Fg"
+			},
+
+			["stackoverflow%.com"] = {
+				priority = 9999,
+
+				icon = "󰓌 ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["reddit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["github%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["gitlab%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["dev%.to"] = {
+				priority = 9999,
+
+				icon = "󱁴 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["codepen%.io"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["replit%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			["jsfiddle%.net"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["npmjs%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["pypi%.org"] = {
+				priority = 9999,
+
+				icon = "󰆦 ",
+				hl = "MarkviewPalette0Fg"
+			},
+
+			["mvnrepository%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette1Fg"
+			},
+
+			["medium%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette6Fg"
+			},
+
+			["linkedin%.com"] = {
+				priority = 9999,
+
+				icon = "󰌻 ",
+				hl = "MarkviewPalette5Fg"
+			},
+
+			["news%.ycombinator%.com"] = {
+				priority = 9999,
+
+				icon = " ",
+				hl = "MarkviewPalette2Fg"
+			},
+
+			---_
+
+			---_
 		}
 
 		---_
@@ -1675,6 +2401,8 @@ spec.default = {
 		enable = true,
 
 		properties = {
+			---+${lua}
+
 			enable = true,
 
 			data_types = {
@@ -1770,7 +2498,9 @@ spec.default = {
 
 				text = " 󰹉 ",
 				hl = nil
-			},
+			}
+
+			---_
 		}
 
 		---_
