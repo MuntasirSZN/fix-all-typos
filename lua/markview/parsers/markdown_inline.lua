@@ -363,7 +363,7 @@ inline.reference_link = function (buffer, TSNode, text, range)
 	local link_label;
 
 	for child in TSNode:iter_children() do
-		if child:type() == "image_description" then
+		if child:type() == "link_text" then
 			link_label = vim.treesitter.get_node_text(child, buffer):gsub("[%[%]%(%)]", "");
 			range.label = { child:range() };
 		elseif child:type() == "link_label" or child:type() == "link_destination" then
@@ -372,7 +372,7 @@ inline.reference_link = function (buffer, TSNode, text, range)
 		end
 	end
 
-	range.label = range.label or { range.row_start, range.col_start + 2, range.row_end, range.col_end - 3 };
+	range.label = range.label or { range.row_start, range.col_start + 1, range.row_end, range.col_end - 3 };
 
 	inline.insert({
 		class = "inline_link_hyperlink",
