@@ -14,6 +14,7 @@
 
 ## 📖 Table of contents
 
+- [✨ Features](#-features)
 - [📚 Requirements](#-requirements)
 - [📐 Installation](#-installation)
 - [🧭 Configuration](#-configuration)
@@ -23,6 +24,199 @@
 - [🎨 Highlight groups](#-highlight-groups)
 
 - [🎁 Extra modules](#-extra-modules)
+
+## ✨ Features
+
+Core features,
+
++ Supports HTML, LaTeX, Markdown, Typst & YAML.
++ Highly customisable! Everything is done via the *configuration table* to ensure maximum customisability.
++ Hybrid editing mode! Allows editing & *previewing* files at the same time.
++ Split view! Allows previewing files on a separate window that updates in real-time!
++ Partial *text wrap* support(only for markdown at the moment).
++ Dynamic config that allows **any** option to be a function.
++ Dynamic `highlight groups` that automatically updates with the colorscheme.
+
+<details>
+    <summary>Expand to see complete feature list</summary><!--+-->
+
+HTML features,
+
++ Allows customising how various container & void elements are shown.
++ Supports *heading* elements out of the box.
++ Supports the following container elements out of the box,
+  + `<b></b>`
+  + `<code></code>`
+  + `<em></em>`
+  + `<i></i>`
+  + `<mark></mark>`
+  + `<strong></strong>`
+  + `<sub></sub>`
+  + `<sup></sup>`
+  + `<u></u>`
+
++ Supports the following void elements out of the box,
+  + `<hr>`
+  + `<br>`
+
+LaTeX features,
+
++ Supports the following items,
+  + Math blocks(typically `$$...$$`) & inline math(typically `$...$`).
+  + LaTeX commands.
+  + Escaped characters.
+  + Math fonts
+  + Subscript.
+  + Superscript.
+  + Math symbols.
+  + `\text{}`.
+
++ Supports commonly used math commands out of the box,
+  + `\frac{}`
+  + `\sin{}`
+  + `\cos{}`
+  + `\tan{}`
+  + `\sinh{}`
+  + `\cosh{}`
+  + `\tanh{}`
+  + `\csc{}`
+  + `\sec{}`
+  + `\cot{}`
+  + `\csch{}`
+  + `\sech{}`
+  + `\coth{}`
+  + `\arcsin{}`
+  + `\arccos{}`
+  + `\arctan{}`
+  + `\arg{}`
+  + `\deg{}`
+  + `\drt{}`
+  + `\dim{}`
+  + `\exp{}`
+  + `\gcd{}`
+  + `\hom{}`
+  + `\inf{}`
+  + `\ker{}`
+  + `\lg{}`
+  + `\lim{}`
+  + `\liminf{}`
+  + `\limsup{}`
+  + `\ln{}`
+  + `\log{}`
+  + `\min{}`
+  + `\max{}`
+  + `\Pr{}`
+  + `\sup{}`
+  + `\sqrt{}`
+  + `\lvert{}`
+  + `\lVert{}`
+
++ Supports the following fonts(requires any *modern* Unicode font),
+  + `default`(Default math font).
+  + `\mathbb{}`
+  + `\mathbf{}`
+  + `\mathbffrak{}`
+  + `\mathbfit{}`
+  + `\nathbfscr{}`
+  + `\mathcal{}`
+  + `\mathfrak{}`
+  + `\mathsf{}`
+  + `\mathsfbf{}`
+  + `\mathsfbfit{}`
+  + `\mathsfit{}`
+  + `\mathtt{}`
+
++ Supports Unicode based *subscript* & *superscript* texts.
++ Supports **2056** different math symbol definitions.
+
+Markdown features,
+
++ Supports the following items,
+  + Block quotes(with support for `callouts` & titles).
+  + Fenced code blocks.
+  + Headings(setext & atx).
+  + Horizontal rules.
+  + List items(`+`, `-`, `*`, `n.` & `n)`).
+  + Minus & plus metadata.
+  + Reference link definitions.
+  + Tables.
+
++ `wrap` option support for the following items,
+  + Block quotes.
+  + Headings(when `org_indent` is used).
+  + List items(when `add_padding` is true).
+
++ Org-mode like indentation for headings.
+
+Markdown inline features,
+
++ Supports the following items,
+  + Checkboxes(supports *minimal-style* checkboxes).
+  + Email links.
+  + Entities.
+  + Escaped characters.
+  + Footnotes.
+  + Hyperlinks.
+  + Images.
+  + Inline codes/Code spans.
+  + URI autolinks.
+
++ Obsidian/PKM extended item support,
+  + Block reference links.
+  + Embed file links.
+  + Internal links(supports *aliases*).
+
++ Wide variety of HTML entity names & codes support.
+  + Supported named entities: **786**.
+  + Supported entity codes: **853**.
+
++ Custom configuration based on link patterns.
+
+Typst features,
+
++ Supports the following items,
+  + Code blocks.
+  + Code spans.
+  + Escaped characters.
+  + Headings.
+  + Labels.
+  + List items(`-`, `+` & `n.`).
+  + Math blocks.
+  + Math spans.
+  + Raw blocks.
+  + Raw spans.
+  + Reference links.
+  + Subscripts.
+  + Superscripts.
+  + Symbols.
+  + Terms.
+  + URL links.
+
++ Supports a variety of typst symbols,
+  + Symbol entries: **932**
+  + Symbol shorthands: **40**
+
++ Supports Unicode based *subscript* & *superscript* texts.
+
+---
+
+Hybrid mode features,
+
++ *Node-based* edit range.
+  Clears the current nodes range of lines. Useful when editing lists, block quotes, code blocks, tables etc.
+
++ *Range-based* edit range.
+  Clears the selected number of lines above & below the cursor.
+
++ Supports multiple cursors to.
+
+Internal Icon provider features,
+
++ **708** different filetype configuration.
++ Dynamic highlight groups for matching the colorscheme.
+
+<!--_-->
+</details>
 
 ## 📚 Requirements
 
