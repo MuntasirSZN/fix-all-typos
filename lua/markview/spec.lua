@@ -2114,6 +2114,7 @@ spec.default = {
 
 			---_
 		},
+
 		math_spans = {
 			---+${lua}
 

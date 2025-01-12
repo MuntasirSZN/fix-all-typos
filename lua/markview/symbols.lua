@@ -3339,7 +3339,7 @@ symbols.typst_shorthands = {
 	["arrow.l.r.double.long"] = "<==>",
 	["arrow.l.r.long"] = "<->",
 	---_
-}
+};
 
 symbols.fonts = {
 	---+${clqss}
@@ -4329,21 +4329,5 @@ symbols.tostring = function (font, text)
 
 	return _o;
 end
-
-
--- vim.api.nvim_set_keymap("n", "<leader>x", "", {
--- 	callback = function ()
--- 	local c = vim.api.nvim_win_get_cursor(0);
--- 	local ln = vim.api.nvim_buf_get_lines(0, c[1] - 1, c[1], false)[1];
--- 	vim.print(ln)
---
--- 	for hex in ln:gmatch("(%d+)") do
--- 		ln = ln:gsub(hex, vim.fn.nr2char(hex));
--- 	end
---
--- 	vim.api.nvim_buf_set_lines(0, c[1] - 1, c[1], false, { ln });
--- end})
---
--- vim.print(symbols.tostring("mathtt", "  zwsp"))
 
 return symbols;
