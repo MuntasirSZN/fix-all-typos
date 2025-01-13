@@ -260,7 +260,11 @@ vim.api.nvim_create_autocmd({
 		else
 			--- Normal renderer.
 			if immediate_render() == true then
-				markview.render(buffer);
+				--- Use a small delay to prevent input
+				--- lags when doing `gg` or `G`.
+				timer:start(5, 0, vim.schedule_wrap(function ()
+					markview.render(buffer);
+				end));
 			else
 				timer:start(delay, 0, vim.schedule_wrap(function ()
 					if vim.v.exiting ~= vim.NIL then
