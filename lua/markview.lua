@@ -450,20 +450,29 @@ markview.actions = {
 			---@type string[]
 			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
-			if vim.list_contains(hybd_modes, mode) == false then
-				return;
+			if vim.list_contains(hybd_modes, mode) then
+				--- Execute the attaching autocmd.
+				markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
+				--- Execute the autocmd too.
+				vim.api.nvim_exec_autocmds("User", {
+					pattern = "MarkviewHybridEnable",
+					data = {
+						buffer = buffer,
+						windows = vim.fn.win_findbuf(buffer)
+					}
+				});
+			else
+				--- Execute the attaching autocmd.
+				markview.actions.__exec_callback("on_hybrid_disable", buffer, vim.fn.win_findbuf(buffer))
+				--- Execute the autocmd too.
+				vim.api.nvim_exec_autocmds("User", {
+					pattern = "MarkviewHybridDisable",
+					data = {
+						buffer = buffer,
+						windows = vim.fn.win_findbuf(buffer)
+					}
+				});
 			end
-
-			--- Execute the attaching autocmd.
-			markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
-			--- Execute the autocmd too.
-			vim.api.nvim_exec_autocmds("User", {
-				pattern = "MarkviewHybridEnable",
-				data = {
-					buffer = buffer,
-					windows = vim.fn.win_findbuf(buffer)
-				}
-			});
 		end
 		---_
 	end,
