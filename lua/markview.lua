@@ -397,9 +397,9 @@ markview.actions = {
 		end
 
 		---@type boolean Should preview be enabled on the buffer?
-		local enable = spec.get({ "preview", "enable" }, { fallback = true });
+		local enable = spec.get({ "preview", "enable" }, { fallback = true, ignore_enable = true });
 		---@type boolean Should hybrid mode be enabled on the buffer?
-		local hm_enable = spec.get({ "preview", "enable_hybrid_mode" }, { fallback = true });
+		local hm_enable = spec.get({ "preview", "enable_hybrid_mode" }, { fallback = true, ignore_enable = true });
 
 		table.insert(markview.state.attached_buffers, buffer);
 
@@ -444,13 +444,11 @@ markview.actions = {
 		});
 
 		if enable == true then
-			markview.render(buffer);
-
 			local mode = vim.api.nvim_get_mode().mode;
 			---@type string[]
 			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
-			if vim.list_contains(hybd_modes, mode) then
+			if hm == true and vim.list_contains(hybd_modes, mode) then
 				--- Execute the attaching autocmd.
 				markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
 				--- Execute the autocmd too.
@@ -473,6 +471,8 @@ markview.actions = {
 					}
 				});
 			end
+
+			markview.render(buffer);
 		end
 		---_
 	end,
