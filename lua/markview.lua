@@ -415,7 +415,7 @@ markview.actions = {
 
 		vim.api.nvim_buf_set_keymap(buffer, "n", "gx", "<CMD>Markview open<CR>", { desc = "Tree-sitter based link opener from `markview.nvim`." });
 
-		--- Execute the attaching autocmd.
+		--- Execute the attaching callback.
 		markview.actions.__exec_callback("on_attach", buffer, vim.fn.win_findbuf(buffer))
 		--- Execute the autocmd too.
 		vim.api.nvim_exec_autocmds("User", {
@@ -444,12 +444,8 @@ markview.actions = {
 		});
 
 		if enable == true then
-			local mode = vim.api.nvim_get_mode().mode;
-			---@type string[]
-			local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
-
-			if hm == true and vim.list_contains(hybd_modes, mode) then
-				--- Execute the attaching autocmd.
+			if hm_enable == true then
+				--- Execute the hybrid mode enabling callback.
 				markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
 				--- Execute the autocmd too.
 				vim.api.nvim_exec_autocmds("User", {
@@ -460,7 +456,7 @@ markview.actions = {
 					}
 				});
 			else
-				--- Execute the attaching autocmd.
+				--- Execute the hybrid mode disabling callback.
 				markview.actions.__exec_callback("on_hybrid_disable", buffer, vim.fn.win_findbuf(buffer))
 				--- Execute the autocmd too.
 				vim.api.nvim_exec_autocmds("User", {
