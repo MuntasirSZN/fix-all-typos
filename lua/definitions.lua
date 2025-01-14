@@ -5,6 +5,10 @@
 ---@meta
 local M = {};
 
+---@diagnostic disable missing-fields
+
+--- [ Markview | Internal ] ---------------------------------------------------------------
+
 --- Table containing various plugin states.
 ---@class mkv.state
 ---
@@ -15,7 +19,7 @@ local M = {};
 ---@field splitview_source? integer Source buffer for hybrid mode.
 ---@field splitview_buffer? integer Preview buffer for hybrid mode.
 ---@field splitview_window? integer Preview window for hybrid mode.
----@field splitview_cstate? { enable: boolean, hybrid_mode: boolean?, events: boolean } Cached state for the source buffer.
+---@field splitview_cstate? { enable: boolean, hybrid_mode: boolean? } Cached state for the source buffer.
 M.states = {
 	buffer_states = {
 		[10] = {
@@ -27,11 +31,9 @@ M.states = {
 
 	splitview_buffer = 50,
 	splitview_source = nil,
-	splitview_cstate = { enable = true },
+	splitview_cstate = { enable = true, hybrid_mode = true },
 	splitview_window = nil
 };
-
- ------------------------------------------------------------------------------------------
 
 --- Table containing completion candidates for `:Markview`.
 ---@class mkv.cmd_completion
@@ -50,59 +52,7 @@ M.cmd_completion = {
 	end
 };
 
- ------------------------------------------------------------------------------------------
-
---- Configuration table for `markview.nvim`.
---- >[!NOTE]
---- > All options should be **dynamic**.
----@class mkv.config
----
----@field experimental config.experimental | fun(): config.experimental
----@field highlight_groups { [string]: config.hl } | fun(): { [string]: config.hl }
----@field html config.html | fun(): config.html
----@field latex config.latex | fun(): config.latex
----@field markdown config.markdown | fun(): config.markdown
----@field markdown_inline config.markdown_inline | fun(): config.markdown_inline
----@field preview config.preview | fun(): config.preview
----@field renderers config.renderer[] | fun(): config.renderer[]
----@field typst config.typst | fun(): config.typst
----@field yaml config.yaml | fun(): config.yaml
-M.config = {
-	typst = {},
-	renderers = {},
-	preview = {},
-	markdown_inline = {},
-	markdown = {},
-	latex = {},
-	highlight_groups = {},
-	experimental = {},
-	yaml = {},
-	html = {}
-};
-
- ------------------------------------------------------------------------------------------
-
---- Experimental options.
----@class config.experimental
----
----@field file_open_command string Command used to open files inside Neovim.
----@field read_chunk_size integer Number of `bytes` to check before opening a link. Used for detecting when to open files inside Neovim.
----
----@field list_empty_line_tolerance integer Maximum number of empty lines that can stay between text of a list item.
----
----@field date_formats? string[] String formats for detecting date in YAML.
----@field date_time_formats? string[] String formats for detecting date & time in YAML.
-M.experimental = {
-	file_open_command = "tabnew",
-	read_chunk_size = 1000,
-
-	list_empty_line_tolerance = 3,
-
-	date_formats = { "%d%d-%d%d-%d%d%d%d" },
-	date_time_formats = { "%d%d-%d%d-%d%d%d%d %d%d:%d%d [ap]?m" }
-};
-
- ------------------------------------------------------------------------------------------
+-- [ Markview | Common ] ------------------------------------------------------------------
 
 --- Highlight group for Neovim.
 ---@class config.hl
@@ -173,24 +123,26 @@ M.extmark = {
 	}
 };
 
+-- [ Markview | Generic inline element ] --------------------------------------------------
+
 --- Generic configuration for inline markdown items.
 --- Note: {item} will be different based on the node this is being used by.
 ---@class config.inline_generic
 ---
----@field corner_left? string | fun(buffer: integer, item: table): string? Left corner.
----@field corner_left_hl? string | fun(buffer: integer, item: table): string? Highlight group for left corner.
----@field corner_right? string | fun(buffer: integer, item: table): string? Right corner.
----@field corner_right_hl? string | fun(buffer: integer, item: table): string? Highlight group for right corner.
----@field hl? string | fun(buffer: integer, item: table): string? Base Highlight group.
----@field icon? string | fun(buffer: integer, item: table): string? Icon.
----@field icon_hl? string | fun(buffer: integer, item: table): string? Highlight group for icon.
----@field padding_left? string | fun(buffer: integer, item: table): string? Left padding.
----@field padding_left_hl? string | fun(buffer: integer, item: table): string? Highlight group for left padding.
----@field padding_right? string | fun(buffer: integer, item: table): string? Right padding.
----@field padding_right_hl? string | fun(buffer: integer, item: table): string? Highlight group for right padding.
+---@field corner_left? string | fun(buffer: integer, item: table): string?
+---@field corner_left_hl? string | fun(buffer: integer, item: table): string?
+---@field corner_right? string | fun(buffer: integer, item: table): string?
+---@field corner_right_hl? string | fun(buffer: integer, item: table): string?
+---@field hl? string | fun(buffer: integer, item: table): string?
+---@field icon? string | fun(buffer: integer, item: table): string?
+---@field icon_hl? string | fun(buffer: integer, item: table): string?
+---@field padding_left? string | fun(buffer: integer, item: table): string?
+---@field padding_left_hl? string | fun(buffer: integer, item: table): string?
+---@field padding_right? string | fun(buffer: integer, item: table): string?
+---@field padding_right_hl? string | fun(buffer: integer, item: table): string?
 ---
----@field file_hl? string | fun(buffer: integer, item: table): string? Highlight group for block reference file name.
----@field block_hl? string | fun(buffer: integer, item: table): string? Highlight group for block reference block ID.
+---@field file_hl? string | fun(buffer: integer, item: table): string?
+---@field block_hl? string | fun(buffer: integer, item: table): string?
 M.inline_generic = {
 	corner_left = "<",
 	padding_left = " ",
@@ -201,10 +153,32 @@ M.inline_generic = {
 	hl = "MarkviewCode"
 };
 
+-- [ Markview | Generic inline element • Static ] -----------------------------------------
+
+--- Static configuration for inline elements.
+---@class config.inline_generic_static
+---
+---@field corner_left? string Left corner.
+---@field corner_left_hl? string Highlight group for left corner.
+---@field corner_right? string Right corner.
+---@field corner_right_hl? string Highlight group for right corner.
+---@field hl? string Base Highlight group.
+---@field icon? string Icon.
+---@field icon_hl? string Highlight group for icon.
+---@field padding_left? string Left padding.
+---@field padding_left_hl? string Highlight group for left padding.
+---@field padding_right? string Right padding.
+---@field padding_right_hl? string Highlight group for right padding.
+---
+---@field file_hl? string Highlight group for block reference file name.
+---@field block_hl? string Highlight group for block reference block ID.
+
+--- Ranges of a tree-sitter node.
 ---@class node.range
 ---
 ---@field row_start integer
 ---@field row_end integer
+---
 ---@field col_start integer
 ---@field col_end integer
 ---
@@ -216,6 +190,7 @@ M.range = {
 	row_start = 0
 };
 
+--- Table containing an HTML tag's yaml_property
 ---@class tag.properties
 ---
 ---@field text string
@@ -225,6 +200,7 @@ M.tag_properties = {
 	range = { 0, 0, 0, 9 }
 };
 
+--- Common structure for various link's range.
 ---@class inline_link.range
 ---
 ---@field row_start integer
@@ -232,12 +208,12 @@ M.tag_properties = {
 ---@field col_start integer
 ---@field col_end integer
 ---
----@field label? integer[]
----@field description? integer[]
+---@field label? integer[] Visible part of the link.
+---@field description? integer[] The address/definition/destination of the link.
 ---
----@field alias? integer[]
----@field file? integer[]
----@field block? integer[]
+---@field alias? integer[] Internal link/Embed file link's alias.
+---@field file? integer[] Block reference links file name.
+---@field block? integer[] Block reference links block name(including `#^`).
 M.inline_link_range = {
 	col_end = 1,
 	row_end = 1,
@@ -245,75 +221,434 @@ M.inline_link_range = {
 	row_start = 0
 };
 
- ------------------------------------------------------------------------------------------
+-- [ Markview | Configuration ] -----------------------------------------------------------
+
+--- Configuration table for `markview.nvim`.
+--- >[!NOTE]
+--- > All options should be **dynamic**.
+---@class mkv.config
+---
+---@field experimental? config.experimental | fun(): config.experimental
+---@field highlight_groups? { [string]: config.hl } | fun(): { [string]: config.hl }
+---@field preview? config.preview | fun(): config.preview
+---@field renderers? config.renderer[] | fun(): config.renderer[]
+---
+---@field html? config.html | fun(): config.html
+---@field latex? config.latex | fun(): config.latex
+---@field markdown? config.markdown | fun(): config.markdown
+---@field markdown_inline? config.markdown_inline | fun(): config.markdown_inline
+---@field typst? config.typst | fun(): config.typst
+---@field yaml? config.yaml | fun(): config.yaml
+M.config = {
+	experimental = {},
+	highlight_groups = {},
+	preview = {},
+	renderers = {},
+
+	html = {},
+	latex = {},
+	markdown_inline = {},
+	markdown = {},
+	typst = {},
+	yaml = {},
+};
+
+-- [ Markview | Configuration • Static ] --------------------------------------------------
+
+--- Static configuration for `markview.nvim`.
+---@class mkv.config_static
+---
+---@field experimental? config.experimental Experimental options.
+---@field highlight_groups? { [string]: config.hl } Custom highlight groups.
+---@field preview? config.preview Preview options.
+---@field renderers? config.renderer[] Custom renderers.
+---
+---@field html? config.html HTML options.
+---@field latex? config.latex LaTeX configuration.
+---@field markdown? config.markdown Markdown configuration.
+---@field markdown_inline? config.markdown_inline Inline markdown configuration.
+---@field typst? config.typst Typst configuration.
+---@field yaml? config.yaml YAML configuration.
+M.config = {
+	experimental = {},
+	highlight_groups = {},
+	preview = {},
+	renderers = {},
+
+	html = {},
+	latex = {},
+	markdown_inline = {},
+	markdown = {},
+	typst = {},
+	yaml = {},
+};
+
+-- [ Markview | Experimental options ] ----------------------------------------------------
+
+--- Configuration for experimental options.
+---@class config.experimental
+---
+---@field file_open_command? string Command used to open files inside Neovim.
+---@field read_chunk_size? integer Number of `bytes` to check before opening a link. Used for detecting when to open files inside Neovim.
+---
+---@field list_empty_line_tolerance? integer Maximum number of empty lines that can stay between text of a list item.
+---
+---@field date_formats? string[] String formats for detecting date in YAML.
+---@field date_time_formats? string[] String formats for detecting date & time in YAML.
+M.experimental = {
+    read_chunk_size = 1024,
+
+    file_open_command = "tabnew",
+    list_empty_line_tolerance = 3,
+
+    date_formats = {
+        "^%d%d%d%d%-%d%d%-%d%d$",                   --- YYYY-MM-DD
+        "^%d%d%-%d%d%-%d%d%d%d$",                   --- DD-MM-YYYY, MM-DD-YYYY
+        "^%d%d%-%d%d%-%d%d$",                       --- DD-MM-YY, MM-DD-YY, YY-MM-DD
+
+        "^%d%d%d%d%/%d%d%/%d%d$",                   --- YYYY/MM/DD
+        "^%d%d%/%d%d%/%d%d%d%d$",                   --- DD/MM/YYYY, MM/DD/YYYY
+
+        "^%d%d%d%d%.%d%d%.%d%d$",                   --- YYYY.MM.DD
+        "^%d%d%.%d%d%.%d%d%d%d$",                   --- DD.MM.YYYY, MM.DD.YYYY
+
+        "^%d%d %a+ %d%d%d%d$",                      --- DD Month YYYY
+        "^%a+ %d%d %d%d%d%d$",                      --- Month DD, YYYY
+        "^%d%d%d%d %a+ %d%d$",                      --- YYYY Month DD
+
+        "^%a+%, %a+ %d%d%, %d%d%d%d$",              --- Day, Month DD, YYYY
+    },
+
+    date_time_formats = {
+        "^%a%a%a %a%a%a %d%d %d%d%:%d%d%:%d%d ... %d%d%d%d$", --- UNIX date time
+        "^%d%d%d%d%-%d%d%-%d%dT%d%d%:%d%d%:%d%dZ$",           --- ISO 8601
+    }
+};
+
+-- [ Markview | Preview options ] ---------------------------------------------------------
+
+--- Preview options
+---@class config.preview
+---
+---@field enable? boolean Enables preview when attaching to new buffers.
+---@field enable_hybrid_mode? boolean Enables `hybrid mode` when attaching to new buffers.
+---
+---@field callbacks? preview.callbacks Callback functions.
+---@field icon_provider? "internal" | "devicons" | "mini" Icon provider.
+---
+---@field hybrid_modes? string[] VIM-modes where `hybrid mode` is enabled.
+---@field ignore_previews? preview.ignore Options that should/shouldn't be previewed in `hybrid_modes`.
+---@field linewise_hybrid_mode? boolean Clear lines around the cursor in `hybrid mode`, instead of nodes?
+---@field modes? string[] VIM-modes where previews will be shown.
+---
+---@field debounce? integer Debounce delay for updating previews.
+---@field filetypes? string[] Buffer filetypes where the plugin should attach.
+---@field ignore_buftypes? string[] Buftypes that should be ignored(e.g. nofile).
+---@field max_buf_lines? integer Maximum number of lines a buffer can have before switching to partial rendering.
+---
+---@field edit_range? [ integer, integer ] Lines before & after the cursor that shouldn't be rendered in `hybrid mode`.
+---@field draw_range? [ integer, integer ] Lines before & after the cursor that should be rendering preview.
+---
+---@field splitview_winopts? table Window options for the `splitview` window.
+M.preview = {
+    enable = true,
+
+    callbacks = {
+        ---+${func}
+
+        on_attach = function (_, wins)
+            ---+${lua}
+
+            --- Initial state for attached buffers.
+            ---@type string
+            local attach_state = spec.get({ "preview", "enable" }, { fallback = true, ignore_enable = true });
+
+            if attach_state == false then
+                --- Attached buffers will not have their previews
+                --- enabled.
+                --- So, don't set options.
+                return;
+            end
+
+            for _, win in ipairs(wins) do
+                --- Preferred conceal level should
+                --- be 3.
+                vim.wo[win].conceallevel = 3;
+            end
+
+            ---_
+        end,
+
+        on_detach = function (_, wins)
+            ---+${lua}
+            for _, win in ipairs(wins) do
+                --- Only set `conceallevel`.
+                --- `concealcursor` will be
+                --- set via `on_hybrid_disable`.
+                vim.wo[win].conceallevel = 0;
+            end
+            ---_
+        end,
+
+        on_enable = function (_, wins)
+            ---+${lua}
+
+            for _, win in ipairs(wins) do
+                vim.wo[win].conceallevel = 3;
+            end
+
+            ---_
+        end,
+
+        on_disable = function (_, wins)
+            ---+${lua}
+            for _, win in ipairs(wins) do
+                vim.wo[win].conceallevel = 0;
+            end
+            ---_
+        end,
+
+        on_hybrid_enable = function (_, wins)
+            ---+${lua}
+
+            ---@type string[]
+            local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+            ---@type string[]
+            local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+            local concealcursor = "";
+
+            for _, mode in ipairs(prev_modes) do
+                if vim.list_contains(hybd_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+                    concealcursor = concealcursor .. mode;
+                end
+            end
+
+            for _, win in ipairs(wins) do
+                vim.wo[win].concealcursor = concealcursor;
+            end
+
+            ---_
+        end,
+
+        on_hybrid_disable = function (_, wins)
+            ---+${lua}
+
+            ---@type string[]
+            local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+            local concealcursor = "";
+
+            for _, mode in ipairs(prev_modes) do
+                if vim.list_contains({ "n", "v", "i", "c" }, mode) then
+                    concealcursor = concealcursor .. mode;
+                end
+            end
+
+            for _, win in ipairs(wins) do
+                vim.wo[win].concealcursor = concealcursor;
+            end
+
+            ---_
+        end,
+
+        on_mode_change = function (_, wins, current_mode)
+            ---+${lua}
+
+            ---@type string[]
+            local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+            ---@type string[]
+            local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+
+            local concealcursor = "";
+
+            for _, mode in ipairs(preview_modes) do
+                if vim.list_contains(hybrid_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+                    concealcursor = concealcursor .. mode;
+                end
+            end
+
+            for _, win in ipairs(wins) do
+                if vim.list_contains(preview_modes, current_mode) then
+                    vim.wo[win].conceallevel = 3;
+                    vim.wo[win].concealcursor = concealcursor;
+                else
+                    vim.wo[win].conceallevel = 0;
+                    vim.wo[win].concealcursor = "";
+                end
+            end
+            ---_
+        end,
+
+        on_splitview_open = function (_, _, win)
+            ---+${lua}
+            vim.wo[win].conceallevel = 3;
+            vim.wo[win].concealcursor = "n";
+            ---_
+        end
+        ---_
+    },
+    debounce = 150,
+    icon_provider = "internal",
+
+    draw_range = { 2 * vim.o.lines, 2 * vim.o.lines },
+    edit_range = { 0, 0 },
+
+    modes = { "n", "no", "c" },
+    hybrid_modes = {},
+    linewise_hybrid_mode = false,
+    max_buf_lines = 1000,
+
+    filetypes = { "markdown", "quarto", "rmd", "typst" },
+    ignore_buftypes = { "nofile" },
+    ignore_previews = {},
+
+    splitview_winopts = {
+        split = "right"
+    }
+};
+
+-- [ Markview | Preview options > Callbacks ] ---------------------------------------------
+
+--- Callback functions for specific events.
+---@class preview.callbacks
+---
+---@field on_attach? fun(buf: integer, wins: integer[]): nil Called when attaching to a buffer.
+---@field on_detach? fun(buf: integer, wins: integer[]): nil Called when detaching from a buffer.
+---
+---@field on_disable? fun(buf: integer, wins: integer[]): nil Called when disabling preview of a buffer.
+---@field on_enable? fun(buf: integer, wins: integer[]): nil Called when enabling preview of a buffer.
+---
+---@field on_hybrid_disable? fun(buf: integer, wins: integer[]): nil Called when disabling hybrid mode in a buffer.
+---@field on_hybrid_enable? fun(buf: integer, wins: integer[]): nil Called when enabling hybrid mode in a buffer.
+---
+---@field on_mode_change? fun(buf: integer, wins: integer[], mode: string): nil Called when changing VIM-modes(only on active buffers).
+---
+---@field on_splitview_close? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called before closing splitview.
+---@field on_splitview_open? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called when opening splitview.
+M.preview_callbacks = {
+	on_attach = function (_, wins)
+		vim.print(wins);
+	end
+};
+
+-- [ Markview | Preview options > Ignore preview ] ----------------------------------------
+
+--- Nodes to ignore when rendering.
+---@class preview.ignore
+---
+---@field html? string[]
+---@field latex? string[]
+---@field markdown? string[]
+---@field markdown_inline? string[]
+---@field typst? string[]
+---@field yaml? string[]
+M.preview_ignore = {
+	markdown = { "!block_quotes", "!code_blocks" }
+};
+
+-- [ Markview | HTML ] --------------------------------------------------------------------
 
 --- Configuration table for HTML preview.
 ---@class config.html
 ---
----@field container_elements html.container_elements Configuration for container elements.
----@field headings html.headings Configuration for headings(e.g. `<h1>`).
----@field void_elements html.void_elements Configuration for void elements.
+---@field container_elements html.container_elements | fun(): html.container_elements Configuration for container elements.
+---@field headings html.headings | fun(): html.headings  Configuration for headings(e.g. `<h1>`).
+---@field void_elements html.void_elements | fun(): html.void_elements Configuration for void elements.
 M.html = {
 	headings = {},
 	void_elements = {},
 	container_elements = {}
 };
 
+-- [ Markview | HTML • Static ] -----------------------------------------------------------
+
+--- Static configuration table for HTML preview.
+---@class config.html
+---
+---@field container_elements html.container_elements Configuration for container elements.
+---@field headings html.headings  Configuration for headings(e.g. `<h1>`).
+---@field void_elements html.void_elements Configuration for void elements.
 
 -- [ HTML | Container elements ] ----------------------------------------------------------
 
 --- HTML <container></container> element config.
 ---@class html.container_elements
 ---
+---@field enable boolean
+---@field [string] container_elements.opts | fun(buffer: integer, item: __html.container_elements): container_elements.opts
+M.html_container_elements = {
+    ---+${lua}
+
+    enable = true,
+
+    ---+${lua, Various inline elements used in markdown}
+
+    ["^b$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "Bold" },
+        on_closing_tag = { conceal = "" },
+    },
+    ["^code$"] = {
+        on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { " ", "MarkviewInlineCode" } } },
+        on_node = { hl_group = "MarkviewInlineCode" },
+        on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { " ", "MarkviewInlineCode" } } },
+    },
+    ["^em$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "@text.emphasis" },
+        on_closing_tag = { conceal = "" },
+    },
+    ["^i$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "Italic" },
+        on_closing_tag = { conceal = "" },
+    },
+    ["^mark$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "MarkviewPalette1" },
+        on_closing_tag = { conceal = "" },
+    },
+    ["^strong$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "@text.strong" },
+        on_closing_tag = { conceal = "" },
+    },
+    ["^sub$"] = {
+        on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "↓[", "MarkviewSubscript" } } },
+        on_node = { hl_group = "MarkviewSubscript" },
+        on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "]", "MarkviewSubscript" } } },
+    },
+    ["^sup$"] = {
+        on_opening_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "↑[", "MarkviewSuperscript" } } },
+        on_node = { hl_group = "MarkviewSuperscript" },
+        on_closing_tag = { conceal = "", hl_mode = "combine", virt_text_pos = "inline", virt_text = { { "]", "MarkviewSuperscript" } } },
+    },
+    ["^u$"] = {
+        on_opening_tag = { conceal = "" },
+        on_node = { hl_group = "Underlined" },
+        on_closing_tag = { conceal = "" },
+    },
+
+    ---_
+    ---_
+};
+
+-- [ HTML | Container elements • Static ] ----------------------------------------------------------
+
+--- Static configuration for container elements.
+---@class html.container_elements_static
+---
 ---@field enable boolean Enables container element rendering.
 ---@field [string] container_elements.opts Configuration for <string></string>.
-M.html_container_elements = {
-	enable = true,
+M.html_container_elements = {};
 
-	["^b$"] = {
-		on_opening_tag = { conceal = "" },
-		on_node = { hl_group = "Bold" },
-		on_closing_tag = { conceal = "" },
-	},
-	["^code$"] = {
-		on_opening_tag = {
-			conceal = "",
-			hl_mode = "combine",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ " ", "MarkviewInlineCode" }
-			}
-		},
-		on_closing_tag = {
-			conceal = "",
-			hl_mode = "combine",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ " ", "MarkviewInlineCode" }
-			}
-		},
-
-		on_node = { hl_group = "MarkviewInlineCode" },
-	},
-
-	["^custom"] = {
-		on_node = function (item)
-			if item.name == "custom-mkv" then
-				return { hl_group = "MarkviewPalette1" };
-		   else
-				return { hl_group = "MarkviewPalette5" };
-		   end
-		end
-	}
-};
+-- [ HTML | Container elements > Type definitions ] ---------------------------------------
 
 --- Configuration table for a specific container element.
 ---@class container_elements.opts
 ---
 ---@field closing_tag_offset? fun(range: integer[]): integer[] Modifies the closing </tag>'s range.
----@field node_offset? fun(range: integer[]): table Modifies the element's range.
+---@field node_offset? fun(range: integer[]): integer[] Modifies the element's range.
 ---@field on_closing_tag? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the closing </tag>.
 ---@field on_node? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the element.
 ---@field on_opening_tag? config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the opening <tag>.
@@ -385,8 +720,21 @@ M.__conteiner_segment_opts = {
 --- HTML heading config.
 ---@class html.headings
 ---
+---@field enable boolean
+---@field [string] config.extmark | fun(buffer: integer, item: __html.headings): config.extmark
+M.html_headings = {
+	enable = true,
+
+	heading_1 = { fg = "#1e1e2e" }
+};
+
+-- [ HTML | Headings • Static ] -----------------------------------------------------------
+
+--- HTML heading config.
+---@class html.headings_static
+---
 ---@field enable boolean Enables heading rendering.
----@field [string] config.extmark | fun(buffer: integer, item: __html.headings): config.extmark Configuration for <string></string>.
+---@field [string] config.extmark Configuration for <h[n]></h[n]>.
 M.html_headings = {
 	enable = true,
 	heading_1 = { fg = "#1e1e2e" }
@@ -421,6 +769,25 @@ M.__html_headings = {
 --- HTML <void> element config.
 ---@class html.void_elements
 ---
+---@field enable boolean
+---@field [string] void_elements.opts | fun(buffer: integer, item: __html.void_elements): void_elements.opts
+M.html_void_elements = {
+	enable = true,
+	bold = {
+		node_offset = function (range)
+			return range;
+		end,
+		on_node = function ()
+			return { fg = "#1e1e2e", bg = "#cdd6f4" }
+		end
+	}
+};
+
+-- [ HTML | Void elements • Static ] ------------------------------------------------------
+
+--- Static configuration for void elements..
+---@class html.void_elements
+---
 ---@field enable boolean Enables void element rendering.
 ---@field [string] void_elements.opts Configuration for <string>.
 M.html_void_elements = {
@@ -435,12 +802,13 @@ M.html_void_elements = {
 	}
 };
 
+-- [ HTML | Void elements > Type definition ] --------------------------------------------
 
 --- Configuration table for a specific void element.
 ---@class void_elements.opts
 ---
----@field node_offset? fun(range: integer[]): table Modifies the element's range.
----@field on_node config.extmark | fun(tag: table): config.extmark Extmark configuration to use on the element.
+---@field node_offset? fun(range: integer[]): table
+---@field on_node config.extmark | fun(tag: __html.void_elements): config.extmark
 M.html_void_elements_opts = {
 	node_offset = function (range)
 		return range;
@@ -452,10 +820,13 @@ M.html_void_elements_opts = {
 
 -- [ HTML | Void elements > Parameters ] --------------------------------------------------
 
+--- Parsed version of a void element.
 ---@class __html.void_elements
 ---
 ---@field class "html_void_element"
----@field name string
+---
+---@field name string Element name(always in lowercase).
+---
 ---@field text string[]
 ---@field range node.range
 M.__html_void_elements = {
@@ -472,24 +843,55 @@ M.__html_void_elements = {
 	}
 };
 
-
- ------------------------------------------------------------------------------------------
+-- [ Markview | LaTeX ] -------------------------------------------------------------------
 
 --- Configuration for LaTeX.
 ---@class config.latex
 ---
+---@field enable boolean
+---
+---@field blocks? latex.blocks | fun(): latex.blocks
+---@field commands? latex.commands | fun(): latex.commands
+---@field escapes? latex.escapes | fun(): latex.escapes
+---@field fonts? latex.fonts | fun(): latex.fonts
+---@field inlines? latex.inlines | fun(): latex.inlines
+---@field parenthesis? latex.parenthesis | fun(): latex.parenthesis
+---@field subscripts? latex.subscripts | fun(): latex.subscripts
+---@field superscripts? latex.superscripts | fun(): latex.superscripts
+---@field symbols? latex.symbols | fun(): latex.symbols
+---@field texts? latex.texts | fun(): latex.texts
+M.latex = {
+	enable = true,
+
+	commands = {},
+	texts = {},
+	symbols = {},
+	subscripts = {},
+	superscripts = {},
+	parenthesis = {},
+	escapes = {},
+	inlines = {},
+	blocks = {},
+	fonts = {}
+};
+
+-- [ Markview | LaTeX • Static ] ----------------------------------------------------------
+
+--- Static configuration for LaTeX.
+---@class config.latex_static
+---
 ---@field enable boolean Enable LaTeX preview.
 ---
----@field blocks latex.blocks LaTeX blocks configuration(typically made with `$$...$$`).
----@field commands latex.commands LaTeX commands configuration(e.g. `\frac{x}{y}`).
----@field escapes latex.escapes LaTeX escaped characters configuration.
----@field fonts latex.fonts LaTeX fonts configuration(e.g. `\mathtt{}`).
----@field inlines latex.inlines Inline LaTeX configuration(typically made with `$...$`).
----@field parenthesis latex.parenthesis Configuration for hiding `{}`.
----@field subscripts latex.subscripts LaTeX subscript configuration(`_{}`, `_x`).
----@field superscripts latex.superscripts LaTeX superscript configuration(`^{}`, `^x`).
----@field symbols latex.symbols TeX math symbols configuration(e.g. `\alpha`).
----@field texts latex.texts Text block configuration(`\text{}`).
+---@field blocks? latex.blocks LaTeX blocks configuration(typically made with `$$...$$`).
+---@field commands? latex.commands LaTeX commands configuration(e.g. `\frac{x}{y}`).
+---@field escapes? latex.escapes LaTeX escaped characters configuration.
+---@field fonts? latex.fonts LaTeX fonts configuration(e.g. `\mathtt{}`).
+---@field inlines? latex.inlines Inline LaTeX configuration(typically made with `$...$`).
+---@field parenthesis? latex.parenthesis Configuration for hiding `{}`.
+---@field subscripts? latex.subscripts LaTeX subscript configuration(`_{}`, `_x`).
+---@field superscripts? latex.superscripts LaTeX superscript configuration(`^{}`, `^x`).
+---@field symbols? latex.symbols TeX math symbols configuration(e.g. `\alpha`).
+---@field texts? latex.texts Text block configuration(`\text{}`).
 M.latex = {
 	enable = true,
 
@@ -510,14 +912,14 @@ M.latex = {
 --- Configuration table for latex math blocks.
 ---@class latex.blocks
 ---
----@field enable boolean Enables latex block preview.
+---@field enable boolean
 ---
----@field hl? string | fun(buffer: integer, item: __latex.blocks): string? Highlight group for the block.
----@field pad_amount integer | fun(buffer: integer, item: __latex.blocks): integer Number of {pad_char} to add before each line.
----@field pad_char string | fun(buffer: integer, item: __latex.blocks): string Text used for padding.
+---@field hl? string | fun(buffer: integer, item: __latex.blocks): string?
+---@field pad_amount integer | fun(buffer: integer, item: __latex.blocks): integer
+---@field pad_char string | fun(buffer: integer, item: __latex.blocks): string
 ---
----@field text string | fun(buffer: integer, item: __latex.blocks): string Text to show on the top-right of the block.
----@field text_hl? string | fun(buffer: integer, item: __latex.blocks): string? Highlight group for the {text}.
+---@field text string | fun(buffer: integer, item: __latex.blocks): string
+---@field text_hl? string | fun(buffer: integer, item: __latex.blocks): string?
 M.latex_blocks = {
 	enable = true,
 
@@ -527,6 +929,20 @@ M.latex_blocks = {
 
 	text = "Math"
 };
+
+-- [ LaTeX | LaTeX blocks • Static ] ------------------------------------------------------
+
+--- Configuration table for latex math blocks.
+---@class latex.blocks_static
+---
+---@field enable boolean Enables rendering of LaTeX blocks.
+---
+---@field hl? string Primary highlight group for the LaTeX block.
+---@field pad_amount integer Number of `pad_char` to add before & after the text.
+---@field pad_char string Character to use for padding.
+---
+---@field text string Text to show on the top left.
+---@field text_hl? string Highlight group for the `text`.
 
 -- [ LaTeX | LaTeX blocks > Parameters ] --------------------------------------------------
 
@@ -551,10 +967,11 @@ M.__latex_blocks = {
 
 -- [ LaTeX | LaTeX commands ] -------------------------------------------------------------
 
+--- Configuration for LaTeX commands.
 ---@class latex.commands
 ---
----@field enable boolean Enables latex command preview.
----@field [string] commands.opts Configuration table for {string}.
+---@field enable boolean
+---@field [string] commands.opts | fun(buffer: integer, item: __latex.commands): commands.opts
 M.latex_commands = {
 	enable = true,
 	sin = {
@@ -566,6 +983,14 @@ M.latex_commands = {
 		end
 	}
 };
+
+-- [ LaTeX | LaTeX commands • Static ] ----------------------------------------------------
+
+--- Static configuration for LaTeX commands.
+---@class latex.commands_static
+---
+---@field enable boolean Enables latex command preview.
+---@field [string] commands.opts Configuration table for {string}.
 
 -- [ LaTeX | LaTeX commands > Type definition ] --------------------------------------------
 
@@ -649,6 +1074,14 @@ M.latex_escapes = {
 	hl = "Operator"
 };
 
+-- [ LaTeX | LaTeX escapes • Static ] -----------------------------------------------------
+
+--- Static configuration table for latex escaped characters.
+---@class latex.escapes_static
+---
+---@field enable boolean Enables escaped character preview.
+---@field hl? string | fun(item: __latex.escapes): string? Highlight group for the escaped character.
+
 -- [ LaTeX | LaTeX escapes > Parameters ] -------------------------------------------------
 
 --- Escaped characters.
@@ -678,12 +1111,22 @@ M.__latex_escapes = {
 ---
 ---@field enable boolean
 ---
----@field default fonts.opts | fun(buffer: integer, item: __latex.fonts): fonts.opts Default configuration for fonts
----@field [string] fonts.opts | fun(buffer: integer, item: __latex.fonts): fonts.opts Configuration for `\string{}` font.
+---@field default fonts.opts | fun(buffer: integer, item: __latex.fonts): fonts.opts
+---@field [string] fonts.opts | fun(buffer: integer, item: __latex.fonts): fonts.opts
 M.latex_fonts = {
 	enable = true,
 	default = { hl = "Special" }
 };
+
+-- [ LaTeX | LaTeX fonts • Static ] -------------------------------------------------------
+
+--- Static configuration table for latex math fonts.
+---@class latex.fonts_static
+---
+---@field enable boolean
+---
+---@field default fonts.opts Default configuration for fonts
+---@field [string] fonts.opts Configuration for `\string{}` font.
 
 --- Configuration for a specific fonts.
 ---@class fonts.opts
@@ -745,6 +1188,23 @@ M.latex_inlines = {
 
 	hl = "MarkviewInlineCode"
 };
+
+-- [ LaTeX | Inline LaTeX • Static ] ------------------------------------------------------
+
+--- Configuration table for inline latex math.
+---@class latex.inlines_static
+---
+---@field enable boolean Enables preview of inline latex maths.
+---
+---@field corner_left? string Left corner.
+---@field corner_left_hl? string Highlight group for left corner.
+---@field corner_right? string Right corner.
+---@field corner_right_hl? string Highlight group for right corner.
+---@field hl? string Base Highlight group.
+---@field padding_left? string Left padding.
+---@field padding_left_hl? string Highlight group for left padding.
+---@field padding_right? string Right padding.
+---@field padding_right_hl? string Highlight group for right padding.
 
 -- [ LaTeX | Inline LaTeX > Parameters ] --------------------------------------------------
 
@@ -881,12 +1341,20 @@ M.__latex_superscripts = {
 --- Configuration table for TeX math symbols.
 ---@class latex.symbols
 ---
----@field enable boolean Enables preview of latex math symbols.
----@field hl? string Highlight group for the symbols.
+---@field enable boolean
+---@field hl? string | fun(buffer: integer, item: __latex.symbols): string?
 M.latex_symbols = {
 	enable = true,
 	hl = "MarkviewSuperscript"
 };
+
+-- [ LaTeX | Symbols • Static ] -----------------------------------------------------------
+
+--- Configuration table for TeX math symbols.
+---@class latex.symbols_static
+---
+---@field enable boolean Enables preview of latex math symbols.
+---@field hl? string Highlight group for the symbols.
 
 -- [ LaTeX | Symbols > Parameters ] -------------------------------------------------------
 
@@ -962,23 +1430,22 @@ M.__latex_word = {
 	}
 };
 
-
- ------------------------------------------------------------------------------------------
+-- [ Markview | Markdown ] ----------------------------------------------------------------
 
 --- Configuration for markdown.
 ---@class config.markdown
 ---
 ---@field enable boolean
 ---
----@field block_quotes markdown.block_quotes
----@field code_blocks markdown.code_blocks
----@field headings markdown.headings
----@field horizontal_rules markdown.horizontal_rules
----@field list_items markdown.list_items
----@field metadata_minus markdown.metadata_minus
----@field metadata_plus markdown.metadata_plus
----@field reference_definitions markdown.reference_definitions
----@field tables markdown.tables
+---@field block_quotes markdown.block_quotes | fun(): markdown.block_quotes
+---@field code_blocks markdown.code_blocks | fun(): __markdown.code_blocks
+---@field headings markdown.headings | fun(): markdown.headings
+---@field horizontal_rules markdown.horizontal_rules | fun(): markdown.horizontal_rules
+---@field list_items markdown.list_items | fun(): markdown.list_items
+---@field metadata_minus markdown.metadata_minus | fun(): markdown.metadata_minus
+---@field metadata_plus markdown.metadata_plus | fun(): markdown.metadata_plus
+---@field reference_definitions markdown.reference_definitions | fun(): markdown.reference_definitions
+---@field tables markdown.tables | fun(): markdown.tables
 M.markdown = {
 	enable = true,
 
@@ -993,17 +1460,34 @@ M.markdown = {
 	tables = {}
 };
 
+-- [ Markview | Markdown • Static ] -------------------------------------------------------
+
+--- Static configuration for markdown.
+---@class config.markdown_static
+---
+---@field enable boolean
+---
+---@field block_quotes markdown.block_quotes Block quote configuration.
+---@field code_blocks markdown.code_blocks Fenced code block configuration.
+---@field headings markdown.headings Heading configuration.
+---@field horizontal_rules markdown.horizontal_rules Horizontal rules configuration.
+---@field list_items markdown.list_items List items configuration.
+---@field metadata_minus markdown.metadata_minus YAML metadata configuration.
+---@field metadata_plus markdown.metadata_plus TOML metadata configuration.
+---@field reference_definitions markdown.reference_definitions Reference link definition configuration.
+---@field tables markdown.tables Table configuration.
+
 -- [ Markdown | Block quotes ] ------------------------------------------------------------
 
 --- Configuration for block quotes.
 ---@class markdown.block_quotes
 ---
----@field enable boolean Enables preview of block quotes.
+---@field enable boolean
 ---
----@field wrap? boolean | fun(buffer: integer, item: __markdown.block_quotes): boolean? Enables basic wrap support.
+---@field wrap? boolean | fun(buffer: integer, item: __markdown.block_quotes): boolean?
 ---
----@field default block_quotes.opts | fun(buffer: integer, item: __markdown.block_quotes): boolean? Default block quote configuration.
----@field [string] block_quotes.opts | fun(buffer: integer, item: __markdown.block_quotes): boolean? Configuration for >[!{string}] callout.
+---@field default block_quotes.opts | fun(buffer: integer, item: __markdown.block_quotes): boolean?
+---@field [string] block_quotes.opts | fun(buffer: integer, item: __markdown.block_quotes): boolean?
 M.markdown_block_quotes = {
 	enable = true,
 	default = { border = "", hl = "MarkviewBlockQuoteDefault" },
@@ -1011,19 +1495,51 @@ M.markdown_block_quotes = {
 	["EXAMPLE"] = { border = { "|", "^", "•" } }
 };
 
+-- [ Markdown | Block quotes • Static ] ---------------------------------------------------
+
+--- Static configuration for block quotes.
+---@class markdown.block_quotes_static
+---
+---@field enable boolean
+---
+---@field wrap? boolean Enables basic wrap support.
+---
+---@field default block_quotes.opts Default block quote configuration.
+---@field [string] block_quotes.opts Configuration for >[!{string}] callout.
+
 -- [ Markdown | Block quotes > Type definition ] ------------------------------------------
 
 --- Configuration options for various types of block quotes.
 ---@class block_quotes.opts
 ---
----@field border string | string[] | fun(buffer: integer, item: __markdown.block_quotes): (string | string[]) Text for the border.
----@field border_hl? (string | string[]) | fun(buffer: integer, item: __markdown.block_quotes): (string | string[])? Highlight group for the border.
----@field hl? string | fun(buffer: integer, item: __markdown.block_quotes): string? Base highlight group for the block quote.
----@field icon? string | fun(buffer: integer, item: __markdown.block_quotes): string? Icon to show before the block quote title.
----@field icon_hl? string | fun(buffer: integer, item: __markdown.block_quotes): string? Highlight group for the icon.
----@field preview? string | fun(buffer: integer, item: __markdown.block_quotes): string? Callout/Alert preview string(shown where >[!{string}] was).
----@field preview_hl? string | fun(buffer: integer, item: __markdown.block_quotes): string? Highlight group for the preview.
----@field title? boolean | fun(buffer: integer, item: __markdown.block_quotes): string? Whether the block quote can have a title or not.
+---@field border string | string[] | fun(buffer: integer, item: __markdown.block_quotes): (string | string[])
+---@field border_hl? (string | string[]) | fun(buffer: integer, item: __markdown.block_quotes): (string | string[])?
+---@field hl? string | fun(buffer: integer, item: __markdown.block_quotes): string?
+---@field icon? string | fun(buffer: integer, item: __markdown.block_quotes): string?
+---@field icon_hl? string | fun(buffer: integer, item: __markdown.block_quotes): string?
+---@field preview? string | fun(buffer: integer, item: __markdown.block_quotes): string?
+---@field preview_hl? string | fun(buffer: integer, item: __markdown.block_quotes): string?
+---@field title? boolean | fun(buffer: integer, item: __markdown.block_quotes): string?
+M.block_quotes_opts = {
+	border = "|",
+	hl = "MarkviewBlockQuoteDefault",
+	icon = "π",
+	preview = "π Some text"
+};
+
+-- [ Markdown | Block quotes > Type definition • Static ] ---------------------------------
+
+--- Static configuration options for various types of block quotes.
+---@class block_quotes.opts
+---
+---@field border string | string[] Text for the border.
+---@field border_hl? string | string[] Highlight group for the border.
+---@field hl? string Base highlight group for the block quote.
+---@field icon? string Icon to show before the block quote title.
+---@field icon_hl? string Highlight group for the icon.
+---@field preview? string Callout/Alert preview string(shown where >[!{string}] was).
+---@field preview_hl? string Highlight group for the preview.
+---@field title? boolean Whether the block quote can have a title or not.
 M.block_quotes_opts = {
 	border = "|",
 	hl = "MarkviewBlockQuoteDefault",
@@ -1100,16 +1616,19 @@ M.__block_quotes_range = {
 ---
 ---@field enable boolean
 ---
----@field hl? string | fun(buffer: integer, item: __markdown.code_blocks): string? Base highlight group for code blocks.
----@field info_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string? Highlight group for the info string.
----@field label_direction? "left" | "right" | fun(buffer: integer, item: __markdown.code_blocks): ("left" | "right") Changes where the label is shown.
----@field label_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string? Highlight group for the label
----@field min_width? integer | fun(buffer: integer, item: __markdown.code_blocks): integer Minimum width of the code block.
----@field pad_amount? integer | fun(buffer: integer, item: __markdown.code_blocks): integer Left & right padding size.
----@field pad_char? string | fun(buffer: integer, item: __markdown.code_blocks): string? Character to use for the padding.
----@field sign? boolean | fun(buffer: integer, item: __markdown.code_blocks): boolean Whether to show signs for the code blocks.
----@field sign_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string? Highlight group for the signs.
----@field style "simple" | "block" | fun(buffer: integer, item: __markdown.code_blocks): ("simple" | "block") Preview style for code blocks.
+---@field border_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string?
+---@field info_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string?
+---@field label_direction? "left" | "right" | fun(buffer: integer, item: __markdown.code_blocks): ("left" | "right")
+---@field label_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string?
+---@field min_width? integer | fun(buffer: integer, item: __markdown.code_blocks): integer
+---@field pad_amount? integer | fun(buffer: integer, item: __markdown.code_blocks): integer
+---@field pad_char? string | fun(buffer: integer, item: __markdown.code_blocks): string?
+---@field sign? boolean | fun(buffer: integer, item: __markdown.code_blocks): boolean
+---@field sign_hl? string | fun(buffer: integer, item: __markdown.code_blocks): string?
+---@field style "simple" | "block" | fun(buffer: integer, item: __markdown.code_blocks): ("simple" | "block")
+---
+---@field default code_blocks.opts | fun(buffer: integer, item: __markdown.code_blocks): code_blocks.opts
+---@field [string] code_blocks.opts | fun(buffer: integer, item: __markdown.code_blocks): code_blocks.opts
 M.markdown_code_blocks = {
 	style = "simple",
 	hl = "MarkviewCode"
@@ -1120,6 +1639,41 @@ M.markdown_code_blocks = {
 	pad_amount = 3,
 	pad_char = " "
 };
+
+-- [ Markdown | Code blocks • Static ] ----------------------------------------------------
+
+--- Static configuration for code blocks.
+---@class markdown.code_blocks_static
+---
+---@field enable boolean
+---
+---@field border_hl? string Highlight group for the top & bottom border.
+---@field info_hl? string Highlight group for the info string.
+---@field label_direction? "left" | "right" Changes where the label is shown.
+---@field label_hl? string Highlight group for the label.
+---@field min_width? integer Minimum width of the code block.
+---@field pad_amount? integer Left & right padding size.
+---@field pad_char? string Character to use for the padding.
+---@field sign? boolean Whether to show signs for the code blocks.
+---@field sign_hl? string Highlight group for the signs.
+---@field style "simple" | "block" Preview style for code blocks.
+---
+---@field default code_blocks.opts_static Default configuration for the code block.
+---@field [string] code_blocks.opts_static Configuration for the code block whose `language` matches `string`
+
+-- [ Markdown | Code blocks > Type definitions ] ------------------------------------------
+
+--- Configuration for highlighting a line inside a code block.
+---@class code_blocks.opts
+---
+---@field block_hl string | fun(buffer: integer, line: string): string?
+---@field pad_hl string | fun(buffer: integer, line: string): string?
+
+--- Static configuration for highlighting a line inside a code block.
+---@class code_blocks.opts_static
+---
+---@field block_hl string? Highlight group for the background of the line.
+---@field pad_hl string? Highlight group for the padding of the line.
 
 -- [ Markdown | Code blocks > Parameters ] ------------------------------------------------
 
@@ -1322,7 +1876,7 @@ M.__markdown_setext = {
 ---
 ---@field enable boolean Enables preview of horizontal rules.
 ---
----@field parts ( horizontal_rules.text | horizontal_rules.repeating )[] | fun(buffer: integer, item: __markdown.horizontal_rules): ( horizontal_rules.text | horizontal_rules.repeating )[] Parts for the horizontal rules.
+---@field parts ( horizontal_rules.text | horizontal_rules.repeating )[] Parts for the horizontal rules.
 M.markdown_horizontal_rules = {
 	enable = true,
 	parts = {};
@@ -1487,6 +2041,21 @@ M.markdown_metadata_minus = {
 	hl = "MarkviewCode"
 };
 
+-- [ Markdown | Metadata minus • Static ] -------------------------------------------------
+
+--- Static configuration for YAML metadata.
+---@class markdown.metadata_minus_static
+---
+---@field enable boolean
+---
+---@field border_bottom? string Bottom border.
+---@field border_bottom_hl? string Highlight group for the bottom border.
+---@field border_hl? string Primary highlight group for the borders.
+---@field border_top? string Top border.
+---@field border_top_hl? string Highlight group for the top border.
+---
+---@field hl? string Background highlight group.
+
 -- [ Markdown | Metadata minus > Parameters ] ---------------------------------------------
 
 ---@class __markdown.metadata_minus
@@ -1529,6 +2098,21 @@ M.markdown_metadata_plus = {
 	enable = true,
 	hl = "MarkviewCode"
 };
+
+-- [ Markdown | Metadata plus • Static ] --------------------------------------------------
+
+--- Static configuration for TOML metadata.
+---@class markdown.metadata_plus_static
+---
+---@field enable boolean
+---
+---@field border_bottom? string Bottom border.
+---@field border_bottom_hl? string Highlight group for the bottom border.
+---@field border_hl? string Primary highlight group for the borders.
+---@field border_top? string Top border.
+---@field border_top_hl? string Highlight group for the top border.
+---
+---@field hl? string Background highlight group.
 
 -- [ Markdown | Metadata plus > Parameters ] ----------------------------------------------
 
@@ -1630,8 +2214,8 @@ M.__reference_definitions_range = {
 ---
 ---@field enable boolean
 ---
----@field block_decorator boolean Whether to draw top & bottom border.
----@field use_virt_lines boolean Whether to use virtual lines for the borders.
+---@field block_decorator boolean
+---@field use_virt_lines boolean
 ---
 ---@field hl tables.parts | fun(buffer: integer, item: __markdown.tables): tables.parts
 ---@field parts tables.parts | fun(buffer: integer, item: __markdown.tables): tables.parts
@@ -1642,6 +2226,19 @@ M.markdown_tables = {
 	block_decorator = true,
 	use_virt_lines = true
 };
+
+-- [ Markdown | Tables • Static ] ---------------------------------------------------------
+
+--- Static configuration for tables.
+---@class markdown.tables_static
+---
+---@field enable boolean
+---
+---@field block_decorator boolean Whether to draw top & bottom border.
+---@field use_virt_lines boolean Whether to use virtual lines for the borders.
+---
+---@field hl tables.parts Highlight groups for the parts.
+---@field parts tables.parts Parts for the table.
 
 -- [ Markdown | Tables > Type definitions ] -----------------------------------------------
 
@@ -1859,42 +2456,64 @@ M.__markdown_sections = {
 	}
 };
 
- ------------------------------------------------------------------------------------------
+-- [ Markview | Inline ] ------------------------------------------------------------------
 
+--- Configuration for inline markdown.
 ---@class config.markdown_inline
 ---
 ---@field enable boolean
 ---
----@field block_references inline.block_references
----@field checkboxes inline.checkboxes
----@field inline_codes inline.inline_codes
----@field emails inline.emails
----@field embed_files inline.embed_files
----@field entities inline.entities
----@field escapes inline.escapes
----@field footnotes inline.footnotes
----@field highlights inline.highlights
----@field hyperlinks inline.hyperlinks
----@field images inline.images
----@field internal_links inline.internal_links
----@field uri_autolinks inline.uri_autolinks
+---@field block_references inline.block_references | fun(): inline.block_references
+---@field checkboxes inline.checkboxes | fun(): inline.checkboxes
+---@field emails inline.emails | fun(): inline.emails
+---@field embed_files inline.embed_files | fun(): inline.embed_files
+---@field entities inline.entities | fun(): inline.entities
+---@field escapes inline.escapes | fun(): inline.escapes
+---@field footnotes inline.footnotes | fun(): inline.footnotes
+---@field highlights inline.highlights | fun(): inline.highlights
+---@field hyperlinks inline.hyperlinks | fun(): inline.hyperlinks
+---@field images inline.images | fun(): inline.images
+---@field inline_codes inline.inline_codes | fun(): inline.inline_codes
+---@field internal_links inline.internal_links | fun(): inline.internal_links
+---@field uri_autolinks inline.uri_autolinks | fun(): inline.uri_autolinks
 M.markdown_inline = {
 	enable = true,
 
-	footnotes = {},
+	block_references = {},
 	checkboxes = {},
-	inline_codes = {},
-	uri_autolinks = {},
-	internal_links = {},
-	hyperlinks = {},
+	emails = {},
 	embed_files = {},
 	entities = {},
-	emails = {},
-	block_references = {},
 	escapes = {},
+	footnotes = {},
+	highlights = {},
+	hyperlinks = {},
 	images = {},
-	highlights = {}
+	inline_codes = {},
+	internal_links = {},
+	uri_autolinks = {},
 };
+
+-- [ Markview | Inline • Static ] ---------------------------------------------------------
+
+--- Static configuration for inline markdown.
+---@class config.markdown_inline_static
+---
+---@field enable boolean
+---
+---@field block_references inline.block_references Block reference link configuration.
+---@field checkboxes inline.checkboxes Checkbox configuration.
+---@field inline_codes inline.inline_codes Inline code/code span configuration.
+---@field emails inline.emails Email link configuration.
+---@field embed_files inline.embed_files Embed file link configuration.
+---@field entities inline.entities HTML entities configuration.
+---@field escapes inline.escapes Escaped characters configuration.
+---@field footnotes inline.footnotes Footnotes configuration.
+---@field highlights inline.highlights Highlighted text configuration.
+---@field hyperlinks inline.hyperlinks Hyperlink configuration.
+---@field images inline.images Image link configuration.
+---@field internal_links inline.internal_links Internal link configuration.
+---@field uri_autolinks inline.uri_autolinks URI autolink configuration.
 
 -- [ Inline | Block references ] ----------------------------------------------------------
 
@@ -1903,8 +2522,8 @@ M.markdown_inline = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for block reference links.
----@field [string] config.inline_generic Configuration for block references whose label matches with the key's pattern.
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.block_references): config.inline_generic
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.block_references): config.inline_generic
 M.inline_block_ref = {
 	enable = true,
 	default = {},
@@ -1912,6 +2531,16 @@ M.inline_block_ref = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Block references • Static ] -------------------------------------------------
+
+--- Static configuration for block reference links.
+---@class inline.block_references
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for block reference links.
+---@field [string] config.inline_generic Configuration for block references whose label matches with the key's pattern.
 
 -- [ Inline | Block references > Parameters ] ---------------------------------------------
 
@@ -2005,8 +2634,9 @@ M.__inline_checkboxes = {
 ---@class inline.emails
 ---
 ---@field enable boolean
----@field default config.inline_generic
----@field [string] config.inline_generic
+---
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.emails): config.inline_generic
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.emails): config.inline_generic
 M.inline_emails = {
 	enable = true,
 	default = {},
@@ -2014,6 +2644,16 @@ M.inline_emails = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Emails • Static ] -----------------------------------------------------------
+
+--- Static configuration for emails.
+---@class inline.emails
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for emails
+---@field [string] config.inline_generic Configuration for emails whose label(address) matches `string`.
 
 -- [ Inline | Emails > Parameters ] -------------------------------------------------------
 
@@ -2045,8 +2685,9 @@ M.__inline_link_emails = {
 ---@class inline.embed_files
 ---
 ---@field enable boolean
----@field default config.inline_generic
----@field [string] config.inline_generic
+---
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.embed_files): inline.embed_files
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.embed_files): inline.embed_files
 M.inline_embed_files = {
 	enable = true,
 	default = {},
@@ -2054,6 +2695,16 @@ M.inline_embed_files = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Embed files • Static ] ------------------------------------------------------
+
+--- Static configuration for obsidian's embed files.
+---@class inline.embed_files
+---
+---@field enable boolean
+---
+---@field default config.inline_generic_static Default configuration for embed file links.
+---@field [string] config.inline_generic_static Configuration for embed file links whose label matches `string`.
 
 -- [ Inline | Embed files > Parameters ] --------------------------------------------------
 
@@ -2085,11 +2736,21 @@ M.__inline_link_embed_files = {
 ---@class inline.entities
 ---
 ---@field enable boolean
----@field hl? string
+---
+---@field hl? string | fun(buffer: integer, item: __inline.entities): inline.entities
 M.inline_entities = {
 	enable = true,
 	hl = "Comment"
 };
+
+-- [ Inline | Entities • Static ] ---------------------------------------------------------
+
+--- Static configuration for HTML entities.
+---@class inline.entities_static
+---
+---@field enable boolean
+---
+---@field hl? string Highlight group for the symbol
 
 -- [ Inline | Entities > Parameters ] ------------------------------------------------------------------
 
@@ -2147,17 +2808,28 @@ M.__inline_escaped = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for footnotes.
----@field [string] config.inline_generic Configuration for footnotes whose label matches `string`.
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.footnotes): inline.footnotes
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.footnotes): inline.footnotes
 M.inline_footnotes = {
 	enable = true,
 
 	default = {},
+
 	["^from"] = {
 		match_string = "^from",
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Footnotes • Static ] --------------------------------------------------------
+
+--- Static configuration for footnotes.
+---@class inline.footnotes_static
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for footnotes.
+---@field [string] config.inline_generic Configuration for footnotes whose label matches `string`.
 
 -- [ Inline | Footnotes > Parameters ] ----------------------------------------------------
 
@@ -2190,16 +2862,27 @@ M.__inline_footnotes = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic
----@field [string] config.inline_generic
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.highlights): inline.highlights
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.highlights): inline.highlights
 M.inline_highlights = {
 	enable = true,
 
 	default = {},
+
 	["^!"] = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Highlights • Static ] -------------------------------------------------------
+
+--- Static configuration for highlighted texts.
+---@class inline.highlights
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for highlighted text.
+---@field [string] config.inline_generic Configuration for highlighted text that matches `string`.
 
 -- [ Inline | Highlights > Parameters ] ---------------------------------------------------
 
@@ -2228,8 +2911,8 @@ M.__inline_highlights = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for hyperlinks.
----@field [string] config.inline_generic Configuration for links whose description matches `string`.
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.hyperlinks): inline.hyperlinks
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.hyperlinks): inline.hyperlinks
 M.inline_hyperlinks = {
 	enable = true,
 	default = {},
@@ -2237,6 +2920,16 @@ M.inline_hyperlinks = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Hyperlinks • Static ] -------------------------------------------------------
+
+--- Static configuration for hyperlinks.
+---@class inline.hyperlinks_static
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for hyperlinks.
+---@field [string] config.inline_generic Configuration for links whose description matches `string`.
 
 -- [ Inline | Hyperlinks > Parameters ] ---------------------------------------------------
 
@@ -2275,8 +2968,8 @@ M.__inline_hyperlinks = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for image links
----@field [string] config.inline_generic Configuration image links whose description matches `string`.
+---@field default config.inline_generic | fun(vuffer: integer, item: __inline.images): inline.images
+---@field [string] config.inline_generic | fun(vuffer: integer, item: __inline.images): inline.images
 M.inline_images = {
 	enable = true,
 	default = {},
@@ -2284,6 +2977,16 @@ M.inline_images = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Images • Static ] -----------------------------------------------------------
+
+--- Static configuration for image links.
+---@class inline.images_static
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for image links
+---@field [string] config.inline_generic Configuration image links whose description matches `string`.
 
 -- [ Inline | Images > Parameters ] -------------------------------------------------------
 
@@ -2318,6 +3021,11 @@ M.__inline_images = {
 --- Configuration for inline codes.
 ---@alias inline.inline_codes config.inline_generic
 
+-- [ Inline | Inline codes • Static ] -----------------------------------------------------
+
+--- Static configuration for inline codes.
+---@alias inline.inline_codes_static config.inline_generic_static
+
 -- [ Inline | Inline codes > Parameters ] -------------------------------------------------
 
 ---@class __inline.inline_codes
@@ -2344,8 +3052,8 @@ M.__inline_inline_codes = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for internal links.
----@field [string] config.inline_generic Configuration for internal links whose label match `string`.
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.internal_links): config.inline_generic
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.internal_links): config.inline_generic
 M.inline_internal_links = {
 	enable = true,
 	default = {},
@@ -2354,6 +3062,16 @@ M.inline_internal_links = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | Internal links • Static ] ---------------------------------------------------
+
+--- Configuration for obsidian's internal links.
+---@class inline.internal_links_static
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for internal links.
+---@field [string] config.inline_generic Configuration for internal links whose label match `string`.
 
 -- [ Inline | Internal links > Parameters ] ------------------------------------------------------------
 
@@ -2392,8 +3110,8 @@ M.__inline_internal_links = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for URI autolinks.
----@field [string] config.inline_generic Configuration for URI autolinks whose label match `string`.
+---@field default config.inline_generic | fun(buffer: integer, item: __inline.uri_autolinks): config.inline_generic
+---@field [string] config.inline_generic | fun(buffer: integer, item: __inline.uri_autolinks): config.inline_generic
 M.inline_uri_autolinks = {
 	enable = true,
 	default = {},
@@ -2402,6 +3120,16 @@ M.inline_uri_autolinks = {
 		hl = "Special"
 	}
 };
+
+-- [ Inline | URI autolinks • Static ] ---------------------------------------------------
+
+--- Static configuration for uri autolinks.
+---@class inline.uri_autolinks_static
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for URI autolinks.
+---@field [string] config.inline_generic Configuration for URI autolinks whose label match `string`.
 
 -- [ Inline | URI autolinks > Parameters ] ------------------------------------------------
 
@@ -2429,124 +3157,75 @@ M.__inline_uri_autolinks = {
 	}
 };
 
- ------------------------------------------------------------------------------------------
-
----@class config.preview
----
----@field enable boolean Enables preview when attaching to new buffers.
----@field enable_hybrid_mode? boolean Enables `hybrid mode` when attaching to new buffers.
----
----@field callbacks preview.callbacks Callback functions.
----@field icon_provider "internal" | "devicons" | "mini" Icon provider.
----
----@field hybrid_modes string[] VIM-modes where `hybrid mode` is enabled.
----@field ignore_previews preview.ignore Options that should/shouldn't be previewed in `hybrid_modes`.
----@field linewise_hybrid_mode? boolean Clear lines around the cursor in `hybrid mode`, instead of nodes?
----@field modes string[] VIM-modes where previews will be shown.
----
----@field debounce integer Debounce delay for updating previews.
----@field filetypes string[] Buffer filetypes where the plugin should attach.
----@field ignore_buftypes string[] Buftypes that should be ignored(e.g. nofile).
----@field max_buf_lines integer Maximum number of lines a buffer can have before switching to partial rendering.
----
----@field edit_range [ integer, integer ] Lines before & after the cursor that shouldn't be rendered in `hybrid mode`.
----@field draw_range [ integer, integer ] Lines before & after the cursor that should be rendering preview.
----
----@field splitview_winopts table Window options for the `splitview` window.
-M.preview = {
-	enable = true,
-
-	callbacks = {},
-	icon_provider = "internal",
-
-	hybrid_modes = {},
-	modes = { "n" },
-
-	debounce = 50,
-	filetypes = { "md" },
-	ignore_buftypes = {},
-	ignore_previews = {},
-
-	draw_range = { 10, 10 },
-	edit_range = { 1, 1 },
-
-	splitview_winopts = {},
-};
-
----@class preview.callbacks
----
----@field on_attach? fun(buf: integer, wins: integer[]): nil Called when attaching to a buffer.
----@field on_detach? fun(buf: integer, wins: integer[]): nil Called when detaching from a buffer.
----
----@field on_disable? fun(buf: integer, wins: integer[]): nil Called when disabling preview of a buffer.
----@field on_enable? fun(buf: integer, wins: integer[]): nil Called when enabling preview of a buffer.
----
----@field on_mode_change? fun(buf: integer, wins: integer[], mode: string): nil Called when changing VIM-modes(only on active buffers).
----
----@field on_splitview_close? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called before closing splitview.
----@field on_splitview_open? fun(source: integer, preview_buf: integer, preview_win: integer): nil Called when opening splitview.
-M.preview_callbacks = {
-	on_attach = function (_, wins)
-		vim.print(wins);
-	end
-};
-
----@class preview.ignore
----
----@field html? string[]
----@field latex? string[]
----@field markdown? string[]
----@field markdown_inline? string[]
----@field typst? string[]
----@field yaml? string[]
-M.preview_ignore = {
-	markdown = { "!block_quotes", "!code_blocks" }
-};
-
 ---@class config.renderer
 
- ------------------------------------------------------------------------------------------
+-- [ Markview | Typst ] -------------------------------------------------------------------
 
 --- Configuration for Typst.
 ---@class config.typst
 ---
 ---@field enable boolean
 ---
----@field code_blocks typst.code_blocks
----@field code_spans typst.code_spans
----@field escapes typst.escapes
----@field headings typst.headings
----@field labels typst.labels
----@field list_items typst.list_items
----@field math_blocks typst.math_blocks
----@field math_spans typst.math_spans
----@field raw_blocks typst.raw_blocks
----@field raw_spans typst.raw_spans
----@field reference_links typst.reference_links
----@field subscripts typst.subscripts
----@field superscripts typst.subscripts
----@field symbols typst.symbols
----@field terms typst.terms
----@field url_links typst.url_links
+---@field code_blocks typst.code_blocks | fun(): typst.code_blocks
+---@field code_spans typst.code_spans | fun(): typst.code_spans
+---@field escapes typst.escapes | fun(): typst.escapes
+---@field headings typst.headings | fun(): typst.headings
+---@field labels typst.labels | fun(): typst.labels
+---@field list_items typst.list_items | fun(): typst.list_items
+---@field math_blocks typst.math_blocks | fun(): typst.math_blocks
+---@field math_spans typst.math_spans | fun(): typst.math_spans
+---@field raw_blocks typst.raw_blocks | fun(): typst.raw_blocks
+---@field raw_spans typst.raw_spans | fun(): typst.raw_spans
+---@field reference_links typst.reference_links | fun(): typst.reference_links
+---@field subscripts typst.subscripts | fun(): typst.subscripts
+---@field superscripts typst.subscripts | fun(): typst.superscripts
+---@field symbols typst.symbols | fun(): typst.symbols
+---@field terms typst.terms | fun(): typst.terms
+---@field url_links typst.url_links | fun(): typst.url_links
 M.typst = {
 	enable = true,
 
-	terms = {},
-	superscript = {},
+	code_blocks = {},
+	code_spans = {},
+	escapes = {},
+	headings = {},
+	labels = {},
+	list_items = {},
 	math_spans = {},
 	math_blocks = {},
 	raw_spans = {},
 	raw_blocks = {},
-	headings = {},
-	symbols = {},
-	list_items = {},
-	escapes = {},
-	codes = {},
-	labels = {},
-	url_links = {},
+	reference_links = {},
 	subscripts = {},
-	reference_links = {}
+	superscript = {},
+	symbols = {},
+	terms = {},
+	url_links = {},
 };
+
+-- [ Markview | Typst • Static ] ----------------------------------------------------------
+
+--- Static configuration for Typst.
+---@class config.typst
+---
+---@field enable boolean
+---
+---@field code_blocks typst.code_blocks Configuration for block of typst code.
+---@field code_spans typst.code_spans Configuration for inline typst code.
+---@field escapes typst.escapes Configuration for escaped characters.
+---@field headings typst.headings Configuration for headings.
+---@field labels typst.labels Configuration for labels.
+---@field list_items typst.list_items Configuration for list items
+---@field math_blocks typst.math_blocks Configuration for blocks of math code.
+---@field math_spans typst.math_spans Configuration for inline math code.
+---@field raw_blocks typst.raw_blocks Configuration for raw blocks.
+---@field raw_spans typst.raw_spans Configuration for raw spans.
+---@field reference_links typst.reference_links Configuration for reference links.
+---@field subscripts typst.subscripts Configuration for subscript texts.
+---@field superscripts typst.subscripts Configuration for superscript texts.
+---@field symbols typst.symbols Configuration for typst symbols.
+---@field terms typst.terms Configuration for terms.
+---@field url_links typst.url_links Configuration for URL links.
 
 -- [ Typst | Code blocks ] ----------------------------------------------------------------
 
@@ -2555,16 +3234,16 @@ M.typst = {
 ---
 ---@field enable boolean
 ---
----@field hl? string
----@field min_width integer Minimum width of code blocks.
----@field pad_amount integer Number of paddings added around the text.
----@field pad_char? string Character to use for padding.
----@field sign? boolean Whether to add signs.
----@field sign_hl? string Highlight group for signs.
----@field style "simple" | "block"
----@field text string Text to show on top.
----@field text_direction "left" | "right"
----@field text_hl? string
+---@field hl? string | fun(buffer: integer, item: __typst.code_block): string?
+---@field min_width integer | fun(buffer: integer, item: __typst.code_block): integer
+---@field pad_amount integer | fun(buffer: integer, item: __typst.code_block): integer
+---@field pad_char? string | fun(buffer: integer, item: __typst.code_block): string?
+---@field sign? string | fun(buffer: integer, item: __typst.code_block): string
+---@field sign_hl? string | fun(buffer: integer, item: __typst.code_block): string?
+---@field style ( "simple" | "block" ) | fun(buffer: integer, item: __typst.code_block): ( "simple" | "block" )
+---@field text string | fun(buffer: integer, item: __typst.code_block): string
+---@field text_direction ( "left" | "right" ) | fun(buffer: integer, item: __typst.code_block): ( "left" | "right" )
+---@field text_hl? string | fun(buffer: integer, item: __typst.code_block): string?
 M.typst_codes_block = {
 	style = "block",
 	text_direction = "right",
@@ -2576,6 +3255,28 @@ M.typst_codes_block = {
 	style = "simple",
 	hl = "MarkviewCode"
 };
+
+-- [ Typst | Code blocks • Static ] -------------------------------------------------------
+
+--- Static configuration for code blocks.
+---@class typst.code_blocks_static
+---
+---@field enable boolean
+---
+---@field hl? string
+---@field min_width integer Minimum width of code blocks.
+---@field pad_amount integer Number of paddings added around the text.
+---@field pad_char? string Character to use for padding.
+---@field sign? string Sign for the code block.
+---@field sign_hl? string Highlight group for the sign.
+---@field style
+---| "simple" Only highlights the lines inside this block.
+---| "block" Creates a box around the code block.
+---@field text string Text to use as the label.
+---@field text_direction
+---| "left" Shows label on the top-left side of the block
+---| "right" Shows label on the top-right side of the block
+---@field text_hl? string Highlight group for the label
 
 -- [ Typst | Code blocks > Parameters ] ---------------------------------------------------
 
@@ -2607,6 +3308,30 @@ M.__typst_codes = {
 ---
 ---@field enable boolean
 ---
+---@field corner_left? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field corner_left_hl? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field corner_right? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field corner_right_hl? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field hl? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field padding_left? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field padding_left_hl? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field padding_right? string | fun(buffer: integer, item: __typst.code_spans): string?
+---@field padding_right_hl? string | fun(buffer: integer, item: __typst.code_spans): string?
+M.typst_codes_inline = {
+	enable = true,
+
+	padding_left = " ",
+	corner_left = " ",
+	hl = "MarkviewCode"
+};
+
+-- [ Typst | Code spans • Static ] -------------------------------------------------------
+
+--- Static configuration for code spans.
+---@class typst.code_spans_static
+---
+---@field enable boolean
+---
 ---@field corner_left? string Left corner.
 ---@field corner_left_hl? string Highlight group for left corner.
 ---@field corner_right? string Right corner.
@@ -2616,13 +3341,6 @@ M.__typst_codes = {
 ---@field padding_left_hl? string Highlight group for left padding.
 ---@field padding_right? string Right padding.
 ---@field padding_right_hl? string Highlight group for right padding.
-M.typst_codes_inline = {
-	enable = true,
-
-	padding_left = " ",
-	corner_left = " ",
-	hl = "MarkviewCode"
-};
 
 -- [ Typst | Code spans > Parameters ] ----------------------------------------------------
 
@@ -2736,8 +3454,8 @@ M.__typst_headings = {
 ---
 ---@field enable boolean
 ---
----@field default config.inline_generic Default configuration for labels.
----@field [string] config.inline_generic Configuration for labels whose text matches `string`.
+---@field default config.inline_generic | fun(buffer: integer, item: __typst.labels): config.inline_generic
+---@field [string] config.inline_generic | fun(buffer: integer, item: __typst.labels): config.inline_generic
 M.typst_labels = {
 	enable = true,
 	default = { hl = "MarkviewInlineCode" },
@@ -2745,6 +3463,16 @@ M.typst_labels = {
 		hl = "MarkviewPalette1"
 	}
 };
+
+-- [ Typst | Labels • Static ] ------------------------------------------------------------
+
+--- Static configuration for typst labels.
+---@class typst.labels
+---
+---@field enable boolean
+---
+---@field default config.inline_generic Default configuration for labels.
+---@field [string] config.inline_generic Configuration for labels whose text matches `string`.
 
 -- [ Typst | Labels > Parameters ] --------------------------------------------------------
 
@@ -2881,7 +3609,53 @@ M.typst_math_spans = {
 	hl = "MarkviewInlineCode"
 };
 
+-- [ Typst | Math spans > Parameters ] ----------------------------------------------------
+
+---@class __typst.maths
+---
+---@field class "typst_math"
+---
+---@field inline boolean Should we render it inline?
+---@field closed boolean Is the node closed(ends with `$$`)?
+---
+---@field text string[]
+---@field range node.range
+M.__typst_maths = {
+	class = "typst_math",
+	inline = true,
+	closed = true,
+
+	text = { "$ 1 + 2 $" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 9
+	}
+};
+
 -- [ Typst | Raw blocks ] -----------------------------------------------------------------
+
+---@class typst.raw_blocks
+---
+---@field enable boolean
+---
+---@field hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
+---@field label_direction? ( "left" | "right" ) | fun(buffer: integer, item: __typst.raw_blocks): ( "left" | "right" )
+---@field label_hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
+---@field min_width integer | fun(buffer: integer, item: __typst.raw_blocks): integer
+---@field pad_amount? integer | fun(buffer: integer, item: __typst.raw_blocks): integer
+---@field pad_char? string | fun(buffer: integer, item: __typst.raw_blocks): string?
+---@field sign? boolean | fun(buffer: integer, item: __typst.raw_blocks): boolean?
+---@field sign_hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
+---@field style ( "simple" | "block" ) | fun(buffer: integer, item: __typst.raw_blocks): ( "simple" | "block" )
+M.typst_raw_blocks = {
+	enable = true,
+	hl = "MarkviewInlineCode"
+};
+
+-- [ Typst | Raw blocks • Static ] --------------------------------------------------------
 
 ---@class typst.raw_blocks
 ---
@@ -2896,10 +3670,6 @@ M.typst_math_spans = {
 ---@field sign? boolean Whether to show signs for the code blocks.
 ---@field sign_hl? string Highlight group for the signs.
 ---@field style "simple" | "block" Preview style for code blocks.
-M.typst_raw_blocks = {
-	enable = true,
-	hl = "MarkviewInlineCode"
-};
 
 -- [ Typst | Raw blocks > Parameters ] ----------------------------------------------------
 
@@ -3385,5 +4155,7 @@ M.__latex_cache = {
 		superscripts = {}
 	}
 };
+
+---@diagnostic enable
 
 return M;
