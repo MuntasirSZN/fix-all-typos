@@ -304,7 +304,7 @@ end
 --- NOTE, {name} will be used to index the config.
 ---@param config table
 ---@param name string
----@param opts { default: boolean, eval_args: any[], ignore_keys?: any[] }
+---@param opts { default: boolean, def_fallback: any?, eval_args: any[], ignore_keys?: any[] }
 ---@return any
 utils.match = function (config, name, opts)
 	config = config or {};
@@ -319,7 +319,7 @@ utils.match = function (config, name, opts)
 	if opts.default ~= false then
 		default = spec.get({ "default" }, vim.tbl_extend("keep", {
 			source = config,
-			fallback = {}
+			fallback = opts.def_fallback
 		}, opts));
 	end
 
@@ -376,7 +376,10 @@ utils.match = function (config, name, opts)
 
 	for _, key in ipairs(keys) do
 		if is_valid(name, key) == true then
-			match = config[key];
+			match = spec.get(
+				{ key },
+				vim.tbl_extend("force", opts, { source = config })
+			);
 			break
 		end
 	end

@@ -1116,7 +1116,7 @@ end
 markdown.code_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
-	---@type markdown.code_blocks?
+	---@type markdown.code_blocks_static?
 	local config = spec.get({ "markdown", "code_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 
 	local delims = item.delimiters;
@@ -1150,6 +1150,28 @@ markdown.code_block = function (buffer, item)
 		---_
 	end
 
+	--- Gets highlight configuration for a line.
+	---@param line string
+	---@return code_blocks.opts_static
+	local function get_line_config(line)
+		---+${lua}
+
+		local line_conf = utils.match(config, item.language, {
+			eval_args = { buffer, line },
+			def_fallback = {
+				block_hl = config.border_hl,
+				pad_hl = config.border_hl
+			},
+			fallback = {
+				block_hl = config.border_hl,
+				pad_hl = config.border_hl
+			}
+		});
+
+		return line_conf;
+		---_
+	end
+
 	--- Renders simple style code blocks.
 	local function render_simple()
 		---+${lua}
@@ -1167,7 +1189,9 @@ markdown.code_block = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 
 				virt_text_pos = "inline",
-				virt_text = { label }
+				virt_text = { label },
+
+				line_hl_group = utils.set_hl(config.border_hl)
 			});
 		else
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
@@ -1180,7 +1204,9 @@ markdown.code_block = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 
 				virt_text_pos = "right_align",
-				virt_text = { label }
+				virt_text = { label },
+
+				line_hl_group = utils.set_hl(config.border_hl)
 			});
 		end
 
@@ -1191,23 +1217,29 @@ markdown.code_block = function (buffer, item)
 				end_row = info_range[3],
 				end_col = #item.text[1],
 
-				hl_group = utils.set_hl(config.info_hl or config.hl)
+				hl_group = utils.set_hl(config.info_hl or config.border_hl)
 			});
 		end
 
 		--- Background
-		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end - 1,
-			end_col = range.col_end,
+		for l = range.row_start + 1, range.row_end - 2 do
+			local line = item.text[(l - range.row_start) + 1];
+			local line_config = get_line_config(line);
 
-			line_hl_group = utils.set_hl(config.hl)
-		});
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, l, 0, {
+				undo_restore = false, invalidate = true,
+				end_row = l,
+
+				line_hl_group = utils.set_hl(line_config.block_hl)
+			});
+		end
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, (range.col_start + #item.text[#item.text]) - #delims[2], {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + #item.text[#item.text],
-			conceal = ""
+			conceal = "",
+
+			line_hl_group = utils.set_hl(config.border_hl)
 		});
 		---_
 	end
@@ -1263,7 +1295,7 @@ markdown.code_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(config.pad_char or " ", block_width - label_width),
-							utils.set_hl(config.hl)
+							utils.set_hl(config.border_hl)
 						}
 					}
 				});
@@ -1279,7 +1311,7 @@ markdown.code_block = function (buffer, item)
 				end_row = info_range[3],
 				end_col = range.col_start + #item.text[1],
 
-				hl_group = utils.set_hl(config.info_hl or config.hl)
+				hl_group = utils.set_hl(config.info_hl or config.border_hl)
 			});
 
 			if info_width >= avail_top then
@@ -1292,8 +1324,8 @@ markdown.code_block = function (buffer, item)
 
 					virt_text_pos = "inline",
 					virt_text = {
-						{ "…", utils.set_hl(config.info_hl or config.hl) },
-						{ " ", utils.set_hl(config.hl) }
+						{ "…", utils.set_hl(config.info_hl or config.border_hl) },
+						{ " ", utils.set_hl(config.border_hl) }
 					}
 				});
 			else
@@ -1306,7 +1338,7 @@ markdown.code_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(config.pad_char or " ", spaces),
-							utils.set_hl(config.hl)
+							utils.set_hl(config.border_hl)
 						}
 					}
 				});
@@ -1331,7 +1363,7 @@ markdown.code_block = function (buffer, item)
 				virt_text = {
 					{
 						" ",
-						utils.set_hl(config.hl)
+						utils.set_hl(config.border_hl)
 					}
 				}
 			});
@@ -1344,7 +1376,7 @@ markdown.code_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(config.pad_char or " ", avail_top + 2),
-							utils.set_hl(config.hl)
+							utils.set_hl(config.border_hl)
 						},
 						label
 					}
@@ -1361,7 +1393,7 @@ markdown.code_block = function (buffer, item)
 				end_row = info_range[3],
 				end_col = range.col_start + #item.text[1],
 
-				hl_group = utils.set_hl(config.info_hl or config.hl)
+				hl_group = utils.set_hl(config.info_hl or config.border_hl)
 			});
 
 			if info_width >= avail_top then
@@ -1374,8 +1406,8 @@ markdown.code_block = function (buffer, item)
 
 					virt_text_pos = "inline",
 					virt_text = {
-						{ "…", utils.set_hl(config.info_hl or config.hl) },
-						{ " ", utils.set_hl(config.hl) },
+						{ "…", utils.set_hl(config.info_hl or config.border_hl) },
+						{ " ", utils.set_hl(config.border_hl) },
 						label
 					}
 				});
@@ -1389,7 +1421,7 @@ markdown.code_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(config.pad_char or " ", spaces),
-							utils.set_hl(config.hl)
+							utils.set_hl(config.border_hl)
 						},
 						label
 					}
@@ -1405,6 +1437,7 @@ markdown.code_block = function (buffer, item)
 			---+${lua}
 
 			local line = item.text[l + 1];
+			local line_config = get_line_config(line);
 
 			if width ~= 0 then
 				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + l, line ~= "" and range.col_start or 0, {
@@ -1414,7 +1447,7 @@ markdown.code_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(" ", pad_amount),
-							utils.set_hl(config.hl)
+							utils.set_hl(line_config.pad_hl)
 						}
 					},
 				});
@@ -1425,9 +1458,13 @@ markdown.code_block = function (buffer, item)
 					virt_text_pos = "inline",
 					virt_text = {
 						{
-							string.rep(" ", block_width - (pad_amount + width)),
-							utils.set_hl(config.hl)
-						}
+							string.rep(" ", block_width - (( 2 * pad_amount) + width)),
+							utils.set_hl(line_config.block_hl)
+						},
+						{
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
+						},
 					},
 				});
 
@@ -1436,7 +1473,7 @@ markdown.code_block = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					end_col = range.col_start + #line,
 
-					hl_group = utils.set_hl(config.hl)
+					hl_group = utils.set_hl(line_config.block_hl)
 				});
 			else
 				local buf_line = vim.api.nvim_buf_get_lines(buffer, range.row_start + l, range.row_start + l + 1, false)[1];
@@ -1450,9 +1487,17 @@ markdown.code_block = function (buffer, item)
 							string.rep(" ", range.col_start - #buf_line)
 						},
 						{
-							string.rep(" ", block_width),
-							utils.set_hl(config.hl)
-						}
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
+						},
+						{
+							string.rep(" ", block_width - (2 * pad_amount)),
+							utils.set_hl(line_config.block_hl)
+						},
+						{
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
+						},
 					},
 				});
 			end
@@ -1474,7 +1519,7 @@ markdown.code_block = function (buffer, item)
 				virt_text = {
 					{
 						string.rep(" ", block_width),
-						utils.set_hl(config.hl)
+						utils.set_hl(config.border_hl)
 					}
 				}
 			});
@@ -1486,7 +1531,7 @@ markdown.code_block = function (buffer, item)
 				virt_text = {
 					{
 						string.rep(" ", block_width),
-						utils.set_hl(config.hl)
+						utils.set_hl(config.border_hl)
 					}
 				}
 			});
@@ -1582,7 +1627,7 @@ markdown.link_ref_definition = function (buffer, item)
 		return;
 	end
 
-	---@type config.inline_generic?
+	---@type config.inline_generic_static?
 	local config = utils.match(
 		main_config,
 		item.description or "",
@@ -1808,7 +1853,7 @@ end
 markdown.metadata_minus = function (buffer, item)
 	---+${func, Renders YAML metadata blocks}
 
-	---@type markdown.metadata_minus
+	---@type markdown.metadata_minus_static?
 	local config = spec.get({ "markdown", "metadata_minus" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -1871,7 +1916,7 @@ end
 markdown.metadata_plus = function (buffer, item)
 	---+${func, Renders TOML metadata blocks}
 
-	---@type markdown.metadata_plus?
+	---@type markdown.metadata_plus_static?
 	local config = spec.get({ "markdown", "metadata_plus" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -2070,7 +2115,7 @@ end
 markdown.table = function (buffer, item)
 	---+${func, Renders Tables}
 
-	---@type markdown.tables?
+	---@type markdown.tables_static?
 	local config = spec.get({ "markdown", "tables" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -3185,7 +3230,8 @@ markdown.render = function (buffer, content)
 	markdown.cache = {};
 
 	for _, item in ipairs(content or {}) do
-		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		-- pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		markdown[item.class:gsub("^markdown_", "")]( buffer, item);
 	end
 
 	return { markdown = markdown.cache };

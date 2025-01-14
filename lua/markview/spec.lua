@@ -576,14 +576,33 @@ spec.default = {
 			style = "block",
 
 			label_direction = "right",
-			hl = "MarkviewCode",
+
+			border_hl = "MarkviewCode",
 			info_hl = "MarkviewCodeInfo",
 
 			min_width = 60,
-			pad_amount = 3,
+			pad_amount = 2,
 			pad_char = " ",
 
-			sign = true
+			sign = true,
+
+			default = {
+				block_hl = "MarkviewCode",
+				pad_hl = "MarkviewCode"
+			},
+
+			["diff"] = {
+				block_hl = function (_, line)
+					if line:match("^%+") then
+						return "MarkviewPalette4";
+					elseif line:match("^%-") then
+						return "MarkviewPalette1";
+					else
+						return "MarkviewCode";
+					end
+				end,
+				pad_hl = "MarkviewCode"
+			}
 
 			---_
 		},
@@ -1920,7 +1939,8 @@ spec.default = {
 			enable = true,
 
 			default = {
-				hl = "MarkviewSpecial", enable = true
+				enable = true,
+				hl = "MarkviewSpecial"
 			},
 			-- ["^mathtt$"] = { hl = "MarkviewPalette1" }
 			---_
@@ -3057,8 +3077,19 @@ spec.setup = function (config)
 	spec.config = vim.tbl_deep_extend("force", spec.default, config);
 end
 
+--- Options for the configuration table parser.
+---@class spec.options
+---
+---@field fallback any Fallback value to return.
+---@field eval? string[] Keys that should be evaluated(defaults to `vim.tbl_keys()`).
+---@field eval_ignore? string[] Keys that shouldn't be evaluated.
+---@field ignore_enable? boolean Whether to ignore `enable = false` when parsing config
+---@field source? table Custom source config(defaults to `spec.config` when nil).
+---@field eval_args? any[] Arguments used to evaluate the output value's keys.
+---@field args? { __is_arg_list: boolean?, [integer]: any } Arguments used to parse the configuration table. Use `__is_arg_list = true` if nested configs use different arguments.
+
 ---@param keys ( string | integer )[]
----@param opts { fallback: any, eval_ignore: string[]?, ignore_enable: boolean?, source: table?, eval_args: any[]?, args: any[] | { __is_arg_list: boolean, [integer]: any } }
+---@param opts spec.options
 ---@return any
 spec.get = function (keys, opts)
 	--- In case the values are correctly provided..
@@ -3137,11 +3168,16 @@ spec.get = function (keys, opts)
 
 	if vim.islist(opts.eval_args) == true and type(val) == "table" then
 		local _e = {};
+		local eval = opts.eval or vim.tbl_keys(val);
 		local ignore = opts.eval_ignore or {};
 
 		for k, v in pairs(val) do
 			if vim.list_contains(ignore, k) == false then
-				_e[k] = to_static(v, opts.eval_args);
+				if vim.list_contains(eval, k) then
+					_e[k] = to_static(v, opts.eval_args);
+				else
+					_e[k] = v;
+				end
 			else
 				_e[k] = v;
 			end
