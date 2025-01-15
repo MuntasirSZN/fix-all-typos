@@ -260,69 +260,76 @@ end
 
 --- Turns RGB color-space into XYZ.
 ---@param color number[]
----@param literal? boolean
 ---@return number[]
-highlights.rgb_to_xyz = function (color, literal)
+highlights.rgb_to_xyz = function (color)
 	---+${func}
 
-	local RGB = vim.deepcopy(color);
+	local RGB = {};
 
-	for c, channel in ipairs(RGB) do
-		if literal ~= false then
-			channel = channel / 255;
-		end
+	for c, channel in ipairs(color) do
+		local _ch = channel / 255;
 
-		if channel > 0.04045 then
-			RGB[c] = ( ( channel + 0.055 ) / 1.055 ) ^ 2.4;
+		if _ch <= 0.04045 then
+			_ch = _ch / 12.92;
 		else
-			RGB[c] = channel / 12.92;
+			_ch = ((_ch + 0.055) / 1.055)^2.4;
 		end
 
-		RGB[c] = RGB[c] * 100;
+		RGB[c] = _ch;
 	end
 
-	return {
-		RGB[1] * 0.4124 + RGB[2] * 0.3576 + RGB[3] * 0.1805,
-		RGB[1] * 0.2126 + RGB[2] * 0.7152 + RGB[3] * 0.0722,
-		RGB[1] * 0.0193 + RGB[2] * 0.1192 + RGB[3] * 0.9505
+	local matrix = {
+		0.4124504, 0.3575761, 0.1804375,
+		0.2126729, 0.7151522, 0.0721750,
+		0.0193339, 0.1191920, 0.9503041
 	};
+
+	return {
+		(RGB[1] * matrix[1] + RGB[2] * matrix[2] + RGB[3] * matrix[3]) * 100,
+		(RGB[1] * matrix[4] + RGB[2] * matrix[5] + RGB[3] * matrix[6]) * 100,
+		(RGB[1] * matrix[7] + RGB[2] * matrix[8] + RGB[3] * matrix[9]) * 100
+	}
 	---_
 end
 
 --- Turns XYZ color-space into RGB.
 ---@param color number[]
----@param literal? boolean
 ---@return number[]
-highlights.xyz_to_rgb = function (color, literal)
+highlights.xyz_to_rgb = function (color)
 	---+${func}
 
-	local XYZ = vim.deepcopy(color);
+	local XYZ = color;
 
-	for c, channel in ipairs(XYZ) do
-		if literal ~= false then
-			XYZ[c] = channel / 100;
-		end
+	for c, channel in ipairs(color) do
+		local _ch = channel / 100;
+		XYZ[c] = _ch;
 	end
 
+	local rev_matrix = {
+		3.2404542, -1.5371385, -0.4985314,
+		-0.9692660, 1.8760108, 0.0415560,
+		0.0556434, -0.2040259, 1.0572252
+	};
+
 	local RGB = {
-		XYZ[1] * 3.2406 + XYZ[2] * -1.5372 + XYZ[3] * -0.4986,
-		XYZ[1] * -0.9689 + XYZ[2] * 1.8758 + XYZ[3] * 0.0415,
-		XYZ[1] * 0.0557 + XYZ[2] * -0.2040 + XYZ[3] * 1.0570,
+		XYZ[1] * rev_matrix[1] + XYZ[2] * rev_matrix[2] + XYZ[3] * rev_matrix[3],
+		XYZ[1] * rev_matrix[4] + XYZ[2] * rev_matrix[5] + XYZ[3] * rev_matrix[6],
+		XYZ[1] * rev_matrix[7] + XYZ[2] * rev_matrix[8] + XYZ[3] * rev_matrix[9]
 	};
 
 	for c, channel in ipairs(RGB) do
-		if channel > 0.0031308 then
-			RGB[c] = ( 1.055 * (channel ^ ( 1 / 2.4 ) ) ) - 0.055;
+		local _ch = channel;
+
+		if _ch <= 0.0031308 then
+			_ch = _ch * 12.92;
 		else
-			RGB[c] = 12.92 * channel;
+			_ch = (1.055 * (_ch^(1 / 2.4))) - 0.055;
 		end
+
+		RGB[c] = utils.clamp(_ch * 255, 0, 255);
 	end
 
-	return {
-		utils.clamp(RGB[1] * 255, 0, 255),
-		utils.clamp(RGB[2] * 255, 0, 255),
-		utils.clamp(RGB[3] * 255, 0, 255)
-	};
+	return RGB;
 	---_
 end
 
@@ -332,23 +339,20 @@ end
 highlights.xyz_to_lab = function (color)
 	---+${func}
 
-	local XYZ = vim.deepcopy(color);
-	local RXYZ = { 94.811, 100, 107.304 };
+	local ref_point = { 95.047, 100, 108.883 };
 
-	for c, channel in ipairs(XYZ) do
-		channel = channel / RXYZ[c];
-
-		if channel > 0.008856 then
-			XYZ[c] = channel ^ ( 1 / 3);
+	local f = function (t)
+		if t > (6 / 29)^3 then
+			return t^(1/3);
 		else
-			XYZ[c] = ( 7.787 * channel ) + ( 16 / 116 );
+			return ( (1 / 3) * t * ((6 / 29)^-2) ) + (4 / 29);
 		end
 	end
 
 	return {
-		( 116 * XYZ[2] ) - 16,
-		500 * ( XYZ[1] - XYZ[2] ),
-		200 * ( XYZ[2] - XYZ[3] )
+		( 116 * f(color[2] / ref_point[2]) ) - 16,
+		500 * (  f(color[1] / ref_point[1]) - f(color[2] / ref_point[2]) ),
+		200 * (  f(color[2] / ref_point[2]) - f(color[3] / ref_point[3]) )
 	};
 	---_
 end
@@ -359,27 +363,22 @@ end
 highlights.lab_to_xyz = function (color)
 	---+${func}
 
-	local LAB = vim.deepcopy(color);
-	local RXYZ = { 94.811, 100, 107.304 };
+	local ref_point = { 95.047, 100, 108.883 };
 
-	local VXYZ = {};
-
-	VXYZ[2] = ( LAB[1] + 16 ) / 116;
-	VXYZ[1] = LAB[2] / 500 + VXYZ[2];
-	VXYZ[3] = VXYZ[2] - LAB[3] / 200;
-
-	for c, channel in ipairs(VXYZ) do
-		if channel > 0.008856 then
-			VXYZ[c] = channel ^ 3;
+	local f_inv = function (t)
+		if t > (6 / 29) then
+			return t^3;
 		else
-			VXYZ[c] = ( channel - 16 / 116 ) / 7.787
+			return 3 * ((6 / 29)^2) * (t - (4 / 29));
 		end
 	end
 
+	local tmp = (color[1] + 16) / 116;
+
 	return {
-		VXYZ[1] * RXYZ[1],
-		VXYZ[2] * RXYZ[2],
-		VXYZ[3] * RXYZ[3],
+		ref_point[1] * f_inv( tmp + (color[2] / 500) ),
+		ref_point[2] * f_inv(tmp),
+		ref_point[3] * f_inv( tmp - (color[3] / 200) )
 	};
 	---_
 end
