@@ -44,15 +44,16 @@ renderer.option_maps = {
 		text = { "latex_text" },
 	},
 	markdown = {
-		headings = { "markdown_atx_heading", "markdown_setext_heading" },
 		block_quotes = { "markdown_block_quote" },
 		code_blocks = { "markdown_code_block" },
+		headings = { "markdown_atx_heading", "markdown_setext_heading" },
 		horizontal_rules = { "markdown_hr" },
-		reference_definitions = { "markdown_link_ref_definition" },
 		list_items = { "markdown_list_item" },
 		metadata_minus = { "markdown_metadata_minus" },
 		metadata_plus = { "markdown_metadata_plus" },
 		tables = { "markdown_table" },
+		reference_definitions = { "markdown_link_ref_definition" },
+
 		checkboxes = { "markdown_checkbox" },
 	},
 	markdown_inline = {
