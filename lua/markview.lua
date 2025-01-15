@@ -16,15 +16,129 @@ markview.state = {
 	buffer_states = {},
 
 	splitview_buffer = nil,
-	splitview_cstate = nil,
 	splitview_source = nil,
 	splitview_window = nil
 };
 
 ---@type integer Autocmd group ID.
 markview.augroup = vim.api.nvim_create_augroup("markview", { clear = true });
+-------------------------------------------------------------------------------------------
 
- ------------------------------------------------------------------------------------------
+--- Simple 1-time renderer for `markview`.
+---
+--- A buffer must be cleared before being
+--- able to render again.
+markview.strict_render = {
+	---+${lua}
+
+	--- Buffers where immediate render was used.
+	---@type integer[]
+	on = {},
+
+	--- Clears an immediately rendered buffer.
+	--- Makes rendering on that buffer possible
+	--- again.
+	---@param self table
+	---@param buffer integer?
+	clear = function (self, buffer)
+		---+${lua}
+
+		---@type integer
+		buffer = buffer or vim.api.nvim_get_current_buf();
+
+		if vim.list_contains(self.on, buffer) == false then
+			return;
+		end
+
+		markview.clear(buffer);
+
+		markview.actions.__exec_callback("on_disable", buffer, vim.fn.win_findbuf(buffer))
+
+		--- Execute the disable one callback.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewDisable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
+
+		--- Execute the attaching callback.
+		markview.actions.__exec_callback("on_detach", buffer, vim.fn.win_findbuf(buffer))
+		--- Execute the autocmd too.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewDetach",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
+
+		for b, buf in ipairs(self.on) do
+			if buf == buffer then
+				table.remove(self.on, b);
+				return;
+			end
+		end
+		---_
+	end,
+
+	--- Immediately renders in buffer.
+	--- Prevents redrawing on that buffer again(until cleared).
+	---@param self table
+	---@param buffer integer?
+	render = function (self, buffer, max_lines)
+		---+${lua}
+
+		---@type integer
+		buffer = buffer or vim.api.nvim_get_current_buf();
+		max_lines = max_lines or spec.get({ "prevent", "max_buf_lines" }, { ignore_enable = true, fallback = 1000 });
+
+		if vim.list_contains(self.on, buffer) then
+			return;
+		elseif vim.api.nvim_buf_line_count(buffer) >= max_lines then
+			return;
+		end
+
+		local parser = require("markview.parser");
+		local renderer = require("markview.renderer");
+
+		markview.render(buffer);
+		local content;
+
+		markview.clear(buffer);
+		content, _ = parser.parse(buffer, 0, -1, true);
+
+		--- Execute the attaching callback.
+		markview.actions.__exec_callback("on_attach", buffer, vim.fn.win_findbuf(buffer))
+		--- Execute the autocmd too.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewAttach",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
+
+		markview.actions.__exec_callback("on_enable", buffer, vim.fn.win_findbuf(buffer))
+
+		--- Execute the enable/disable one too.
+		vim.api.nvim_exec_autocmds("User", {
+			pattern = "MarkviewEnable",
+			data = {
+				buffer = buffer,
+				windows = vim.fn.win_findbuf(buffer)
+			}
+		});
+
+		renderer.render(buffer, content);
+		table.insert(self.on, buffer);
+		---_
+	end
+	---_
+};
+
+-------------------------------------------------------------------------------------------
 
 --- Cleans up invalid buffers.
 markview.clean = function ()
@@ -133,6 +247,9 @@ end
 --- Wrapper to clear decorations from a buffer
 ---@param buffer integer
 markview.clear = function (buffer)
+	---@type integer
+	buffer = buffer or vim.api.nvim_get_current_buf();
+
 	require("markview.renderer").clear(buffer, 0, -1);
 end
 
@@ -175,6 +292,7 @@ markview.render = function (buffer, state)
 			return vim.list_contains(hybrid_modes, mode);
 		end
 	end
+
 	local content;
 
 	markview.clear(buffer);
@@ -344,6 +462,7 @@ markview.actions = {
 			return markview.state.buffer_states[buffer].enable;
 		end
 	end,
+
 	["__splitview_setup"] = function ()
 		--+${lua}
 
@@ -428,22 +547,17 @@ markview.actions = {
 
 		if enable == true then
 			markview.actions.__exec_callback("on_enable", buffer, vim.fn.win_findbuf(buffer))
+
+			--- Execute the enable/disable one too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewEnable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 			markview.render(buffer);
-		else
-			markview.actions.__exec_callback("on_disable", buffer, vim.fn.win_findbuf(buffer))
-			markview.clear(buffer);
-		end
 
-		--- Execute the enable/disable one too.
-		vim.api.nvim_exec_autocmds("User", {
-			pattern = enable == true and "MarkviewEnable" or "MarkviewDisable",
-			data = {
-				buffer = buffer,
-				windows = vim.fn.win_findbuf(buffer)
-			}
-		});
-
-		if enable == true then
 			if hm_enable == true then
 				--- Execute the hybrid mode enabling callback.
 				markview.actions.__exec_callback("on_hybrid_enable", buffer, vim.fn.win_findbuf(buffer))
@@ -467,8 +581,18 @@ markview.actions = {
 					}
 				});
 			end
+		else
+			markview.actions.__exec_callback("on_disable", buffer, vim.fn.win_findbuf(buffer))
+			markview.clear(buffer);
 
-			markview.render(buffer);
+			--- Execute the enable/disable one too.
+			vim.api.nvim_exec_autocmds("User", {
+				pattern = "MarkviewDisable",
+				data = {
+					buffer = buffer,
+					windows = vim.fn.win_findbuf(buffer)
+				}
+			});
 		end
 		---_
 	end,
@@ -758,7 +882,6 @@ markview.actions = {
 		--- Attempt to close the window.
 		--- Also remove the reference to that window.
 		pcall(vim.api.nvim_win_close, markview.state.splitview_window, true);
-		markview.state.splitview_window = nil;
 
 		--- We should also clean up the preview buffer(if possible).
 		if markview.buf_is_safe(markview.state.splitview_buffer) == true then
@@ -768,6 +891,8 @@ markview.actions = {
 
 		---@type integer
 		local buffer = markview.state.splitview_source;
+
+		markview.state.splitview_window = nil;
 		markview.state.splitview_source = nil;
 
 		if markview.buf_is_safe(buffer) == false then
