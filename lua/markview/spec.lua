@@ -213,14 +213,14 @@ spec.default = {
 				---+${lua}
 
 				---@type string[]
-				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
 				---@type string[]
-				local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
+				local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 				local concealcursor = "";
 
-				for _, mode in ipairs(prev_modes) do
-					if vim.list_contains(hybd_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
+				for _, mode in ipairs(preview_modes) do
+					if vim.list_contains(hybrid_modes, mode) == false and vim.list_contains({ "n", "v", "i", "c" }, mode) then
 						concealcursor = concealcursor .. mode;
 					end
 				end
@@ -236,10 +236,10 @@ spec.default = {
 				---+${lua}
 
 				---@type string[]
-				local prev_modes = spec.get({ "preview", "modes" }, { fallback = {} });
+				local preview_modes = spec.get({ "preview", "modes" }, { fallback = {} });
 				local concealcursor = "";
 
-				for _, mode in ipairs(prev_modes) do
+				for _, mode in ipairs(preview_modes) do
 					if vim.list_contains({ "n", "v", "i", "c" }, mode) then
 						concealcursor = concealcursor .. mode;
 					end
