@@ -465,6 +465,10 @@ markdown.table = function (_, _, text, range)
 	local header, separator, rows = {}, {}, {};
 	local aligns = {};
 
+	if text[1] and text[1]:match("^%s+") then
+		range.col_start = range.col_start + text[1]:match("^%s+"):len();
+	end
+
 	local function line_processor (line)
 		local _o = {};
 		local y = 0;
