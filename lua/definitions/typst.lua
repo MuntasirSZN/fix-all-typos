@@ -500,7 +500,7 @@ M.typst_raw_blocks = {
 
 -- [ Typst | Raw blocks • Static ] --------------------------------------------------------
 
----@class typst.raw_blocks
+---@class typst.raw_blocks_static
 ---
 ---@field enable boolean
 ---
@@ -547,6 +547,10 @@ M.typst_raw_spans = {
 	enable = true,
 	hl = "MarkviewInlineCode"
 };
+
+-- [ Typst | Raw spans • Static ] ---------------------------------------------------------
+
+---@alias typst.raw_spans_static config.inline_generic_static
 
 -- [ Typst | Raw spans > Parameters ] -----------------------------------------------------
 

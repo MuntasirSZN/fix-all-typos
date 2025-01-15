@@ -280,7 +280,7 @@ end
 typst.code_span = function (buffer, item)
 	---+${lua}
 
-	---@type typst.code_spans?
+	---@type typst.code_spans_static?
 	local config = spec.get({ "typst", "code_spans" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -475,7 +475,7 @@ typst.label = function (buffer, item)
 		return;
 	end
 
-	---@type config.inline_generic?
+	---@type config.inline_generic_static?
 	local config = utils.match(
 		main_config,
 		item.text[1]:gsub("^%@", ""),
@@ -612,7 +612,7 @@ typst.link_ref = function (buffer, item)
 		return;
 	end
 
-	---@type config.inline_generic?
+	---@type config.inline_generic_static?
 	local config = utils.match(
 		main_config,
 		item.label,
@@ -676,7 +676,7 @@ typst.link_url = function (buffer, item)
 		return;
 	end
 
-	---@type config.inline_generic?
+	---@type config.inline_generic_static?
 	local config = utils.match(
 		main_config,
 		item.label,
@@ -732,7 +732,7 @@ typst.math = function (buffer, item)
 	local range = item.range;
 
 	if item.inline == true then
-		---@type typst.math_spans?
+		---@type config.inline_generic_static?
 		local config = spec.get({ "typst", "math_spans" }, { fallback = nil, eval_args = { buffer, item } });
 
 		if not config then
@@ -863,7 +863,7 @@ end
 typst.raw_block = function (buffer, item)
 	---+${func, Renders Code blocks}
 
-	---@type typst.raw_blocks?
+	---@type typst.raw_blocks_static?
 	local config = spec.get({ "typst", "raw_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -1067,7 +1067,7 @@ end
 typst.raw_span = function (buffer, item)
 	---+${func}
 
-	---@type typst.raw_spans?
+	---@type typst.raw_spans_static?
 	local config = spec.get({ "typst", "raw_spans" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then

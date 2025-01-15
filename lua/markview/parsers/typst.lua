@@ -258,7 +258,7 @@ typst.link_url = function (_, _, text, range)
 	---@type __typst.url_links
 	typst.insert({
 		class = "typst_link_url",
-		label = text,
+		label = text[1],
 
 		text = text,
 		range = range
