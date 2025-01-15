@@ -49,7 +49,7 @@ M.typst = {
 -- [ Markview | Typst • Static ] ----------------------------------------------------------
 
 --- Static configuration for Typst.
----@class config.typst
+---@class config.typst_static
 ---
 ---@field enable boolean
 ---
@@ -484,7 +484,7 @@ M.__typst_maths = {
 ---
 ---@field enable boolean
 ---
----@field hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
+---@field border_hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
 ---@field label_direction? ( "left" | "right" ) | fun(buffer: integer, item: __typst.raw_blocks): ( "left" | "right" )
 ---@field label_hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
 ---@field min_width integer | fun(buffer: integer, item: __typst.raw_blocks): integer
@@ -493,6 +493,9 @@ M.__typst_maths = {
 ---@field sign? boolean | fun(buffer: integer, item: __typst.raw_blocks): boolean?
 ---@field sign_hl? string | fun(buffer: integer, item: __typst.raw_blocks): string?
 ---@field style ( "simple" | "block" ) | fun(buffer: integer, item: __typst.raw_blocks): ( "simple" | "block" )
+---
+---@field default raw_blocks.opts | fun(buffer: integer, item: __typst.raw_blocks): raw_blocks.opts
+---@field [string] raw_blocks.opts | fun(buffer: integer, item: __typst.raw_blocks): raw_blocks.opts
 M.typst_raw_blocks = {
 	enable = true,
 	hl = "MarkviewInlineCode"
@@ -504,7 +507,7 @@ M.typst_raw_blocks = {
 ---
 ---@field enable boolean
 ---
----@field hl? string Base highlight group for code blocks.
+---@field border_hl? string Highlight group for top & bottom border of raw blocks.
 ---@field label_direction? "left" | "right" Changes where the label is shown.
 ---@field label_hl? string Highlight group for the label
 ---@field min_width? integer Minimum width of the code block.
@@ -513,6 +516,23 @@ M.typst_raw_blocks = {
 ---@field sign? boolean Whether to show signs for the code blocks.
 ---@field sign_hl? string Highlight group for the signs.
 ---@field style "simple" | "block" Preview style for code blocks.
+---
+---@field default raw_blocks.opts_static Default line configuration for the raw block.
+---@field [string] raw_blocks.opts_static Line configuration for the raw block whose `language` matches `string`
+
+-- [ Typst | Raw blocks > Type definitions ] -----------------------------------------------
+
+--- Configuration for highlighting a line inside a raw block.
+---@class raw_blocks.opts
+---
+---@field block_hl string | fun(buffer: integer, line: string): string?
+---@field pad_hl string | fun(buffer: integer, line: string): string?
+
+--- Static configuration for highlighting a line inside a raw block.
+---@class raw_blocks.opts_static
+---
+---@field block_hl string? Highlight group for the background of the line.
+---@field pad_hl string? Highlight group for the padding of the line.
 
 -- [ Typst | Raw blocks > Parameters ] ----------------------------------------------------
 

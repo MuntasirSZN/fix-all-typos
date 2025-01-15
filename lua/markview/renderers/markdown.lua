@@ -1540,7 +1540,7 @@ markdown.code_block = function (buffer, item)
 						{
 							string.rep(" ", pad_amount),
 							utils.set_hl(line_config.pad_hl)
-						},
+						}
 					},
 				});
 

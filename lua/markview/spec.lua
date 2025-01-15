@@ -1647,6 +1647,7 @@ spec.default = {
 	},
 	html = {
 		---+${lua}
+		enable = true,
 
 		container_elements = {
 			---+${lua}
@@ -2167,7 +2168,6 @@ spec.default = {
 			enable = true,
 
 			style = "block",
-			icons = "internal",
 			label_direction = "right",
 
 			sign = true,
@@ -2176,7 +2176,25 @@ spec.default = {
 			pad_amount = 3,
 			pad_char = " ",
 
-			hl = "MarkviewCode"
+			border_hl = "MarkviewCode",
+
+			default = {
+				block_hl = "MarkviewCode",
+				pad_hl = "MarkviewCode"
+			},
+
+			["diff"] = {
+				block_hl = function (_, line)
+					if line:match("^%+") then
+						return "MarkviewPalette4";
+					elseif line:match("^%-") then
+						return "MarkviewPalette1";
+					else
+						return "MarkviewCode";
+					end
+				end,
+				pad_hl = "MarkviewCode"
+			}
 
 			---_
 		},

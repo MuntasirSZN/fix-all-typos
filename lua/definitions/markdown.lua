@@ -231,8 +231,8 @@ M.markdown_code_blocks = {
 ---@field sign_hl? string Highlight group for the signs.
 ---@field style "simple" | "block" Preview style for code blocks.
 ---
----@field default code_blocks.opts_static Default configuration for the code block.
----@field [string] code_blocks.opts_static Configuration for the code block whose `language` matches `string`
+---@field default code_blocks.opts_static Default line configuration for the code block.
+---@field [string] code_blocks.opts_static Line configuration for the code block whose `language` matches `string`
 
 -- [ Markdown | Code blocks > Type definitions ] ------------------------------------------
 

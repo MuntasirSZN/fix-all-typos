@@ -875,6 +875,28 @@ typst.raw_block = function (buffer, item)
 	local label = { string.format(" %s%s ", decorations.icon, decorations.name), config.label_hl or decorations.icon_hl };
 	local win = utils.buf_getwin(buffer);
 
+	--- Gets highlight configuration for a line.
+	---@param line string
+	---@return code_blocks.opts_static
+	local function get_line_config(line)
+		---+${lua}
+
+		local line_conf = utils.match(config, item.language, {
+			eval_args = { buffer, line },
+			def_fallback = {
+				block_hl = config.border_hl,
+				pad_hl = config.border_hl
+			},
+			fallback = {
+				block_hl = config.border_hl,
+				pad_hl = config.border_hl
+			}
+		});
+
+		return line_conf;
+		---_
+	end
+
 	local function render_simple ()
 		---+${lua}
 		if config.label_direction == nil or config.label_direction == "left" then
@@ -888,7 +910,9 @@ typst.raw_block = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 
 				virt_text_pos = "inline",
-				virt_text = { label }
+				virt_text = { label },
+
+				line_hl_group = utils.set_hl(config.border_hl)
 			});
 		else
 			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
@@ -901,24 +925,32 @@ typst.raw_block = function (buffer, item)
 				sign_hl_group = utils.set_hl(config.sign_hl or decorations.sign_hl),
 
 				virt_text_pos = "right_align",
-				virt_text = { label }
+				virt_text = { label },
+
+				line_hl_group = utils.set_hl(config.border_hl)
 			});
 		end
 
 		--- Background
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
+		for l = range.row_start + 1, range.row_end - 1 do
+			local line = item.text[(l - range.row_start) + 1];
+			local line_config = get_line_config(line);
 
-			line_hl_group = utils.set_hl(config.hl)
-		});
+			vim.api.nvim_buf_set_extmark(buffer, typst.ns, l, 0, {
+				undo_restore = false, invalidate = true,
+				end_row = l,
+
+				line_hl_group = utils.set_hl(line_config.block_hl)
+			});
+		end
 
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 3, {
 			undo_restore = false, invalidate = true,
 
 			end_col = range.col_end,
-			conceal = ""
+			conceal = "",
+
+			line_hl_group = utils.set_hl(config.border_hl)
 		});
 		---_
 	end
@@ -970,7 +1002,7 @@ typst.raw_block = function (buffer, item)
 				virt_text = {
 					{
 						string.rep(config.pad_char or " ", block_width - label_width),
-						utils.set_hl(config.hl)
+						utils.set_hl(config.border_hl)
 					},
 					label
 				}
@@ -982,6 +1014,7 @@ typst.raw_block = function (buffer, item)
 			---+${lua}
 
 			local line = item.text[l + 1];
+			local line_config = get_line_config(line);
 
 			if width ~= 0 then
 				vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, line ~= "" and range.col_start or 0, {
@@ -991,7 +1024,7 @@ typst.raw_block = function (buffer, item)
 					virt_text = {
 						{
 							string.rep(" ", pad_amount),
-							utils.set_hl(config.hl)
+							utils.set_hl(line_config.pad_hl)
 						}
 					},
 				});
@@ -1002,8 +1035,12 @@ typst.raw_block = function (buffer, item)
 					virt_text_pos = "inline",
 					virt_text = {
 						{
-							string.rep(" ", block_width - (pad_amount + width)),
-							utils.set_hl(config.hl)
+							string.rep(" ", block_width - (( 2 * pad_amount) + width)),
+							utils.set_hl(line_config.block_hl)
+						},
+						{
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
 						}
 					},
 				});
@@ -1013,7 +1050,7 @@ typst.raw_block = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					end_col = range.col_start + #line,
 
-					hl_group = utils.set_hl(config.hl)
+					hl_group = utils.set_hl(line_config.block_hl)
 				});
 			else
 				local buf_line = vim.api.nvim_buf_get_lines(buffer, range.row_start + l, range.row_start + l + 1, false)[1];
@@ -1027,9 +1064,17 @@ typst.raw_block = function (buffer, item)
 							string.rep(" ", range.col_start - #buf_line)
 						},
 						{
-							string.rep(" ", block_width),
-							utils.set_hl(config.hl)
-						}
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
+						},
+						{
+							string.rep(" ", block_width - (2 * pad_amount)),
+							utils.set_hl(line_config.block_hl)
+						},
+						{
+							string.rep(" ", pad_amount),
+							utils.set_hl(line_config.pad_hl)
+						},
 					},
 				});
 			end
@@ -1040,13 +1085,16 @@ typst.raw_block = function (buffer, item)
 		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 3, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_end,
-			conceal = "",
+			conceal = ""
+		});
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end, {
+			undo_restore = false, invalidate = true,
 
 			virt_text_pos = "inline",
 			virt_text = {
 				{
 					string.rep(" ", block_width),
-					utils.set_hl(config.hl)
+					utils.set_hl(config.border_hl)
 				}
 			}
 		});
