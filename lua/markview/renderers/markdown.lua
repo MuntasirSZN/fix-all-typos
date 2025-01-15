@@ -3230,8 +3230,7 @@ markdown.render = function (buffer, content)
 	markdown.cache = {};
 
 	for _, item in ipairs(content or {}) do
-		-- pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
-		markdown[item.class:gsub("^markdown_", "")]( buffer, item);
+		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
 	end
 
 	return { markdown = markdown.cache };

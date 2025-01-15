@@ -11,7 +11,7 @@ html.ns = vim.api.nvim_create_namespace("markview/html");
 html.container_element = function (buffer, item)
 	---+${func}
 
-	---@type html.container_elements
+	---@type html.container_elements?
 	local main_config = spec.get({ "html", "container_elements" }, { fallback = nil });
 
 	if not main_config then
@@ -118,7 +118,7 @@ html.heading = function (buffer, item)
 
 	local range = item.range;
 
-	---@type heading_elements.opts
+	---@type config.extmark
 	local config = spec.get({ "heading_" .. item.level }, { source = main_config, eval_args = { buffer, item } });
 
 	vim.api.nvim_buf_set_extmark(
@@ -143,7 +143,7 @@ end
 html.void_element = function (buffer, item)
 	---+${func}
 
-	---@type html.void_elements
+	---@type html.void_elements?
 	local main_config = spec.get({ "html", "void_elements" }, { fallback = nil });
 
 	if not main_config then
