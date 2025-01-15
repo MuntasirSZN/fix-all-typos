@@ -65,11 +65,14 @@ markdown.output = function (str, buffer)
 	for inline_code in str:gmatch("`(.-)`") do
 		---+${custom, Handle inline codes}
 		if not codes or codes.enable == false then
-			str = str:gsub(concat({
-				"`",
-				inline_code,
-				"`"
-			}), concat({ content }));
+			str = str:gsub(
+				concat({
+					"`",
+					utils.escape_string(inline_code),
+					"`"
+				}),
+				concat({ content })
+			);
 		else
 			local _codes = spec.get({}, {
 				source = codes,
@@ -83,17 +86,20 @@ markdown.output = function (str, buffer)
 				}
 			});
 
-			str = str:gsub(concat({
-				"`",
-				inline_code,
-				"`"
-			}), concat({
-				_codes.corner_left or "",
-				_codes.padding_left or "",
-				inline_code:gsub(".", "X"),
-				_codes.padding_right or "",
-				_codes.corner_left or ""
-			}));
+			str = str:gsub(
+				concat({
+					"`",
+					inline_code,
+					"`"
+				}),
+				concat({
+					_codes.corner_left or "",
+					_codes.padding_left or "",
+					inline_code:gsub(".", "X"),
+					_codes.padding_right or "",
+					_codes.corner_left or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_codes.corner_left or "",
@@ -110,23 +116,29 @@ markdown.output = function (str, buffer)
 			break;
 		end
 
-		str = str:gsub(concat({
-			"\\",
-			escaped
-		}), " ");
+		str = str:gsub(
+			concat({
+				"\\",
+				escaped
+			}),
+			" "
+		);
 	end
 
 	for latex in str:gmatch("%$([^%$]*)%$") do
 		---+${custom, Handle LaTeX blocks}
-		str = str:gsub(concat({
-			"$",
-			latex,
-			"$"
-		}), concat({
-			"$",
-			utils.escape_string(latex):gsub(".", " "),
-			"$"
-		}));
+		str = str:gsub(
+			concat({
+				"$",
+				latex,
+				"$"
+			}),
+			concat({
+				"$",
+				string.rep(" ", latex:len()),
+				"$"
+			})
+		);
 		---_
 	end
 
@@ -150,18 +162,21 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"![[",
-				ref,
-				"]]"
-			}), concat({
-				_blref.corner_left or "",
-				_blref.padding_left or "",
-				_blref.icon or "",
-				ref:gsub(".", "X"),
-				_blref.padding_right or "",
-				_blref.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"![[",
+					ref,
+					"]]"
+				}),
+				concat({
+					_blref.corner_left or "",
+					_blref.padding_left or "",
+					_blref.icon or "",
+					string.rep("X", ref:len()),
+					_blref.padding_right or "",
+					_blref.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_blref.corner_left or "",
@@ -188,18 +203,20 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"![[",
-				ref,
-				"]]"
-			}), concat({
-				_embed.corner_left or "",
-				_embed.padding_left or "",
-				_embed.icon or "",
-				ref:gsub(".", "X"),
-				_embed.padding_right or "",
-				_embed.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"![[",
+					ref,
+					"]]"
+				}), concat({
+					_embed.corner_left or "",
+					_embed.padding_left or "",
+					_embed.icon or "",
+					string.rep("X", ref:len()),
+					_embed.padding_right or "",
+					_embed.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_embed.corner_left or "",
@@ -233,18 +250,21 @@ markdown.output = function (str, buffer)
 			}
 		);
 
-		str = str:gsub(concat({
-			"[[#^",
-			ref,
-			"]]"
-		}), concat({
-			_blref.corner_left or "",
-			_blref.padding_left or "",
-			_blref.icon or "",
-			ref:gsub(".", "X"),
-			_blref.padding_right or "",
-			_blref.corner_right or ""
-		}));
+		str = str:gsub(
+			concat({
+				"[[#^",
+				ref,
+				"]]"
+			}),
+			concat({
+				_blref.corner_left or "",
+				_blref.padding_left or "",
+				_blref.icon or "",
+				string.rep("X", ref:len()),
+				_blref.padding_right or "",
+				_blref.corner_right or ""
+			})
+		);
 
 		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 			_blref.corner_left or "",
@@ -261,15 +281,18 @@ markdown.output = function (str, buffer)
 	for link in str:gmatch("%[%[([^%]]+)%]%]") do
 		---+${custom, Handle internal links}
 		if not int then
-			str = str:gsub(concat({
-				"[[",
-				link,
-				"]]"
-			}), concat({
-				" ",
-				(alias or link):gsub(".", "X"),
-				" "
-			}));
+			str = str:gsub(
+				concat({
+					"[[",
+					link,
+					"]]"
+				}),
+				concat({
+					" ",
+					(alias or link):gsub(".", "X"),
+					" "
+				})
+			);
 		else
 			local alias = link:match("%|(.+)$");
 			local _int = utils.match(
@@ -290,18 +313,21 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"[[",
-				link,
-				"]]"
-			}), concat({
-				_int.corner_left or "",
-				_int.padding_left or "",
-				_int.icon or "",
-				(alias or link):gsub(".", "X"),
-				_int.padding_right or "",
-				_int.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"[[",
+					link,
+					"]]"
+				}),
+				concat({
+					_int.corner_left or "",
+					_int.padding_left or "",
+					_int.icon or "",
+					(alias or link):gsub(".", "X"),
+					_int.padding_right or "",
+					_int.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_int.corner_left or "",
@@ -314,15 +340,18 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for link, p_s, address, p_e in str:gmatch("%!%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+	for link, p_s, address, p_e in str:gmatch("%!%[([^%]]*)%]([%(%[])([^%)]*)([%)%]])") do
 		---+${custom, Handle image links}
 		if not image then
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-				address,
-			}), concat({ link }))
+			str = str:gsub(
+				concat({
+					"![",
+					link,
+					"]",
+					address
+				}),
+				concat({ link })
+			);
 		else
 			local _image = utils.match(
 				image,
@@ -342,21 +371,24 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-				p_s,
-				address,
-				p_e
-			}), concat({
-				_image.corner_left or "",
-				_image.padding_left or "",
-				_image.icon or "",
-				utils.escape_string(link):gsub("[^%[%]]", "X"),
-				_image.padding_right or "",
-				_image.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"![",
+					link,
+					"]",
+					p_s,
+					address,
+					p_e
+				}),
+				concat({
+					_image.corner_left or "",
+					_image.padding_left or "",
+					_image.icon or "",
+					string.rep("X", link:len()),
+					_image.padding_right or "",
+					_image.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_image.corner_left or "",
@@ -369,16 +401,19 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for link in str:gmatch("%!%[([^%)]*)%]") do
+	for link in str:gmatch("%!%[([^%]]*)%]") do
 		---+${custom, Handle image links without address}
 		if not image then
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-			}), concat({
-				utils.escape_string(link):gsub(".", "X"),
-			}))
+			str = str:gsub(
+				concat({
+					"![",
+					link,
+					"]",
+				}),
+				concat({
+					string.rep("X", link:len())
+				})
+			);
 		else
 			local _image = utils.match(
 				image,
@@ -398,18 +433,20 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-			}), concat({
-				_image.corner_left or "",
-				_image.padding_left or "",
-				_image.icon or "",
-				utils.escape_string(link):gsub(".", "X"),
-				_image.padding_right or "",
-				_image.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"![",
+					link,
+					"]",
+				}), concat({
+					_image.corner_left or "",
+					_image.padding_left or "",
+					_image.icon or "",
+					string.rep("X", link:len()),
+					_image.padding_right or "",
+					_image.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_image.corner_left or "",
@@ -422,15 +459,20 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for link, p_s, address, p_e in str:gmatch("%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+	for link, p_s, address, p_e in str:gmatch("%[([^%]]*)%]([%(%[])([^%)]*)([%)%]])") do
 		---+${custom, Handle hyperlinks}
 		if not hyper then
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-				address
-			}), concat({ utils.escape_string(link):gsub(".", "X") }))
+			str = str:gsub(
+				concat({
+					"[",
+					link,
+					"]",
+					address
+				}),
+				concat({
+					string.rep("X", link:len())
+				})
+			);
 		else
 			local _hyper = utils.match(
 				hyper,
@@ -450,21 +492,23 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-				p_s,
-				address,
-				p_e
-			}), concat({
-				_hyper.corner_left or "",
-				_hyper.padding_left or "",
-				_hyper.icon or "",
-				utils.escape_string(link):gsub(".", "X"),
-				_hyper.padding_right or "",
-				_hyper.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"[",
+					link,
+					"]",
+					p_s,
+					address,
+					p_e
+				}), concat({
+					_hyper.corner_left or "",
+					_hyper.padding_left or "",
+					_hyper.icon or "",
+					string.rep("X", link:len()),
+					_hyper.padding_right or "",
+					_hyper.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_hyper.corner_left or "",
@@ -477,16 +521,19 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for link in str:gmatch("%[([^%)]+)%]") do
+	for link in str:gmatch("%[([^%]]+)%]") do
 		---+${custom, Handle shortcut links}
 		if not hyper then
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-			}), concat({
-				utils.escape_string(link):gsub(".", "X"),
-			}))
+			str = str:gsub(
+				concat({
+					"[",
+					link,
+					"]",
+				}),
+				concat({
+					string.rep("X", link:len())
+				})
+			);
 		else
 			local _hyper = utils.match(
 				hyper,
@@ -505,18 +552,20 @@ markdown.output = function (str, buffer)
 				}
 			);
 
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-			}), concat({
-				_hyper.corner_left or "",
-				_hyper.padding_left or "",
-				_hyper.icon or "",
-				utils.escape_string(link):gsub(".", "X"),
-				_hyper.padding_right or "",
-				_hyper.corner_right or ""
-			}));
+			str = str:gsub(
+				concat({
+					"[",
+					link,
+					"]",
+				}), concat({
+					_hyper.corner_left or "",
+					_hyper.padding_left or "",
+					_hyper.icon or "",
+					string.rep("X", link:len()),
+					_hyper.padding_right or "",
+					_hyper.corner_right or ""
+				})
+			);
 
 			decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 				_hyper.corner_left or "",
@@ -552,16 +601,25 @@ markdown.output = function (str, buffer)
 			}
 		);
 
-		str = str:gsub("%<" .. address .. "%@" .. domain .. "%>", concat({
-			_email.corner_left or "",
-			_email.padding_left or "",
-			_email.icon or "",
-			utils.escape_string(address):gsub(".", "X"),
-			"Y",
-			utils.escape_string(domain):gsub(".", "X"),
-			_email.padding_right or "",
-			_email.corner_left or ""
-		}));
+		str = str:gsub(
+			concat({
+				"<",
+				address,
+				"@",
+				domain,
+				">"
+			}),
+			concat({
+				_email.corner_left or "",
+				_email.padding_left or "",
+				_email.icon or "",
+				string.rep("X", address:len()),
+				"Y",
+				string.rep("X", domain:len()),
+				_email.padding_right or "",
+				_email.corner_left or ""
+			})
+		);
 
 		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 			_email.corner_left or "",
@@ -598,18 +656,20 @@ markdown.output = function (str, buffer)
 			}
 		);
 
-		str = str:gsub(concat({
-			"<",
-			address,
-			">"
-		}), concat({
-			_uri.corner_left or "",
-			_uri.padding_left or "",
-			_uri.icon or "",
-			utils.escape_string(address):gsub(".", "X"),
-			_uri.padding_right or "",
-			_uri.corner_left or ""
-		}));
+		str = str:gsub(
+			concat({
+				"<",
+				address,
+				">"
+			}), concat({
+				_uri.corner_left or "",
+				_uri.padding_left or "",
+				_uri.icon or "",
+				string.rep("X", address:len()),
+				_uri.padding_right or "",
+				_uri.corner_left or ""
+			})
+		);
 
 		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 			_uri.corner_left or "",
@@ -637,7 +697,14 @@ markdown.output = function (str, buffer)
 		content = utils.escape_string(content);
 		str_a = utils.escape_string(str_a);
 
-		str = str:gsub(str_b .. content .. str_a, utils.escape_string(content):gsub(".", "X"))
+		str = str:gsub(
+			concat({
+				str_b,
+				content,
+				str_a
+			}),
+			string.rep("X", content:len())
+		);
 
 	    ::continue::
 		---_
@@ -645,13 +712,16 @@ markdown.output = function (str, buffer)
 
 	for striked in str:gmatch("%~%~(.-)%~%~") do
 		---+${custom, Handle strike-through text}
-		str = str:gsub(concat({
-			"~~",
-			striked,
-			"~~"
-		}), concat({
-			utils.escape_string(striked):gsub(".", "X"),
-		}));
+		str = str:gsub(
+			concat({
+				"~~",
+				striked,
+				"~~"
+			}),
+			concat({
+				string.rep("X", striked:len())
+			})
+		);
 		---_
 	end
 
@@ -674,18 +744,21 @@ markdown.output = function (str, buffer)
 			}
 		);
 
-		str = str:gsub(concat({
-			"==",
-			highlight,
-			"=="
-		}), concat({
-			_hls.corner_left or "",
-			_hls.padding_left or "",
-			_hls.icon or "",
-			utils.escape_string(highlight):gsub(".", "X"),
-			_hls.padding_right or "",
-			_hls.corner_left or ""
-		}));
+		str = str:gsub(
+			concat({
+				"==",
+				highlight,
+				"=="
+			}),
+			concat({
+				_hls.corner_left or "",
+				_hls.padding_left or "",
+				_hls.icon or "",
+				string.rep("X", highlight:len()),
+				_hls.padding_right or "",
+				_hls.corner_left or ""
+			})
+		);
 
 		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
 			_hls.corner_left or "",
@@ -707,13 +780,16 @@ markdown.output = function (str, buffer)
 			goto continue;
 		end
 
-		str = str:gsub(concat({
-			"&",
-			entity,
-			";"
-		}), concat({
-			entities.get(entity:gsub("%#", ""))
-		}));
+		str = str:gsub(
+			concat({
+				"&",
+				entity,
+				";"
+			}),
+			concat({
+				entities.get(entity:gsub("%#", ""))
+			})
+		);
 
 	    ::continue::
 		---_
