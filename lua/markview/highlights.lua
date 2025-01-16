@@ -404,6 +404,23 @@ end
 ---@type string[]
 highlights.created = {};
 
+--- Wrapper function for `nvim_set_hl()`.
+---@param name string
+---@param value table
+highlights.set_hl = function (name, value)
+	local success, err = pcall(vim.api.nvim_set_hl, 0, name, value);
+
+	if success == false then
+		vim.api.nvim_echo({
+			{ string.format("◈ Failed to create: %s", name), "DiagnosticHint" },
+			{ "\n---------------------\n" },
+			{ err, "DiagnosticError" },
+			{ "\n---------------------\n" },
+			{ vim.inspect(value), "Comment" }
+		}, true, {})
+	end
+end
+
 --- Creates highlight groups from an array of tables
 ---@param array { [string]: config.hl | fun(): config.hl }
 highlights.create = function (array)
@@ -428,16 +445,16 @@ highlights.create = function (array)
 		end
 
 		if type(value) == "table" then
-			vim.api.nvim_set_hl(0, hl, value);
+			highlights.set_hl(hl, value);
 		else
 			local val = value();
 
 			if vim.islist(val) then
 				for _, item in ipairs(val) do
-					vim.api.nvim_set_hl(0, item.group_name, item.value);
+					highlights.set_hl(item.group_name, item.value);
 				end
 			else
-				vim.api.nvim_set_hl(0, hl, val);
+				highlights.set_hl(hl, val);
 			end
 		end
 	end
