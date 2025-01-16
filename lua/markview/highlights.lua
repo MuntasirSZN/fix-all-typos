@@ -67,6 +67,8 @@ highlights.rgb = function (input)
 	};
 
 	if type(input) == "string" then
+		---+${lua}
+
 		--- Match cases,
 		---     • RR GG BB, # is optional.
 		---     • R G B, # is optional.
@@ -95,7 +97,11 @@ highlights.rgb = function (input)
 
 			return { tonumber(r, 16), tonumber(g, 16), tonumber(b, 16) };
 		end
+
+		---_
 	elseif type(input) == "number" then
+		---+${lua}
+
 		--- Format the number into a hexadecimal string.
 		--- Then get the **r**, **g**, **b** parts.
 		--- 
@@ -103,8 +109,8 @@ highlights.rgb = function (input)
 		local r, g, b = string.format("%06x", input):match("(%x%x)(%x%x)(%x%x)$");
 
 		return { tonumber(r, 16), tonumber(g, 16), tonumber(b, 16) };
-	elseif vim.islist(input) then
-		return highlights.hsl_to_rgb(input);
+
+		---_
 	end
 	---_
 end
@@ -137,112 +143,157 @@ highlights.rgb_to_hex = function (color)
 end
 
 --- RGB to HSL converter.
---- Input should be a list (as `{ R, G, B }`).
---- Returns a list(as `{ H, S, L }`).
+--- Input: `{ r, g, b }` where,
+---   r ∈ [0, 255]
+---   g ∈ [0, 255]
+---   b ∈ [0, 255]
+---
+--- Return: `{ h, s, l }` where,
+---   h ∈ [0, 360]
+---   s ∈ [0, 1]
+---   l ∈ [0, 1]
+---
 ---@param color number[]
----@param literal? boolean
 ---@return number[]
-highlights.rgb_to_hsl = function (color, literal)
+highlights.rgb_to_hsl = function (color)
 	---+${func}
 
-	local RGB = vim.deepcopy(color);
+	local nR, nG, nB = color[1] / 255, color[2] / 255, color[3] / 255;
+	local min, max = math.min(nR, nG, nB), math.max(nR, nG, nB);
 
-	for c, channel in ipairs(RGB) do
-		if literal ~= false then
-			RGB[c] = channel / 255;
-		end
-	end
+	local h, s, l;
+	l = (min + max) / 2;
 
-	---@diagnostic disable-next-line
-	local minRGB, maxRGB = math.min(unpack(RGB)), math.max(unpack(RGB));
-
-	local HSL = { 0, 0, 0 };
-	HSL[3] = (minRGB + maxRGB) / 2;
-
-	if minRGB == maxRGB then
-		HSL[2] = 0;
-	elseif HSL[3] <= 0.5 then
-		HSL[2] = (maxRGB - minRGB) / (maxRGB + minRGB);
+	if min == max then
+		s = 0;
+	elseif l <= 0.5 then
+		s = (max - min) / (max + min);
 	else
-		HSL[2] = (maxRGB - minRGB) / (2 - maxRGB - minRGB);
+		s = (max - min) / (2 - max - min);
 	end
 
-	local delta = maxRGB - minRGB
-
-	if delta == RGB[1] then
-		HSL[1] = (RGB[2] - RGB[3]) / (maxRGB - minRGB);
-	elseif delta == RGB[2] then
-		HSL[1] = 2 + (RGB[3] - RGB[1]) / (maxRGB - minRGB);
+	if max == nR then
+		h = (nG - nB) / (max - min);
+	elseif max == nG then
+		h = 2 + (nB - nR) / (max - min);
 	else
-		HSL[1] = 4 + (RGB[1] - RGB[2]) / (maxRGB - minRGB);
+		h = 4 + (nR - nG) / (max - min);
 	end
 
-	HSL[1] = HSL[1] * 60;
+	if h < 0 then
+		h = 1 - h;
+	end
 
-	return HSL;
+	return { h * 60, s, l };
+
 	---_
 end
 
+--- HSL to RGB converter.
+--- Input: `{ h, s, l }` where,
+---   h ∈ [0, 360]
+---   s ∈ [0, 1]
+---   l ∈ [0, 1]
+---
+--- Return: `{ r, g, b }` where,
+---   r ∈ [0, 255]
+---   g ∈ [0, 255]
+---   b ∈ [0, 255]
+---
+---@param color integer[]
 highlights.hsl_to_rgb = function (color)
 	---+${func}
 
-	local HSL = vim.deepcopy(color);
-	local C = ( 1 - math.abs((2 * HSL[3]) - 1) ) * HSL[2];
-	local X;
+	local h, s, l = color[1] / 360, color[2], color[3];
 
-	local h = HSL[1] / 60;
-	X = C * (1 - math.abs((h % 2) - 1));
+	if s == 0 then
+		return { l * 255, l * 255, l * 255 };
+	end
 
-	local m = HSL[3] - (C / 2);
-	local RGB = {};
+	local tmp_1, tmp_2;
 
-	if 0 <= h and h <= 1 then
-		RGB = { C, X, 0};
-	elseif 1 <= h and h <= 2 then
-		RGB = { X, C, 0 };
-	elseif 2 <= h and h <= 3 then
-		RGB = { 0, C, X };
-	elseif 3 <= h and h <= 4 then
-		RGB = { 0, X, C };
-	elseif 4 <= h and h <= 5 then
-		RGB = { X, 0, C };
+	if l < 0.5 then
+		tmp_1 = l * (1 + s);
 	else
-		RGB = { C, 0, X };
+		tmp_1 = l + s - (l * s);
+	end
+
+	tmp_2 = (2 * l) - tmp_1;
+	local tR, tG, tB;
+
+	tR = h + 0.333;
+	tG = h;
+	tB = h - 0.333;
+
+	tR = tR < 0 and tR + 1 or tR;
+	tG = tG < 0 and tG + 1 or tG;
+	tB = tB < 0 and tB + 1 or tB;
+
+	local function checker (val)
+		if 6 * val < 1 then
+			return tmp_2 + (tmp_1 - tmp_2) * 6 * val;
+		elseif 2 * val < 1 then
+			return tmp_1;
+		elseif 3 * val < 2 then
+			return tmp_2 + (tmp_1 - tmp_2) * (0.666 - val) * 6;
+		else
+			return tmp_2;
+		end
 	end
 
 	return {
-		(RGB[1] + m) * 255,
-		(RGB[2] + m) * 255,
-		(RGB[3] + m) * 255,
+		clamp(checker(tR) * 255, 0, 255),
+		clamp(checker(tG) * 255, 0, 255),
+		clamp(checker(tB) * 255, 0, 255),
 	};
+
 	---_
 end
 
+--- Deprecated RGB to HSL converter.
+---@param rgb integer[]
+---@return integer[]
+---@deprecated
 highlights.hsl = function (rgb)
 	vim.notify("[ markview.nvim ]: highlights.hsl is deprecated. Use 'highlights.rgb_to_hsl' instead", vim.log.levels.WARN);
-	highlights.rgb_to_hsl(rgb);
+	return highlights.rgb_to_hsl(rgb);
 end
 
 --- Gets the luminosity of a RGB value.
 ---
+--- Input: `{ r, g, b }` where,
+---   r ∈ [0, 255]
+---   g ∈ [0, 255]
+---   b ∈ [0, 255]
+---
+--- Return: `l` where,
+---   l ∈ [0, 1]
+---
 ---@param input number[]
----@param literal? boolean
 ---@return number
-highlights.lumen = function (input, literal)
-	local rgb = vim.deepcopy(input);
+highlights.lumen = function (input)
+	local min = math.min(input[1], input[2], input[3]);
+	local max = math.max(input[1], input[2], input[3]);
 
-	for c, val in ipairs(rgb) do
-		if literal ~= false then
-			rgb[c] = val / 255;
-		end
-	end
-
-	local min, max = math.min(rgb[1], rgb[2], rgb[3]), math.max(rgb[1], rgb[2], rgb[3]);
 	return (min + max) / 2;
 end
 
 --- Mixes a color with it's background based on
 --- the provided `alpha`(between 0 & 1).
+---
+--- Input:
+---   fg: `{ r, g, b }` where,
+---     r ∈ [0, 255]
+---     g ∈ [0, 255]
+---     b ∈ [0, 255]
+---
+---   bg: `{ r, g, b }` where,
+---     r ∈ [0, 255]
+---     g ∈ [0, 255]
+---     b ∈ [0, 255]
+---
+---   alpha: `a` where,
+---     a ∈ [0, 1]
 ---
 ---@param fg number[]
 ---@param bg number[]
@@ -259,6 +310,12 @@ highlights.opacify = function (fg, bg, alpha)
 end
 
 --- Turns RGB color-space into XYZ.
+---
+--- Input: `{ r, g, b }` where,
+---   r ∈ [0, 255]
+---   g ∈ [0, 255]
+---   b ∈ [0, 255]
+---
 ---@param color number[]
 ---@return number[]
 highlights.rgb_to_xyz = function (color)
@@ -1158,13 +1215,11 @@ highlights.dynamic = {
 			vim_bg[3] = clamp(vim_bg[3] + 0.05, 0.1, 0.9);
 		end
 
-		---@diagnostic disable
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.rgb_to_hex(vim_bg)
 		};
-		---@diagnostic enable
 	end,
 	["CodeInfo"] = function ()
 		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
@@ -1186,14 +1241,12 @@ highlights.dynamic = {
 			vim_bg[3] = clamp(vim_bg[3] + 0.05, 0.1, 0.9);
 		end
 
-		---@diagnostic disable
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.rgb_to_hex(vim_bg),
 			fg = highlights.rgb_to_hex(code_fg)
 		};
-		---@diagnostic enable
 	end,
 	["CodeFg"] = function ()
 		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
@@ -1209,13 +1262,11 @@ highlights.dynamic = {
 			vim_bg[3] = clamp(vim_bg[3] + 0.05, 0.1, 0.9);
 		end
 
-		---@diagnostic disable
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			fg = highlights.rgb_to_hex(vim_bg)
 		};
-		---@diagnostic enable
 	end,
 	["InlineCode"] = function ()
 		local vim_bg = highlights.rgb_to_hsl(highlights.get_property(
@@ -1231,13 +1282,11 @@ highlights.dynamic = {
 			vim_bg[3] = clamp(vim_bg[3] + 0.1, 0.1, 0.9);
 		end
 
-		---@diagnostic disable
 		vim_bg = highlights.hsl_to_rgb(vim_bg);
 
 		return {
 			bg = highlights.rgb_to_hex(vim_bg)
 		};
-		---@diagnostic enable
 	end,
 
 
