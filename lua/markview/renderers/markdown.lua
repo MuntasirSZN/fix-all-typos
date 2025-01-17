@@ -683,7 +683,7 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for str_b, content, str_a in str:gmatch("([*]+)(.-)([*]+)") do
+	for str_b, content, str_a in str:gmatch("([%*]+)(.-)([%*]+)") do
 		---+${custom, Handle italics & bold text}
 		if content == "" then
 			goto continue;
@@ -692,10 +692,6 @@ markdown.output = function (str, buffer)
 			str_b = str_b:sub(0, min);
 			str_a = str_a:sub(0, min);
 		end
-
-		str_b = utils.escape_string(str_b);
-		content = utils.escape_string(content);
-		str_a = utils.escape_string(str_a);
 
 		str = str:gsub(
 			concat({
