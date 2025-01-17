@@ -391,7 +391,7 @@ markview.update_splitview_cursor = function ()
 	---_
 end
 
-markview.splitview_render = function (update_content, update_preview)
+markview.splitview_render = function ()
 	---+${lua}
 
 	local utils = require("markview.utils");
@@ -412,23 +412,35 @@ markview.splitview_render = function (update_content, update_preview)
 	--- deleted, we should regenerate them.
 	markview.actions.__splitview_setup();
 
+	local max_lines = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
+	local line_count = vim.api.nvim_buf_line_count(buffer);
+
+	local main_win = utils.buf_getwin(buffer);
+	local cursor = vim.api.nvim_win_get_cursor(main_win);
+
 	local pre_buf = markview.state.splitview_buffer;
 	local pre_win = markview.state.splitview_window;
 
-	if update_content ~= false then
-		local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false);
-		vim.api.nvim_buf_set_lines(pre_buf, 0, -1, false, lines);
-	end
+	local lines = vim.api.nvim_buf_get_lines(
+		buffer,
+		math.max(0, cursor[1] - (max_lines + 1)),
+		math.min(line_count, cursor[1] + (max_lines + 1)),
+		false
+	);
+	vim.api.nvim_buf_set_lines(
+		pre_buf,
+		math.max(0, cursor[1] - (max_lines + 1)),
+		math.min(line_count, cursor[1] + (max_lines + 1)),
+		false,
+		lines
+	);
 
-	local cursor = vim.api.nvim_win_get_cursor(utils.buf_getwin(buffer));
 	pcall(vim.api.nvim_win_set_cursor, pre_win, cursor);
 
-	if update_preview ~= false then
-		markview.render(pre_buf, {
-			enable = true,
-			hybrid_mode = false
-		});
-	end
+	markview.render(pre_buf, {
+		enable = true,
+		hybrid_mode = false
+	});
 	---_
 end
 
@@ -647,6 +659,11 @@ markview.actions = {
 		elseif type(markview.state.buffer_states[buffer]) ~= "table" then
 			markview.state.buffer_states[buffer] = nil;
 			return;
+		elseif buffer == markview.state.splitview_source then
+			markview.state.buffer_states[buffer].enable = false;
+			markview.state.buffer_states[buffer].y = -999;
+
+			return;
 		end
 
 		markview.state.buffer_states[buffer].enable = false;
@@ -692,6 +709,10 @@ markview.actions = {
 			return;
 		elseif type(markview.state.buffer_states[buffer]) ~= "table" then
 			markview.state.buffer_states[buffer] = nil;
+			return;
+		elseif buffer == markview.state.splitview_source then
+			markview.state.buffer_states[buffer].enable = true;
+			markview.splitview_render();
 			return;
 		end
 

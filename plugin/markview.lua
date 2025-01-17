@@ -126,21 +126,22 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		local buffer = event.buf;
 		local mode = vim.api.nvim_get_mode().mode;
 
+		---@type string[] List of modes where preview is shown.
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local old_mode = vim.v.event.old_mode;
+
 		if markview.actions.__is_attached(buffer) == false then
 			--- Buffer isn't attached!
-			return;
-		elseif buffer == markview.state.splitview_source then
-			markview.splitview_render();
 			return;
 		elseif markview.actions.__is_enabled(buffer) == false then
 			--- Markview disabled on this buffer.
 			markview.clear(buffer);
 			return;
+		elseif buffer == markview.state.splitview_source then
+			--- Splitview should only update from
+			--- cursor movements or content changes.
+			return;
 		end
-
-		---@type string[] List of modes where preview is shown.
-		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-		local old_mode = vim.v.event.old_mode;
 
 		if vim.list_contains(preview_modes, mode) then
 			--- Preview
@@ -190,19 +191,17 @@ vim.api.nvim_create_autocmd({
 
 		---@type string[] List of modes where preview is shown.
 		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
-
-		if markview.actions.__is_attached(buffer) == false then
-			return;
-		elseif markview.actions.__is_enabled(buffer) == false then
-			return;
-		elseif vim.list_contains(modes, mode) == false then
-			return;
-		end
-
 		local delay = spec.get({ "preview", "debounce" }, { fallback = 25, ignore_enable = true });
 
+		--- Checks if we need to immediately render
+		--- previews or not.
+		---@return boolean
 		local function immediate_render ()
-			if vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) == false then
+			---+${lua}
+			if vim.list_contains({ "TextChanged", "TextChangedI" }, name) then
+				--- Changes to the buffer content MUST
+				--- always be debounced to ensure that
+				--- this doesn't hamper typing.
 				return false;
 			end
 
@@ -210,6 +209,8 @@ vim.api.nvim_create_autocmd({
 			local win = utils.buf_getwin(buffer);
 
 			if type(win) ~= "number" or markview.win_is_safe(win) == false then
+				--- Window isn't safe.
+				--- This shouldn't occur normally.
 				return false;
 			end
 
@@ -219,53 +220,62 @@ vim.api.nvim_create_autocmd({
 			local old = markview.state.buffer_states[buffer].y or 0;
 			local diff = math.abs(pos_y - old);
 
-			markview.state.buffer_states[buffer].y = pos_y;
+			--- Update the cached cursor position.
+			if not markview.state.buffer_states[buffer].y then
+				markview.state.buffer_states[buffer].y = pos_y;
+			elseif diff >= distance_threshold then
+				markview.state.buffer_states[buffer].y = pos_y;
+			end
 
 			if diff >= distance_threshold then
+				--- User has covered a significant
+				--- distance since the last redraw.
+				---
+				--- We probably should redraw.
 				return true;
 			else
+				--- User still hasn't covered a large
+				--- distance.
+				---
+				--- We shouldn't redraw.
 				return false;
 			end
+			---_
 		end
 
-		if buffer == markview.state.splitview_source then
-			--- Splitview renderer.
-			local max_l = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
+		--- Handles the renderer for a buffer.
+		local handle_renderer = function ()
+			---+${lua}
+
+			---@type integer
 			local lines = vim.api.nvim_buf_line_count(buffer);
+			---@type integer
+			local max_l = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
 
 			if lines >= max_l then
-				--- Partial render is used.
 				if immediate_render() == true then
-					markview.splitview_render(true, true);
-				elseif vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) then
-					markview.update_splitview_cursor();
+					--- Use a small delay to prevent input
+					--- lags when doing `gg` or `G`.
+					-- markview.render(buffer);
+					vim.defer_fn(function ()
+						if vim.v.exiting ~= vim.NIL then
+							return;
+						end
+
+						markview.render(buffer);
+					end, 0);
 				else
 					timer:start(delay, 0, vim.schedule_wrap(function ()
 						if vim.v.exiting ~= vim.NIL then
 							return;
 						end
 
-						markview.splitview_render(true, true);
+						markview.render(buffer);
 					end));
 				end
-			else
-				local edit_events = { "TextChanged", "TextChangedI" };
-
-				if vim.list_contains(edit_events, name) then
-					markview.splitview_render(true, true);
-				else
-					markview.update_splitview_cursor();
-				end
-			end
-		else
-			--- Normal renderer.
-			if immediate_render() == true then
-				--- Use a small delay to prevent input
-				--- lags when doing `gg` or `G`.
-				timer:start(5, 0, vim.schedule_wrap(function ()
-					markview.render(buffer);
-				end));
-			else
+			elseif vim.list_contains({ "TextChanged", "TextChangedI" }, name) then
+				--- Buffer content changes MUST be
+				--- handle via debounce.
 				timer:start(delay, 0, vim.schedule_wrap(function ()
 					if vim.v.exiting ~= vim.NIL then
 						return;
@@ -274,6 +284,89 @@ vim.api.nvim_create_autocmd({
 					markview.render(buffer);
 				end));
 			end
+
+			---_
+		end
+
+		--- Handles the splitview renderer.
+		local function handle_splitview ()
+			---+${lua}
+
+			---@type integer
+			local lines = vim.api.nvim_buf_line_count(buffer);
+			---@type integer
+			local max_l = spec.get({ "preview", "max_buf_lines" }, { fallback = 1000, ignore_enable = true });
+
+			if lines >= max_l then
+				if immediate_render() == true then
+					--- Use a small delay to prevent input
+					--- lags when doing `gg` or `G`.
+					-- markview.render(buffer);
+					vim.defer_fn(function ()
+						if vim.v.exiting ~= vim.NIL then
+							return;
+						end
+
+						markview.splitview_render();
+					end, 0);
+				elseif vim.list_contains({ "CursorMoved", "CursorMovedI" }, name) then
+					--- BUG, on Android changing cursor
+					--- position outside of `defer_fn`
+					--- results in high input lags.
+					vim.defer_fn(function ()
+						if vim.v.exiting ~= vim.NIL then
+							return;
+						end
+
+						markview.update_splitview_cursor();
+					end, 0);
+				else
+					--- Buffer content change(use debounce).
+					timer:start(delay, 0, vim.schedule_wrap(function ()
+						if vim.v.exiting ~= vim.NIL then
+							return;
+						end
+
+						markview.splitview_render();
+					end));
+				end
+			elseif vim.list_contains({ "TextChanged", "TextChangedI" }, name) then
+				timer:start(delay, 0, vim.schedule_wrap(function ()
+					if vim.v.exiting ~= vim.NIL then
+						return;
+					end
+
+					markview.splitview_render();
+				end));
+			else
+				vim.defer_fn(function ()
+					if vim.v.exiting ~= vim.NIL then
+						return;
+					end
+
+					markview.update_splitview_cursor();
+				end, 0);
+			end
+
+			---_
+		end
+
+		if markview.actions.__is_attached(buffer) == false then
+			return;
+		elseif markview.actions.__is_enabled(buffer) == false then
+			return;
+		elseif vim.list_contains(modes, mode) == false then
+			if buffer == markview.state.splitview_source then
+				handle_splitview();
+			end
+
+			return;
+		end
+
+		if buffer == markview.state.splitview_source then
+			handle_splitview();
+		else
+			handle_renderer();
 		end
 		---_
 	end
@@ -689,7 +782,7 @@ end, {
 		end
 
 		if #parts == 1 then
-			return get_complete_items.default();
+			return get_complete_items.default(parts[2]);
 		elseif #parts == 2 and is_subcommand(parts[2]) == false then
 			return get_complete_items.default(parts[2]);
 		elseif is_subcommand(parts[2]) == true and get_complete_items[parts[2]] ~= nil then

@@ -187,7 +187,7 @@ M.inline_link_range = {
 ---@field attached_buffers integer[]
 ---
 --- Buffer local states.
----@field buffer_states { [integer]: { enable: boolean, hybrid_mode: boolean? } }
+---@field buffer_states { [integer]: { enable: boolean, hybrid_mode: boolean?, y: integer? } }
 ---
 --- Source buffer for hybrid mode.
 ---@field splitview_source? integer
