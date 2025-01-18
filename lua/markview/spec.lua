@@ -93,7 +93,7 @@ spec.notify = function (chunks, opts)
 		vim.list_extend(
 			{
 				{
-					"█ markview",
+					"󰇈 markview",
 					highlights[opts.level or vim.log.levels.WARN]
 				},
 				{ ": " }
@@ -2562,492 +2562,759 @@ spec.default = {
 
 spec.config = vim.deepcopy(spec.default);
 
----+${custom, Option maps}
-spec.preview = {
-	"modes", "hybrid_modes",
-	"filetypes", "buf_ignore",
-	"callbacks",
-	"debounce",
-	"ignore_nodes",
-	"max_file_length", "render_distance",
-	"split_conf"
-};
-spec.experimental = {};
+--- Error message for incorrect option type.
+---@param opts { option: string, uses: string, got: string }
+spec.__type_error = function (opts)
+	---+${lua}
 
-spec.markdown = {
-	"block_quotes",
-	"code_blocks",
-	"footnotes",
-	"headings",
-	"horizontal_rules",
-	"list_items",
-	"tables"
-};
-spec.markdown_inline = {
-	"checkboxes",
-	"inline_codes",
-	"links"
-};
-spec.html = {};
-spec.latex = {};
-spec.typst = {};
----_
+	local article_1 = "a ";
+	local article_2 = "a ";
 
+	if string.match(opts.uses, "^[aeiou]") then
+		article_1 = "an ";
+	elseif string.match(opts.uses, "^%A") then
+		article_1 = "";
+	end
 
-spec.__preview = function (config)
-	---+${func}
-	for opt, val in pairs(config) do
-		if opt == "buf_ignore" then
-			spec.notify({
-				{ " buf_ignore ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.ignore_buftypes ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+	if string.match(opts.got, "^[aeiou]") then
+		article_2 = "an ";
+	elseif string.match(opts.got, "^%A") then
+		article_2 = "";
+	end
 
-				old = "preview.buf_ignore",
-				new = "preview.ignore_buftypes"
+	vim.api.nvim_echo({
+		{ " markview.nvim: ", "DiagnosticWarn" },
+		{ string.format(" %s ", opts.option), "DiagnosticVirtualTextInfo" },
+		{ " is " .. article_1, "Normal" },
+		{ string.format(" %s ", opts.uses), "DiagnosticVirtualTextHint" },
+		{ ", not " .. article_2, "Normal" },
+		{ string.format(" %s ", opts.got), "DiagnosticVirtualTextError" },
+		{ ".", "Normal" }
+	}, true, {});
+
+	---_
+end
+
+--- Error message for option deprecation.
+---@param opts { option: string, alter: string?, tip: [ string, string? ][]? }
+spec.__depr_error = function (opts)
+	---+${lua}
+
+	local chunks = {
+		{ " markview.nvim: ", "DiagnosticError" },
+		{ string.format(" %s ", opts.option), "DiagnosticVirtualTextError" },
+		{ " is deprecated. ", "Normal" },
+	};
+
+	if opts.alter then
+		chunks = vim.list_extend(chunks, {
+			{ "Use ", "Normal" },
+			{ string.format(" %s ", opts.alter), "DiagnosticVirtualTextHint" },
+			{ " instead.", "Normal" },
+		});
+	end
+
+	if opts.tip then
+		chunks = vim.list_extend(chunks, {
+			{ "\n" },
+			{ "  Tip: ", "DiagnosticVirtualTextWarn" },
+			{ " " },
+		});
+		chunks = vim.list_extend(chunks, opts.tip);
+	end
+
+	vim.api.nvim_echo(chunks, true, {});
+
+	---_
+end
+
+spec.fixup = {
+	---+${lua}
+
+	["buf_ignore"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "buf_ignore",
+			alter = "preview → ignore_buftypes"
+		});
+
+		if vim.islist(value) == false then
+			return {};
+		end
+
+		return {
+			preview = {
+				ignore_buftypes = value;
+			}
+		};
+		---_
+	end,
+	["callbacks"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "callbacks",
+			alter = "preview → callbacks"
+		});
+
+		if type(value) ~= "table" then
+			return {};
+		end
+
+		return {
+			preview = {
+				callbacks = value;
+			}
+		};
+		---_
+	end,
+	["debounce"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "debounce",
+			alter = "preview → debounce"
+		});
+
+		if type(value) ~= "number" then
+			return {};
+		end
+
+		return {
+			preview = {
+				debounce = value;
+			}
+		};
+		---_
+	end,
+	["filetypes"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "filetypes",
+			alter = "preview → filetypes"
+		});
+
+		if vim.islist(value) == false then
+			return {};
+		end
+
+		return {
+			preview = {
+				filetypes = value;
+			}
+		};
+		---_
+	end,
+	["hybrid_modes"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "hybrid_modes",
+			alter = "preview → hybrid_modes"
+		});
+
+		if vim.islist(value) == false then
+			return {};
+		end
+
+		return {
+			preview = {
+				hybrid_modes = value;
+			}
+		};
+		---_
+	end,
+	["ignore_nodes"] = function (_)
+		---+${lua}
+		spec.__depr_error({
+			option = "ignore_nodes",
+			alter = "preview → ignore_previews"
+		});
+
+		return {};
+		---_
+	end,
+	["initial_state"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "initial_state",
+			alter = "preview → enable"
+		});
+
+		if type(value) ~= "boolean" then
+			return {};
+		else
+			return {
+				preview = {
+					enable = value
+				}
+			};
+		end
+		---_
+	end,
+	["max_file_length"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "max_file_length",
+			alter = "preview → max_buf_lines"
+		});
+
+		if type(value) ~= "integer" then
+			return {};
+		else
+			return {
+				preview = {
+					max_buf_lines = value
+				}
+			};
+		end
+		---_
+	end,
+	["modes"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "modes",
+			alter = "preview → modes"
+		});
+
+		if vim.islist(value) == false then
+			return {};
+		end
+
+		return {
+			preview = {
+				modes = value;
+			}
+		};
+		---_
+	end,
+	["render_distance"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "render_distance",
+			alter = "preview → draw_range"
+		});
+
+		if vim.islist(value) == false or #value ~= 2 then
+			return {};
+		elseif type(value) == "number" then
+			spec.__type_error({
+				option = "preview → draw_range",
+				uses = "[ integer, integer ]",
+				got = type(value)
 			});
 
-			config["ignore_buftypes"] = val;
-			config["buf_ignore"] = nil;
-		elseif opt == "debounce" then
-			spec.notify({
-				{ " debounce ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.debounce_delay ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+			return {
+				preview = {
+					draw_range = { value, value }
+				}
+			};
+		end
 
-				old = "preview.debounce",
-				new = "preview.debounce_delay"
+		return {};
+		---_
+	end,
+	["split_conf"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "split_conf",
+			alter = "preview → splitview_winopts"
+		});
+
+		if type(value) ~= "table" then
+			spec.__type_error({
+				option = "preview → splitview_winopts",
+				uses = "table",
+				got = type(value)
 			});
 
-			config["debounce_delay"] = val;
-			config["debounce"] = nil;
-		elseif opt == "ignore_nodes" then
-			spec.notify({
-				{ " ignore_nodes ", "DiagnosticVirtualTextError" },
-				{ " is deprecated! Use " },
-				{ " preview.ignore_node_classes ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+			return {};
+		end
 
-				old = "preview.ignore_nodes",
-				new = "preview.ignore_node_classes",
+		return {
+			preview = {
+				splitview_winopts = value;
+			}
+		};
+		---_
+	end,
 
-				level = vim.log.levels.ERROR,
+	["injections"] = function ()
+		---+${lua}
+
+		spec.__depr_error({
+			option = "injections",
+			tip = {
+				{ "See ", "Normal" },
+				{ " :h markview-advanced-use ", "DiagnosticVirtualTextHint" }
+			}
+		});
+
+		return {};
+
+		---_
+	end,
+
+
+	["block_quotes"] = function (config)
+		---+${lua}
+
+		local _o = {
+			markdown = {
+				block_quotes = {};
+			}
+		};
+
+		--- Handles old callout definitions.
+		---@param callouts table[]
+		local handle_callouts = function (callouts)
+			---+${lua}
+
+			spec.__depr_error({
+				option = "markdown → block_quotes → callouts",
+				tip = {
+					{ "Create a callout using the " },
+					{ " match_string ", "DiagnosticVirtualTextInfo" },
+					{ " as the key inside " },
+					{ " markdown → block_quotes ", "DiagnosticVirtualTextHint" },
+					{ "." },
+				}
 			});
 
-			config["ignore_nodes"] = nil;
-		elseif opt == "initial_state" then
-			spec.notify({
-				{ " initial_state ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.enable ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+			for _, callout in ipairs(callouts) do
+				if callout.match_string then
+					_o.markdown.block_quotes[callout.match_string] = {
+						border = callout.border,
+						border_hl = callout.border_hl,
 
-				old = "preview.initial_state",
-				new = "preview.enable",
+						hl = callout.hl,
 
-				level = vim.log.levels.ERROR,
-			});
+						icon = callout.icon,
+						icon_hl = callout.icon_hl,
 
-			config["enable"] = val;
-			config["initial_state"] = nil;
-		elseif opt == "split_conf" then
-			spec.notify({
-				{ " split_conf ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.splitview_winopts ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+						preview = callout.preview,
+						preview_hl = callout.preview_hl,
 
-				old = "preview.split_conf",
-				new = "preview.splitview_winopts"
-			});
+						title = callout.title,
+					};
+				end
+			end
 
-			config["splitview_winopts"] = val;
-			config["split_conf"] = nil;
-		elseif opt == "max_file_length" then
-			spec.notify({
-				{ " max_file_length ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.max_buf_lines ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
+			---_
+		end
 
-				old = "max_file_length",
-				new = "preview.max_buf_lines"
-			});
-
-			config["max_buf_lines"] = val;
-			config["max_file_length"] = nil;
-		elseif opt == "render_distance" then
-			spec.notify({
-				{ " render_distance ", "DiagnosticVirtualTextInfo" },
-				{ " is deprecated! Use " },
-				{ " preview.draw_range ", "DiagnosticVirtualTextHint" },
-				{ " instead."},
-			}, {
-				class = "markview_opt_name_change",
-
-				old = "render_distance",
-				new = "preview.draw_range"
-			});
-
-			if type(val) == "number" then
-				spec.notify({
-					{ " preview.draw_range ", "DiagnosticVirtualTextInfo" },
-					{ " should be a " },
-					{ "[ integer, integer ]", "DiagnosticOk" },
-					{ "! Got "},
-					{ "number", "DiagnosticWarn" },
-					{ ". "},
-				}, {
-					class = "markview_opt_invalid_type",
-					name = "preview.draw_range",
-
-					should_be = "table",
-					is = "number"
-				});
-
-				config["draw_range"] = { val, val };
+		for key, value in pairs(config) do
+			if key == "callouts" then
+				if vim.islist(value) then
+					handle_callouts(value);
+				end
 			else
-				config["draw_range"] = val;
+				_o.markdown.block_quotes[key] = value;
 			end
-
-			config["render_distance"] = nil;
 		end
-	end
 
-	return config;
-	---_
-end
+		return _o;
 
-spec.__markdown = function (config)
-	---+${func}
-	for opt, val in pairs(config) do
-		if opt == "block_quotes" and vim.islist(val.callouts) then
-			spec.notify({
-				{ " block_quotes.callouts ", "DiagnosticVirtualTextError" },
-				{ " is deprecated!" },
-			}, {
-				class = "markview_opt_deprecated",
-				level = vim.log.levels.ERROR,
+		---_
+	end,
+	["code_blocks"] = function (config)
+		---+${lua}
 
-				name = "block_quotes.callouts"
-			});
+		local _o = {
+			preview = {},
+			markdown = {
+				code_blocks = {}
+			}
+		};
 
-			local _n = {};
-
-			for _, item in ipairs(val.callouts) do
-				_n[string.lower(item.match_string)] = {
-					hl = item.hl,
-					preview = item.preview,
-					preview_hl = item.preview_hl,
-
-					title = item.title,
-					icon = item.icon,
-
-					border = item.border,
-					border_hl = item.border_hl
-				}
-			end
-
-			config["block_quotes"] = vim.tbl_extend("keep", {
-				enable = val.enable,
-				default = val.default or {}
-			}, _n);
-		elseif opt == "code_blocks" and val.icon_provider then
-			spec.notify({
-				{ " code_blocks.icon_provider ", "DiagnosticVirtualTextError" },
-				{ " is deprecated!" },
-			}, {
-				class = "markview_opt_deprecated",
-				level = vim.log.levels.ERROR,
-
-				name = "code_blocks.icon_provider"
-			});
-
-			val.icon_provider = nil;
-			config["code_blocks"] = val;
-		elseif opt == "tables" and ( vim.islist(val.text) or vim.islist(val.hl) ) then
-			local _p, _h = val.text, val.hl;
-			local np, nh = {
-				top = {},
-				header = {},
-				separator = {},
-				row = {},
-				bottom = {},
-
-				align_left = nil,
-				align_right = nil,
-				align_center = {}
-			}, vim.islist(val.hl) == false and val.hl or {
-				top = {},
-				header = {},
-				separator = {},
-				row = {},
-				bottom = {},
-
-				align_left = nil,
-				align_right = nil,
-				align_center = {}
-			};
-
-			if vim.islist(_p) then
-				spec.notify({
-					{ " markdown.tables.parts ", "DiagnosticVirtualTextInfo" },
-					{ " should be a " },
-					{ "table", "DiagnosticOk" },
-					{ "! Got "},
-					{ "list", "DiagnosticWarn" },
-					{ ". "},
-				}, {
-					class = "markview_opt_invalid_type",
-					name = "markdown.tables.parts",
-
-					should_be = "table",
-					is = "list"
+		for key, value in pairs(config) do
+			if key == "icon" then
+				spec.__depr_error({
+					option = "code_blocks → icon",
+					alter = "preview → icon_provider"
 				});
 
-				for p, part in ipairs(_p) do
-					if vim.list_contains({ 1, 2, 3, 4 }, p) then
-						np.top[p] = part;
-
-						if p == 2 then
-							np.separator[2] = part;
-						end
-					elseif p == 5 then
-						np.separator[1] = part;
-					elseif p == 6 then
-						np.header[1] = part;
-						np.header[2] = part;
-						np.header[3] = part;
-
-						np.row[1] = part;
-						np.row[2] = part;
-						np.row[3] = part;
-					elseif p == 7 then
-						np.separator[3] = part;
-					elseif p == 8 then
-						np.separator[4] = part;
-					elseif vim.list_contains({ 9, 10, 11, 12 }, p) then
-						np.bottom[p - 8] = part;
-					elseif vim.list_contains({ 13, 14 }, p) then
-						np.align_center[p - 12] = part;
-					elseif p == 15 then
-						np.align_left = part;
-					else
-						np.align_right = part;
-					end
-				end
-			end
-
-			if vim.islist(_h) then
-				spec.notify({
-					{ " markdown.tables.hls ", "DiagnosticVirtualTextInfo" },
-					{ " is deprecated! Use " },
-					{ " markdown.tables.hl ", "DiagnosticVirtualTextHint" },
-					{ " instead."},
-				}, {
-					class = "markview_opt_name_change",
-					level = vim.log.levels.ERROR,
-
-					old = "markdown.tables.hls",
-					new = "markdown.tables.hl"
+				_o.preview.icon_provider = value;
+			elseif key == "language_names" then
+				spec.__depr_error({
+					option = "code_blocks → language_names"
 				});
-
-				spec.notify({
-					{ " markdown.tables.hl ", "DiagnosticVirtualTextInfo" },
-					{ " should be a " },
-					{ "table", "DiagnosticOk" },
-					{ "! Got "},
-					{ "list", "DiagnosticWarn" },
-					{ ". "},
-				}, {
-					class = "markview_opt_invalid_type",
-					name = "markdown.tables.hl",
-
-					should_be = "table",
-					is = "list"
-				});
-
-				for p, part in ipairs(_h) do
-					if vim.list_contains({ 1, 2, 3, 4 }, p) then
-						nh.top[p] = part;
-
-						if p == 2 then
-							nh.separator[2] = part;
-						end
-					elseif p == 5 then
-						nh.separator[1] = part;
-					elseif p == 6 then
-						nh.header[1] = part;
-						nh.header[2] = part;
-						nh.header[3] = part;
-
-						nh.row[1] = part;
-						nh.row[2] = part;
-						nh.row[3] = part;
-					elseif p == 7 then
-						nh.separator[3] = part;
-					elseif p == 8 then
-						nh.separator[4] = part;
-					elseif vim.list_contains({ 9, 10, 11, 12 }, p) then
-						nh.bottom[p - 8] = part;
-					elseif vim.list_contains({ 13, 14 }, p) then
-						nh.align_center[p - 12] = part;
-					elseif p == 15 then
-						nh.align_left = part;
-					else
-						nh.align_right = part;
-					end
-				end
-			end
-
-			---@type markdown.tables
-			config["tables"] = {
-				enable = val.enable,
-				hl = nh,
-				parts = np,
-				use_virt_lines = val.use_virt_lines,
-				block_decorator = val.block_decorator
-			};
-		end
-	end
-
-	return config;
-	---_
-end
-
-spec.__markdown_inline = function (config)
-	---+${func}
-	for opt, val in pairs(config) do
-		if
-			opt == "checkboxes" and
-			vim.islist(val.custom)
-		then
-			spec.notify({
-				{ " checkboxes.custom ", "DiagnosticVirtualTextError" },
-				{ " is deprecated!" },
-			}, {
-				class = "markview_opt_deprecated",
-				level = vim.log.levels.ERROR,
-
-				name = "checkboxes.custom"
-			});
-
-			local _n = {};
-
-			for _, item in ipairs(val.custom) do
-				_n[string.lower(item.match_string)] = {
-					hl = item.hl,
-					scope_hl = item.scope_hl,
-					text = item.text,
-				}
-			end
-
-			config["checkboxes"] = vim.tbl_extend("keep", {
-				enable = val.enable,
-				checked = val.checked,
-				unchecked = val.unchecked,
-			}, _n);
-		elseif opt == "links" then
-			for k, v in pairs(val) do
-				if vim.list_contains({ "emails", "hyperlinks", "images", "internal_links" }, k) == false then
-					goto continue;
-				end
-
-				spec.notify({
-					{ " links." .. k .. " ", "DiagnosticVirtualTextError" },
-					{ " is deprecated! Use" },
-					{ " markdown_inline." .. opt .. "." .. k .. " ", "DiagnosticVirtualTextHint" },
-					{ "instead." },
-				}, {
-					class = "markview_opt_deprecated",
-					name = "links." .. k,
-					level = vim.log.levels.ERROR
-				});
-
-				config[k] = v;
-				::continue::
-			end
-
-			config[opt] = nil;
-			config = spec.__markdown_inline(config);
-		elseif vim.list_contains({ "footnotes", "emails", "uri_autolinks", "images", "embed_files", "internal_links", "hyperlinks" }, opt) then
-			if not val.default then val.default = {}; end
-
-			for k, v in pairs(val) do
-				if
-					vim.list_contains({
-						"corner_left", "corner_right",
-						"padding_left", "padding_right",
-						"icon", "icon_hl",
-						"padding_left_hl", "padding_right_hl",
-						"corner_left_hl", "corner_right_hl",
-					}, k)
-				then
-					spec.notify({
-						{ string.format(" markdown_inline.%s.%s ", opt, k), "DiagnosticVirtualTextError" },
-						{ " is deprecated! Use" },
-						{ string.format(" markdown_inline.%s.default.%s ", opt, k), "DiagnosticVirtualTextHint" },
-						{ "instead." },
-					}, {
-						class = "markview_opt_deprecated",
-						name = string.format("markdown_inline.%s.%s", opt, k),
-						level = vim.log.levels.ERROR
+			elseif key == "style" then
+				if value == "minimal" then
+					spec.__type_error({
+						option = "markdown → code_blocks → style",
+						uses = '"simple" | "block"',
+						got = '"minimal"'
 					});
 
-					val.default[k] = v;
+					_o.markdown.code_blocks.style = "block";
+				else
+					_o.markdown.code_blocks.style = value;
+				end
+			else
+				_o.markdown.code_blocks[key] = value;
+			end
+		end
+
+		return _o;
+		---_
+	end,
+	["headings"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "headings",
+			alter = "markdown → headings"
+		});
+
+		return {
+			markdown = {
+				headings = value
+			}
+		};
+		---_
+	end,
+	["horizontal_rules"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "horizontal_rules",
+			alter = "markdown → horizontal_rules"
+		});
+
+		return {
+			markdown = {
+				horizontal_rules = value
+			}
+		};
+		---_
+	end,
+	["list_items"] = function (value)
+		---+${lua}
+		spec.__depr_error({
+			option = "list_items",
+			alter = "markdown → list_items"
+		});
+
+		return {
+			markdown = {
+				list_items = value
+			}
+		};
+		---_
+	end,
+	["tables"] = function (config)
+		---+${lua}
+		local _o = {
+			markdown = {
+				tables = {}
+			}
+		};
+
+		spec.__depr_error({
+			option = "tables",
+			alter = "markdown → tables"
+		});
+
+		for k, v in pairs(config) do
+			if k == "parts" and vim.islist(v) then
+				--- Legacy option spec
+			elseif k == "hl" and vim.islist(v) then
+				--- Legacy option spec
+			elseif k == "col_min_width" then
+				spec.__depr_error({
+					option = "markdown → tables → col_min_width"
+				});
+			else
+				_o.markdown.tables[k] = v;
+			end
+		end
+
+		return _o;
+		---_
+	end,
+
+	["inline_codes"] = function (value)
+		---+${lua}
+
+		return {
+			markdown_inline = {
+				inline_codes = value
+			}
+		};
+
+		---_
+	end,
+	["checkboxes"] = function (config)
+		---+${lua}
+
+		local _o = {
+			markdown_inline = {
+				checkboxes = {}
+			}
+		};
+
+		for k, v in pairs(config) do
+			if k == "custom" then
+				if vim.islist(v) == false then
+					goto invalid_type;
+				end
+
+				for _, entry in ipairs(v) do
+					if entry.match_string then
+						_o.markdown_inline.checkboxes[entry.match_string] = {
+							text = entry.text,
+							hl = entry.hl,
+
+							scope_hl = entry.scope_hl
+						};
+					end
+				end
+
+				::invalid_type::
+			else
+				_o.markdown_inline.checkboxes[k] = v;
+			end
+		end
+
+		return _o;
+
+		---_
+	end,
+	["links"] = function (config)
+		---+${lua}
+
+		local _o = {
+			markdown_inline = {}
+		};
+
+		--- Handles link config tables.
+		---@param opt string
+		---@param val table
+		local function handle_link (opt, val)
+			---+${lua}
+
+			local _l = {
+				default = {}
+			};
+
+			for k, v in pairs(val) do
+				if k == "icon" then
+					_l.default[k] = v;
+				elseif k == "hl" then
+					_l.default[k] = v;
+				elseif k == "custom" then
+					if vim.islist(v) == false then
+						goto invalid_type;
+					end
+
+					for _, entry in ipairs(v) do
+						if entry.match_string then
+							_l[entry.match_string] = {
+								text = entry.text,
+								hl = entry.hl
+							};
+						end
+					end
+
+					::invalid_type::
+				else
+					_l[k] = v;
 				end
 			end
 
-			if val.custom then
-				spec.notify({
-					{ " markdown_inline." .. opt .. ".custom ", "DiagnosticVirtualTextError" },
-					{ " is deprecated! Use" },
-					{ " markdown_inline." .. opt .. ".[string] ", "DiagnosticVirtualTextHint" },
-					{ "instead." },
-				}, {
-					class = "markview_opt_name_change",
+			_o.markdown_inline[opt] = _l;
+			---_
+		end
 
-					old = "markdown_inline." .. opt .. ".custom",
-					new = "markdown_inline." .. opt .. ".[string]",
-				});
-			end
-
-			config[opt] = {
-				enable = val.enable,
-				default = val.default or { text = val.text, hl = val.hl },
-			};
-
-			for _, item in ipairs(val.patterns or val.custom or {}) do
-				if type(item.match_string) == "string" then
-					config[item.match_string] = item;
+		for k, v in pairs(config) do
+			if vim.list_contains({ "hyperlinks", "images", "emails", "internals" }, k) then
+				if k == "internals" then
+					handle_link("internal_links", v);
+				else
+					handle_link(k, v);
 				end
 			end
 		end
+
+		return _o;
+
+		---_
+	end,
+	["footnotes"] = function (config)
+		---+${lua}
+
+		local _o = {
+			markdown_inline = {
+				footnotes = {}
+			}
+		};
+
+		--- Handles link config tables.
+		---@param opt string
+		---@param val table
+		local function handle_link (opt, val)
+			---+${lua}
+
+			local _l = {
+				default = {}
+			};
+
+			for k, v in pairs(val) do
+				if k == "icon" then
+					_l.default[k] = v;
+				elseif k == "hl" then
+					_l.default[k] = v;
+				elseif k == "custom" then
+					if vim.islist(v) == false then
+						goto invalid_type;
+					end
+
+					for _, entry in ipairs(v) do
+						if entry.match_string then
+							_l[entry.match_string] = {
+								text = entry.text,
+								hl = entry.hl
+							};
+						end
+					end
+
+					::invalid_type::
+				else
+					_l[k] = v;
+				end
+			end
+
+			_o.markdown_inline[opt] = _l;
+			---_
+		end
+
+		handle_link("footnotes", config);
+		return _o;
+
+		---_
+	end,
+
+	["html"] = function (value)
+		---+${lua}
+
+		if value.entities then
+			spec.__depr_error({
+				option = "html → entities",
+				alter = "markdown_inline → entities"
+			});
+		end
+
+		return {
+			markdown_inline = {
+				entities = value.entities
+			},
+			html = {
+				container_elements = value.container_elements,
+				headings = value.headings,
+				void_elements = value.void_elements
+			}
+		};
+		---_
+	end,
+
+	["latex"] = function (config)
+		---+${lua}
+
+		local _o = {
+			latex = {}
+		};
+
+		for k, v in pairs(config) do
+			if k == "brackets" then
+				spec.__depr_error({
+					option = "latex → brackets",
+					alter = "latex → parenthesis"
+				});
+
+				_o.latex.parenthesis = v;
+			elseif k == "block" then
+				spec.__depr_error({
+					option = "latex → block",
+					alter = "latex → blocks"
+				});
+
+				_o.latex.blocks = v;
+			elseif k == "inline" then
+				spec.__depr_error({
+					option = "latex → inline",
+					alter = "latex → inlines"
+				});
+
+				_o.latex.inlines = v;
+			elseif k == "operators" then
+				spec.__depr_error({
+					option = "latex → operators",
+					alter = "latex → commands"
+				});
+
+				local _c = {};
+
+				for _, entry in ipairs(v) do
+					_c[entry.match_string] = {
+						-- TODO, here
+					};
+				end
+
+				_o.latex.commands = _c;
+			elseif k == "symbols" then
+				if v.overwrite then
+					spec.__depr_error({
+						option = "latex → symbols → overwrite"
+					});
+				end
+
+				if v.groups then
+					spec.__depr_error({
+						option = "latex → symbols → groups",
+						tip = {
+							{ " latex → symbols → hl ", "DiagnosticVirtualTextInfo" },
+							{ " can be a " },
+							{ " fun(buffer, item): string? ", "DiagnosticVirtualTextHint" },
+							{ "." },
+						}
+					});
+				end
+
+				_o.latex.symbols = {
+					enable = v.enable,
+					hl = v.hl
+				};
+			elseif k == "subscript" then
+				spec.__depr_error({
+					option = "latex → subscript",
+					alter = "latex → subscripts"
+				});
+
+				_o.latex.subscripts = v;
+			elseif k == "superscript" then
+				spec.__depr_error({
+					option = "latex → superscript",
+					alter = "latex → superscripts"
+				});
+
+				_o.latex.superscripts = v;
+			end
+		end
+
+		return _o;
+		---_
 	end
-
-	return config;
 	---_
-end
+};
 
+--- Tries to fix deprecated config spec
+---@param config table
+---@return table
 spec.fix_config = function (config)
+	---+${lua}
+
 	if type(config) ~= "table" then
 		return {};
 	end
 
+	--- First store any of the currently
+	--- valid options.
 	local _o = {
 		renderers = config.renderers or {},
 		highlight_groups = config.highlight_groups or {},
@@ -3063,31 +3330,20 @@ spec.fix_config = function (config)
 		typst = config.typst or {}
 	};
 
-	for key, value in pairs(config) do
-		if vim.list_contains(spec.preview, key) then
-			_o.preview[key] = value;
-		elseif vim.list_contains(spec.experimental, key) then
-			_o.experimental[key] = value;
-		elseif vim.list_contains(spec.markdown, key) then
-			_o.markdown[key] = value;
-		elseif vim.list_contains(spec.markdown_inline, key) then
-			_o.markdown_inline[key] = value;
-		elseif vim.list_contains(spec.html, key) then
-			_o.html[key] = value;
-		elseif vim.list_contains(spec.latex, key) then
-			_o.latex[key] = value
-		elseif vim.list_contains(spec.typst, key) then
-			_o.typst[key] = value;
-		end
-	end
+	for k, v in pairs(config) do
+		if spec.fixup[k] then
+			local _f, _r = pcall(spec.fixup[k], v);
 
-	for k, v in pairs(_o) do
-		if spec["__" .. k] then
-			_o[k] = spec["__" .. k](v);
+			if _f == true then
+				_o = vim.tbl_deep_extend("force", _o, _r);
+			else
+				vim.print(_r)
+			end
 		end
 	end
 
 	return _o;
+	---_
 end
 
 spec.setup = function (config)
@@ -3106,10 +3362,14 @@ end
 ---@field eval_args? any[] Arguments used to evaluate the output value's keys.
 ---@field args? { __is_arg_list: boolean?, [integer]: any } Arguments used to parse the configuration table. Use `__is_arg_list = true` if nested configs use different arguments.
 
+--- Function to retrieve configuration options
+--- from a config table.
 ---@param keys ( string | integer )[]
 ---@param opts spec.options
 ---@return any
 spec.get = function (keys, opts)
+	---+${lua}
+
 	--- In case the values are correctly provided..
 	keys = keys or {};
 	opts = opts or {};
@@ -3213,6 +3473,8 @@ spec.get = function (keys, opts)
 	else
 		return val;
 	end
+
+	---_
 end
 
 return spec;
