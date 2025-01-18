@@ -1531,7 +1531,14 @@ typst.render = function (buffer, content)
 
 	for _, item in ipairs(content or {}) do
 		if typst[item.class:gsub("^typst_", "")] then
-			pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
+			local success, err = pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
+
+			if success == false then
+				require("markview.health").notify("trace", {
+					level = 4,
+					message = err
+				});
+			end
 		end
 	end
 end

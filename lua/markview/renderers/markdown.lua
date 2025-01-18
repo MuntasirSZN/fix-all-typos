@@ -3302,7 +3302,14 @@ markdown.render = function (buffer, content)
 	markdown.cache = {};
 
 	for _, item in ipairs(content or {}) do
-		pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		local success, err = pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = err
+			});
+		end
 	end
 
 	return { markdown = markdown.cache };
@@ -3315,7 +3322,14 @@ markdown.post_render = function (buffer, content)
 	markdown.__list_wraps = {};
 
 	for _, item in ipairs(content or {}) do
-		pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
+		local success, err = pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = err
+			});
+		end
 	end
 end
 

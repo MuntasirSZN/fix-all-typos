@@ -8,6 +8,7 @@
 --- And other minor things!
 local markview = {};
 local spec = require("markview.spec");
+local health = require("markview.health");
 
 --- Plugin state variables.
 ---@type mkv.state
@@ -458,6 +459,14 @@ markview.actions = {
 
 		local callbacks = spec.get({ "preview", "callbacks" }, { fallback = nil, ignore_enable = true });
 		pcall(callbacks[autocmd], ...);
+
+		health.notify("trace", {
+			level = 1,
+			message = {
+				{ "Callback: ", "Special" },
+				{ " " .. autocmd .. " ", "DiagnosticVirtualTextInfo" }
+			}
+		});
 	end,
 	["__is_attached"] = function (buffer)
 		buffer = buffer or vim.api.nvim_get_current_buf();
@@ -526,6 +535,12 @@ markview.actions = {
 			--- Failed to attach.
 			return;
 		end
+
+		health.notify("trace", {
+			level = 8,
+			message = string.format("Attached: %d", buffer)
+		});
+		health.__child_indent_in();
 
 		---@type boolean Should preview be enabled on the buffer?
 		local enable = spec.get({ "preview", "enable" }, { fallback = true, ignore_enable = true });
@@ -606,6 +621,8 @@ markview.actions = {
 				}
 			});
 		end
+
+		health.__child_indent_de();
 		---_
 	end,
 	--- Detaches previewer from a buffer.
@@ -623,6 +640,12 @@ markview.actions = {
 			--- This buffer hasn't been attached to.
 			return;
 		end
+
+		health.notify("trace", {
+			level = 9,
+			message = string.format("Detached: %d", buffer)
+		});
+		health.__child_indent_in();
 
 		--- Execute the attaching autocmd.
 		markview.actions.__exec_callback("on_detach", buffer, vim.fn.win_findbuf(buffer))
@@ -646,6 +669,7 @@ markview.actions = {
 
 		--- Clear decorations too!
 		markview.clear(buffer);
+		health.__child_indent_de()
 		---_
 	end,
 
@@ -666,6 +690,12 @@ markview.actions = {
 			return;
 		end
 
+		health.notify("trace", {
+			level = 7,
+			message = string.format("Disabled: %d", buffer)
+		});
+		health.__child_indent_in();
+
 		markview.state.buffer_states[buffer].enable = false;
 		markview.clear(buffer);
 
@@ -685,6 +715,7 @@ markview.actions = {
 		local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 		if vim.list_contains(hybd_modes, mode) == false then
+			health.__child_indent_de();
 			return;
 		end
 
@@ -698,6 +729,7 @@ markview.actions = {
 				windows = vim.fn.win_findbuf(buffer)
 			}
 		});
+		health.__child_indent_de();
 		---_
 	end,
 	["enable"] = function (buffer)
@@ -716,6 +748,12 @@ markview.actions = {
 			return;
 		end
 
+		health.notify("trace", {
+			level = 6,
+			message = string.format("Enabled: %d", buffer)
+		});
+		health.__child_indent_in();
+
 		markview.state.buffer_states[buffer].enable = true;
 
 		local mode = vim.api.nvim_get_mode().mode;
@@ -725,6 +763,7 @@ markview.actions = {
 		local hybd_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {} });
 
 		if vim.list_contains(prev_modes, mode) == false then
+			health.__child_indent_de();
 			return;
 		end
 
@@ -742,6 +781,7 @@ markview.actions = {
 		});
 
 		if vim.list_contains(hybd_modes, mode) == false then
+			health.__child_indent_de();
 			return;
 		end
 
@@ -755,6 +795,7 @@ markview.actions = {
 				windows = vim.fn.win_findbuf(buffer)
 			}
 		});
+		health.__child_indent_de();
 		---_
 	end,
 
@@ -1012,32 +1053,29 @@ markview.commands = {
 	end,
 
 	["toggleAll"] = function ()
-		spec.notify({
-			{ " toggleAll ", "DiagnosticVirtualTextError" },
-			{ " is deprecated! Use " },
-			{ " Toggle ", "DiagnosticVirtualTextHint" },
-			{ " instead." },
-		}, { deprecated = true });
+		health.notify("deprecation", {
+			option = ":Markview toggleAll",
+			alter = ":Markview Toggle",
+			silent = true
+		});
 
 		markview.commands.Toggle();
 	end,
 	["enableAll"] = function ()
-		spec.notify({
-			{ " enableAll ", "DiagnosticVirtualTextError" },
-			{ " is deprecated! Use " },
-			{ " Enable ", "DiagnosticVirtualTextHint" },
-			{ " instead." },
-		}, { deprecated = true });
+		health.notify("deprecation", {
+			option = ":Markview enableAll",
+			alter = ":Markview Enable",
+			silent = true
+		});
 
 		markview.commands.Enable();
 	end,
 	["disableAll"] = function ()
-		spec.notify({
-			{ " disableAll ", "DiagnosticVirtualTextError" },
-			{ " is deprecated! Use " },
-			{ " Disable ", "DiagnosticVirtualTextHint" },
-			{ " instead." },
-		}, { deprecated = true });
+		health.notify("deprecation", {
+			option = ":Markview disableAll",
+			alter = ":Markview Disable",
+			silent = true
+		});
 
 		markview.commands.Disable();
 	end,

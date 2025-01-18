@@ -3,6 +3,7 @@
 --- This is a `tree-sitter` based wrapper
 --- for `vim.ui.input()`.
 local links = {};
+local health = require("markview.health");
 local spec = require("markview.spec");
 
 --- Tree-sitter node processor.
@@ -203,9 +204,9 @@ links.__open = function (buffer, address)
 		if cmd then
 			cmd:wait();
 		elseif err then
-			spec.notify({
-				{ err, "DiagnosticError" }
-			}, {})
+			health.notify("msg", {
+				message = { err, "DiagnosticError" }
+			});
 		end
 		---_
 	end
@@ -286,11 +287,14 @@ links.open = function ()
 		--- Use tree-sitter based link detector.
 		links.treesitter(buffer);
 	else
-		spec.notify({
-			{ "Link opener needs " },
-			{ " tree-sitter parsers ", "DiagnosticVirtualTextHint" },
-			{ "!" }
-		}, { silent = true });
+		health.notify("msg", {
+			message = {
+				{ " tree-sitter parsers ", "DiagnosticVirtualTextHint" },
+				{ " not found! Using " },
+				{ " <cfile> ", "DiagnosticVirtualTextInfo" },
+				{ "." }
+			}
+		});
 
 		links.__open(buffer);
 	end

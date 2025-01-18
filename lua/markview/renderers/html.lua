@@ -199,8 +199,14 @@ html.render = function (buffer, content)
 
 	for _, item in ipairs(content or {}) do
 		if html[item.class:gsub("^html_", "")] then
-			-- pcall(html[item.class:gsub("^html_", "")], buffer, item);
-			html[item.class:gsub("^html_", "")](buffer, item);
+			local success, err = pcall(html[item.class:gsub("^html_", "")], buffer, item);
+
+			if success == false then
+				require("markview.health").notify("trace", {
+					level = 4,
+					message = err
+				});
+			end
 		end
 	end
 	---_

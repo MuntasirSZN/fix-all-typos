@@ -2,6 +2,7 @@
 --- for `markview.nvim`.
 --- 
 local highlights = {};
+local health = require("markview.health");
 local utils = require("markview.utils");
 
 local lerp = utils.lerp;
@@ -468,13 +469,12 @@ highlights.set_hl = function (name, value)
 	local success, err = pcall(vim.api.nvim_set_hl, 0, name, value);
 
 	if success == false then
-		vim.api.nvim_echo({
-			{ string.format("◈ Failed to create: %s", name), "DiagnosticHint" },
-			{ "\n---------------------\n" },
-			{ err, "DiagnosticError" },
-			{ "\n---------------------\n" },
-			{ vim.inspect(value), "Comment" }
-		}, true, {})
+		health.notify("hl", {
+			group = name,
+			value = value,
+
+			message = err
+		});
 	end
 end
 

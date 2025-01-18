@@ -174,7 +174,7 @@ yaml.parse = function (buffer, TSTree, from, to)
 			table.insert(lines, line);
 		end
 
-		pcall(
+		local success, error = pcall(
 			yaml[capture_name:gsub("^yaml%.", "")],
 
 			buffer,
@@ -188,6 +188,13 @@ yaml.parse = function (buffer, TSTree, from, to)
 				col_end = c_end
 			}
 		);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = error
+			});
+		end
 
 	    ::continue::
 	end

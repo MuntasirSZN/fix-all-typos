@@ -5,6 +5,7 @@
 ---    • Maintain backwards compatibility
 ---    • Check for issues with config
 local spec = {};
+local health = require("markview.health");
 local symbols = require("markview.symbols");
 
 --- Creates a configuration table for a LaTeX command.
@@ -2562,78 +2563,12 @@ spec.default = {
 
 spec.config = vim.deepcopy(spec.default);
 
---- Error message for incorrect option type.
----@param opts { option: string, uses: string, got: string }
-spec.__type_error = function (opts)
-	---+${lua}
-
-	local article_1 = "a ";
-	local article_2 = "a ";
-
-	if string.match(opts.uses, "^[aeiou]") then
-		article_1 = "an ";
-	elseif string.match(opts.uses, "^%A") then
-		article_1 = "";
-	end
-
-	if string.match(opts.got, "^[aeiou]") then
-		article_2 = "an ";
-	elseif string.match(opts.got, "^%A") then
-		article_2 = "";
-	end
-
-	vim.api.nvim_echo({
-		{ " markview.nvim: ", "DiagnosticWarn" },
-		{ string.format(" %s ", opts.option), "DiagnosticVirtualTextInfo" },
-		{ " is " .. article_1, "Normal" },
-		{ string.format(" %s ", opts.uses), "DiagnosticVirtualTextHint" },
-		{ ", not " .. article_2, "Normal" },
-		{ string.format(" %s ", opts.got), "DiagnosticVirtualTextError" },
-		{ ".", "Normal" }
-	}, true, {});
-
-	---_
-end
-
---- Error message for option deprecation.
----@param opts { option: string, alter: string?, tip: [ string, string? ][]? }
-spec.__depr_error = function (opts)
-	---+${lua}
-
-	local chunks = {
-		{ " markview.nvim: ", "DiagnosticError" },
-		{ string.format(" %s ", opts.option), "DiagnosticVirtualTextError" },
-		{ " is deprecated. ", "Normal" },
-	};
-
-	if opts.alter then
-		chunks = vim.list_extend(chunks, {
-			{ "Use ", "Normal" },
-			{ string.format(" %s ", opts.alter), "DiagnosticVirtualTextHint" },
-			{ " instead.", "Normal" },
-		});
-	end
-
-	if opts.tip then
-		chunks = vim.list_extend(chunks, {
-			{ "\n" },
-			{ "  Tip: ", "DiagnosticVirtualTextWarn" },
-			{ " " },
-		});
-		chunks = vim.list_extend(chunks, opts.tip);
-	end
-
-	vim.api.nvim_echo(chunks, true, {});
-
-	---_
-end
-
 spec.fixup = {
 	---+${lua}
 
 	["buf_ignore"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "buf_ignore",
 			alter = "preview → ignore_buftypes"
 		});
@@ -2651,7 +2586,7 @@ spec.fixup = {
 	end,
 	["callbacks"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "callbacks",
 			alter = "preview → callbacks"
 		});
@@ -2669,7 +2604,7 @@ spec.fixup = {
 	end,
 	["debounce"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "debounce",
 			alter = "preview → debounce"
 		});
@@ -2687,7 +2622,7 @@ spec.fixup = {
 	end,
 	["filetypes"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "filetypes",
 			alter = "preview → filetypes"
 		});
@@ -2705,7 +2640,7 @@ spec.fixup = {
 	end,
 	["hybrid_modes"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "hybrid_modes",
 			alter = "preview → hybrid_modes"
 		});
@@ -2723,7 +2658,7 @@ spec.fixup = {
 	end,
 	["ignore_nodes"] = function (_)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "ignore_nodes",
 			alter = "preview → ignore_previews"
 		});
@@ -2733,7 +2668,7 @@ spec.fixup = {
 	end,
 	["initial_state"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "initial_state",
 			alter = "preview → enable"
 		});
@@ -2751,7 +2686,7 @@ spec.fixup = {
 	end,
 	["max_file_length"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "max_file_length",
 			alter = "preview → max_buf_lines"
 		});
@@ -2769,7 +2704,7 @@ spec.fixup = {
 	end,
 	["modes"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "modes",
 			alter = "preview → modes"
 		});
@@ -2787,7 +2722,7 @@ spec.fixup = {
 	end,
 	["render_distance"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "render_distance",
 			alter = "preview → draw_range"
 		});
@@ -2795,7 +2730,7 @@ spec.fixup = {
 		if vim.islist(value) == false or #value ~= 2 then
 			return {};
 		elseif type(value) == "number" then
-			spec.__type_error({
+			health.notify("type", {
 				option = "preview → draw_range",
 				uses = "[ integer, integer ]",
 				got = type(value)
@@ -2813,13 +2748,13 @@ spec.fixup = {
 	end,
 	["split_conf"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "split_conf",
 			alter = "preview → splitview_winopts"
 		});
 
 		if type(value) ~= "table" then
-			spec.__type_error({
+			health.notify("type", {
 				option = "preview → splitview_winopts",
 				uses = "table",
 				got = type(value)
@@ -2839,7 +2774,7 @@ spec.fixup = {
 	["injections"] = function ()
 		---+${lua}
 
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "injections",
 			tip = {
 				{ "See ", "Normal" },
@@ -2867,7 +2802,7 @@ spec.fixup = {
 		local handle_callouts = function (callouts)
 			---+${lua}
 
-			spec.__depr_error({
+			health.notify("deprecation", {
 				option = "markdown → block_quotes → callouts",
 				tip = {
 					{ "Create a callout using the " },
@@ -2926,19 +2861,19 @@ spec.fixup = {
 
 		for key, value in pairs(config) do
 			if key == "icon" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "code_blocks → icon",
 					alter = "preview → icon_provider"
 				});
 
 				_o.preview.icon_provider = value;
 			elseif key == "language_names" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "code_blocks → language_names"
 				});
 			elseif key == "style" then
 				if value == "minimal" then
-					spec.__type_error({
+					health.notify("type", {
 						option = "markdown → code_blocks → style",
 						uses = '"simple" | "block"',
 						got = '"minimal"'
@@ -2958,7 +2893,7 @@ spec.fixup = {
 	end,
 	["headings"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "headings",
 			alter = "markdown → headings"
 		});
@@ -2972,7 +2907,7 @@ spec.fixup = {
 	end,
 	["horizontal_rules"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "horizontal_rules",
 			alter = "markdown → horizontal_rules"
 		});
@@ -2986,7 +2921,7 @@ spec.fixup = {
 	end,
 	["list_items"] = function (value)
 		---+${lua}
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "list_items",
 			alter = "markdown → list_items"
 		});
@@ -3006,7 +2941,7 @@ spec.fixup = {
 			}
 		};
 
-		spec.__depr_error({
+		health.notify("deprecation", {
 			option = "tables",
 			alter = "markdown → tables"
 		});
@@ -3017,7 +2952,7 @@ spec.fixup = {
 			elseif k == "hl" and vim.islist(v) then
 				--- Legacy option spec
 			elseif k == "col_min_width" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "markdown → tables → col_min_width"
 				});
 			else
@@ -3194,7 +3129,7 @@ spec.fixup = {
 		---+${lua}
 
 		if value.entities then
-			spec.__depr_error({
+			health.notify("deprecation", {
 				option = "html → entities",
 				alter = "markdown_inline → entities"
 			});
@@ -3222,28 +3157,28 @@ spec.fixup = {
 
 		for k, v in pairs(config) do
 			if k == "brackets" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → brackets",
 					alter = "latex → parenthesis"
 				});
 
 				_o.latex.parenthesis = v;
 			elseif k == "block" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → block",
 					alter = "latex → blocks"
 				});
 
 				_o.latex.blocks = v;
 			elseif k == "inline" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → inline",
 					alter = "latex → inlines"
 				});
 
 				_o.latex.inlines = v;
 			elseif k == "operators" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → operators",
 					alter = "latex → commands"
 				});
@@ -3259,13 +3194,13 @@ spec.fixup = {
 				_o.latex.commands = _c;
 			elseif k == "symbols" then
 				if v.overwrite then
-					spec.__depr_error({
+					health.notify("deprecation", {
 						option = "latex → symbols → overwrite"
 					});
 				end
 
 				if v.groups then
-					spec.__depr_error({
+					health.notify("deprecation", {
 						option = "latex → symbols → groups",
 						tip = {
 							{ " latex → symbols → hl ", "DiagnosticVirtualTextInfo" },
@@ -3281,14 +3216,14 @@ spec.fixup = {
 					hl = v.hl
 				};
 			elseif k == "subscript" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → subscript",
 					alter = "latex → subscripts"
 				});
 
 				_o.latex.subscripts = v;
 			elseif k == "superscript" then
-				spec.__depr_error({
+				health.notify("deprecation", {
 					option = "latex → superscript",
 					alter = "latex → superscripts"
 				});
@@ -3313,36 +3248,40 @@ spec.fix_config = function (config)
 		return {};
 	end
 
-	--- First store any of the currently
-	--- valid options.
-	local _o = {
-		renderers = config.renderers or {},
-		highlight_groups = config.highlight_groups or {},
+	--- Table containing valid options.
+	local main = {
+		renderers = config.renderers,
+		highlight_groups = config.highlight_groups,
 
-		splitview = config.splitview or {},
-		preview = config.preview or {},
-		experimental = config.experimental or {};
+		experimental = config.experimental,
 
-		markdown = config.markdown or {},
-		markdown_inline = config.markdown_inline or {},
-		html = config.html or {},
-		latex = config.latex or {},
-		typst = config.typst or {}
+		html = config.html,
+		latex = config.latex,
+		markdown = config.markdown,
+		markdown_inline = config.markdown_inline,
+		typst = config.typst,
+		yaml = config.yaml,
 	};
+
+	--- Table containing the fixed version of
+	--- deprecated options.
+	local fixed = {};
 
 	for k, v in pairs(config) do
 		if spec.fixup[k] then
 			local _f, _r = pcall(spec.fixup[k], v);
 
 			if _f == true then
-				_o = vim.tbl_deep_extend("force", _o, _r);
-			else
-				vim.print(_r)
+				fixed = vim.tbl_deep_extend("force", fixed, _r);
 			end
 		end
 	end
 
-	return _o;
+	if vim.tbl_isempty(fixed) == false then
+		health.fixed_config = fixed;
+	end
+
+	return vim.tbl_deep_extend("force", main, fixed);
 	---_
 end
 

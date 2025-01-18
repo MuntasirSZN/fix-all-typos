@@ -1,4 +1,5 @@
 local parser = {};
+local health = require("markview.health");
 
 parser.html = require("markview.parsers.html");
 parser.markdown = require("markview.parsers.markdown");
@@ -83,6 +84,17 @@ parser.init = function (buffer, from, to, cache)
 		return parser.content, parser.sorted;
 	end
 
+	---+${lua, Announce start of parsing}
+	---@type integer Start time
+	local start = vim.uv.hrtime();
+
+	health.notify("trace", {
+		level = 1,
+		message = string.format("Parsing(start): %d", buffer)
+	});
+	health.__child_indent_in();
+	---_
+
     vim.treesitter.get_parser(buffer):parse(true);
 	local root_parser = vim.treesitter.get_parser(buffer);
 
@@ -105,6 +117,16 @@ parser.init = function (buffer, from, to, cache)
 		parser.cached[buffer] = parser.sorted;
 	end
 
+	---+${lua, Announce end of parsing}
+	---@type integer End time
+	local now = vim.uv.hrtime();
+
+	health.__child_indent_de();
+	health.notify("trace", {
+		level = 3,
+		message = string.format("Parsing(end, %dms): %d", (now - start) / 1e6, buffer)
+	});
+	---_
 	return parser.content, parser.sorted;
 end
 

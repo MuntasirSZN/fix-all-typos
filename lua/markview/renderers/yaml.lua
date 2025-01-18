@@ -81,7 +81,14 @@ yaml.render = function (buffer, content)
 	yaml.cache = {};
 
 	for _, item in ipairs(content or {}) do
-		pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
+		local success, err = pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = err
+			});
+		end
 	end
 end
 

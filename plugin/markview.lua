@@ -9,6 +9,7 @@
 
 local markview = require("markview");
 local spec = require("markview.spec");
+local health = require("markview.health");
 
 --- Was the completion source loaded?
 if vim.g.markview_cmp_loaded == nil then
@@ -144,6 +145,12 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 		end
 
 		if vim.list_contains(preview_modes, mode) then
+			health.notify("trace", {
+				level = 1,
+				message = string.format("Mode(%s): %d", mode, buffer);
+			});
+			health.__child_indent_in();
+
 			--- Preview
 			if vim.list_contains(preview_modes, old_mode) then
 				--- Previous mode was a preview
@@ -155,6 +162,12 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 				markview.render(buffer);
 			end
 		else
+			health.notify("trace", {
+				level = 2,
+				message = string.format("Mode(%s): %d", mode, buffer);
+			});
+			health.__child_indent_in();
+
 			--- Clear
 			if vim.list_contains(preview_modes, old_mode) == false then
 				--- Previous mode was not a preview
@@ -169,6 +182,7 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 
 		::callback::
 		markview.actions.__exec_callback("on_mode_change", buffer, vim.fn.win_findbuf(buffer), mode)
+		health.__child_indent_de();
 		---_
 	end
 });

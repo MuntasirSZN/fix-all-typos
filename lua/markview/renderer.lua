@@ -1,4 +1,5 @@
 local renderer = {};
+local health = require("markview.health");
 
 renderer.html = require("markview.renderers.html");
 renderer.markdown = require("markview.renderers.markdown");
@@ -403,7 +404,20 @@ end
 --- Renders things
 ---@param buffer integer
 renderer.render = function (buffer, parsed_content)
+	---+${lua}
+
 	renderer.cache = {};
+
+	---+${lua, Announce start of rendering}
+	---@type integer
+	local start = vim.uv.hrtime();
+
+	health.notify("trace", {
+		level = 1,
+		message = string.format("Rendering(main): %d", buffer)
+	});
+	health.__child_indent_in();
+	---_
 
 	for lang, content in pairs(parsed_content) do
 		if renderer[lang] then
@@ -412,21 +426,67 @@ renderer.render = function (buffer, parsed_content)
 		end
 	end
 
+	---+${lua, Announce end of main render}
+	local post = vim.uv.hrtime();
+
+	health.notify("trace", {
+		level = 3,
+		message = string.format("Render(main): %dms", (post - start) / 1e6)
+	});
+	---_
+
 	for lang, content in pairs(renderer.cache) do
 		if renderer[lang] then
 			renderer[lang].post_render(buffer, content);
 		end
 	end
+
+	---+${lua, Announce end of rendering}
+	local now = vim.uv.hrtime();
+
+	--- Announce end of post rendering.
+	health.notify("trace", {
+		level = 3,
+		message = string.format("Render(post): %dms", (now - post) / 1e6)
+	});
+
+	health.__child_indent_de();
+	health.notify("trace", {
+		level = 3,
+		message = string.format("Rendering(end, %dms): %d", (now - start) / 1e6, buffer)
+	});
+	---_
+
+	---_
 end
 
 renderer.clear = function (buffer, from, to)
 	local langs = { "html", "latex", "markdown", "markdown_inline", "typst", "yaml" };
+	local start = vim.uv.hrtime();
+
+	---+${lua, Announce start of clearing}
+	health.notify("trace", {
+		level = 1,
+		message = string.format("Clearing: %d", buffer)
+	});
+	health.__child_indent_in();
+	---_
 
 	for _, lang in ipairs(langs) do
 		if renderer[lang] then
 			renderer[lang].clear(buffer, from, to);
 		end
 	end
+
+	---+${lua, Announce end of clearing}
+	local now = vim.uv.hrtime();
+
+	health.__child_indent_de();
+	health.notify("trace", {
+		level = 3,
+		message = string.format("Clearing(end, %dms): %d", (now - start) / 1e6, buffer)
+	});
+	---_
 end
 
 renderer.range = function (content)

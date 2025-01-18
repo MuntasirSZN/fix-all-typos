@@ -774,12 +774,26 @@ latex.render = function (buffer, content)
 		if vim.list_contains({ "latex_ord", "latex_symbol" }, item.class) == true then
 			table.insert(post, item);
 		else
-			pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+			local success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+
+			if success == false then
+				require("markview.health").notify("trace", {
+					level = 4,
+					message = err
+				});
+			end
 		end
 	end
 
 	for _, item in ipairs(post) do
-		pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+		local success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = err
+			});
+		end
 	end
 end
 

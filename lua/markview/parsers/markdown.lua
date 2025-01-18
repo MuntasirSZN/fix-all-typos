@@ -653,7 +653,8 @@ markdown.parse = function (buffer, TSTree, from, to)
 			table.insert(lines, line);
 		end
 
-		pcall(
+		---@type boolean, string
+		local success, error = pcall(
 			markdown[capture_name:gsub("^markdown%.", "")],
 
 			buffer,
@@ -667,6 +668,13 @@ markdown.parse = function (buffer, TSTree, from, to)
 				col_end = c_end
 			}
 		);
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = error
+			});
+		end
 
 		::continue::
 	end
