@@ -11,6 +11,11 @@ local markview = require("markview");
 local spec = require("markview.spec");
 local health = require("markview.health");
 
+health.notify("trace", {
+	level = 1,
+	message = "Start"
+});
+
 --- Was the completion source loaded?
 if vim.g.markview_cmp_loaded == nil then
 	vim.g.markview_cmp_loaded = false;
@@ -22,6 +27,11 @@ end
 --- Should be called AFTER loading
 --- colorschemes.
 require("markview.highlights").setup();
+
+health.notify("trace", {
+	level = 5,
+	message = "Created highlight groups"
+});
 
 --- FIX, Patch for the broken (fenced_code_block) concealment.
 --- Doesn't hide leading spaces before ```.
@@ -49,7 +59,15 @@ vim.treesitter.query.add_directive("conceal-patch!", function (match, _, bufnr, 
 
 	metadata[id].conceal = "";
 	---_
-end)
+end);
+
+health.notify("trace", {
+	level = 5,
+	message = {
+		{ "Added tree-sitter directive ", "Special" },
+		{ " conceal-patch! ", "DiagnosticVirtualTextInfo" }
+	}
+});
 
  ------------------------------------------------------------------------------------------
 
@@ -84,6 +102,11 @@ local function register_source()
 				options = {}
 			}
 		})
+	});
+
+	health.notify("trace", {
+		level = 5,
+		message = "Registered source for nvim-cmp."
 	});
 	---_
 end
@@ -391,6 +414,11 @@ vim.api.nvim_create_autocmd("ColorScheme", {
 	callback = function ()
 		local hls = require("markview.highlights");
 		hls.create(hls.groups)
+
+		health.notify("trace", {
+			level = 5,
+			message = "Updated highlight groups"
+		});
 	end
 });
 
