@@ -518,6 +518,9 @@ It comes with the following sub-commands,
 | `toggleAll`  | none                | **Deprecated** version of `Toggle`.      |
 | `enableAll`  | none                | **Deprecated** version of `Enable`.      |
 | `disableAll` | none                | **Deprecated** version of `Disable`.     |
+| ———————————— | ——————————————————— | ———————————————————————————————————————— |
+| `traceExport`| none                | Exports trace logs to `trace.txt`.       |
+| `traceShow`  | none                | Shows trace logs in a window.            |
 
 >[!TIP]
 > **buffer** defaults to the current buffer. So, you can run commands on the current buffer without providing the buffer.

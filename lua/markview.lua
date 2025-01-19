@@ -23,6 +23,7 @@ markview.state = {
 
 ---@type integer Autocmd group ID.
 markview.augroup = vim.api.nvim_create_augroup("markview", { clear = true });
+
 -------------------------------------------------------------------------------------------
 
 --- Simple 1-time renderer for `markview`.
@@ -445,7 +446,7 @@ markview.splitview_render = function ()
 	---_
 end
 
- ------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
 
 --- Various actions(provides core functionalities of `markview.nvim`).
 markview.actions = {
@@ -521,6 +522,89 @@ markview.actions = {
 		vim.wo[markview.state.splitview_window].linebreak = vim.wo[win].linebreak;
 
 		---_
+	end,
+
+	["traceExport"] = function ()
+		---+${lua}
+
+		local scrolloff = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1].textoff;
+		local buf_width = vim.o.columns - scrolloff;
+
+		local version = vim.version();
+		local colorscheme = vim.g.colors_name or "";
+
+		local time_col = math.max(20, math.floor((buf_width - 7) * 0.2));
+		local desc_col = buf_width - (time_col + 3);
+
+		local function center (text, width)
+			if vim.fn.strdisplaywidth(text) > width then
+				return vim.fn.strcharpart(text, width);
+			else
+				local pad_amount = width - vim.fn.strdisplaywidth(text);
+				return string.rep(" ", math.ceil(pad_amount / 2)) .. text .. string.rep(" ", math.floor(pad_amount / 2));
+			end
+		end
+
+		local lines = {
+			"Plugin: markview.nvim",
+			"Time: " .. os.date(),
+			string.format("Nvim version: %d.%d.%d", version.major, version.minor, version.patch),
+			"Colorscheme: " .. colorscheme,
+			"",
+			"Level description,",
+			"  1 = START",
+			"  2 = PAUSE",
+			"  3 = STOP",
+			"  4 = ERROR",
+			"  5 = LOG",
+			"  6 = ENABLE",
+			"  7 = DISABLE",
+			"  8 = ATTACH",
+			"  9 = DETACH",
+			"",
+			"Trace,",
+			string.rep("-", time_col) .. "•-------•" .. string.rep("-", desc_col),
+			center("Time-stamp", time_col) .. "|" .. " Level " .. "|" .. center("Action", desc_col),
+			string.rep("-", time_col) .. "•-------•" .. string.rep("-", desc_col)
+		};
+
+		for _, entry in ipairs(health.log) do
+			if entry.kind ~= "trace" then
+				goto continue;
+			end
+
+			---@cast entry logs.trace
+
+			table.insert(lines, string.format(
+				"%s|%s| %s",
+				center(
+					string.format("%-12s", string.rep("  ", entry.indent) .. entry.timestamp),
+					time_col
+				),
+				center(tostring(entry.level or 0), 7),
+				entry.message
+			));
+
+		    ::continue::
+		end
+
+		table.insert(lines, string.rep("-", time_col) .. "•-------•" .. string.rep("-", desc_col))
+		table.insert(lines, "");
+		table.insert(lines, "vim:nomodifiable:nowrap:nospell:");
+
+		local trace_file = io.open("trace.txt", "w");
+
+		if not trace_file then
+			return;
+		end
+
+		trace_file:write(table.concat(lines, "\n"));
+		trace_file:close();
+
+		---_
+	end,
+	["traceShow"] = function (from, to)
+		health.trace_open(from, to);
 	end,
 
 	--- Registers a buffer to be preview-able.
@@ -989,6 +1073,18 @@ markview.actions = {
 ---@type { [string]: function }
 markview.commands = {
 	---+${class}
+
+	["traceExport"] = function ()
+		markview.actions.traceExport();
+	end,
+	["traceShow"] = function (from, to)
+		if pcall(tonumber, from) and pcall(tonumber, to) then
+			health.trace_open(tonumber(from), tonumber(to));
+		else
+			health.trace_open();
+		end
+	end,
+
 	["attach"] = function (buffer)
 		markview.actions.attach(buffer);
 	end,
@@ -1179,7 +1275,7 @@ markview.commands = {
 	---_
 };
 
- ------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------
 
 --- Plugin setup function(optional)
 ---@param config table?
