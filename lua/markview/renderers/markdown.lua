@@ -142,6 +142,91 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
+	for str_b, content, str_a in str:gmatch("([%*]+)(.-)([%*]+)") do
+		---+${custom, Handle italics & bold text}
+		if content == "" then
+			goto continue;
+		elseif #str_b ~= #str_a then
+			local min = math.min(#str_b, #str_a);
+			str_b = str_b:sub(0, min);
+			str_a = str_a:sub(0, min);
+		end
+
+		str = str:gsub(
+			concat({
+				str_b,
+				content,
+				str_a
+			}),
+			string.rep("X", content:len())
+		);
+
+	    ::continue::
+		---_
+	end
+
+	for striked in str:gmatch("%~%~(.-)%~%~") do
+		---+${custom, Handle strike-through text}
+		str = str:gsub(
+			concat({
+				"~~",
+				striked,
+				"~~"
+			}),
+			concat({
+				string.rep("X", striked:len())
+			})
+		);
+		---_
+	end
+
+	for highlight in str:gmatch("%=%=(.-)%=%=") do
+		---+${custom, Handle highlighted text}
+		if not hls then goto continue; end
+
+		local _hls = utils.match(
+			hls,
+			highlight,
+			{
+				fallback = {},
+				eval_args = {
+					buffer,
+					{
+						class = "inline_highlight",
+						text = highlight
+					}
+				}
+			}
+		);
+
+		str = str:gsub(
+			concat({
+				"==",
+				highlight,
+				"=="
+			}),
+			concat({
+				_hls.corner_left or "",
+				_hls.padding_left or "",
+				_hls.icon or "",
+				string.rep("X", highlight:len()),
+				_hls.padding_right or "",
+				_hls.corner_left or ""
+			})
+		);
+
+		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
+			_hls.corner_left or "",
+			_hls.padding_left or "",
+			_hls.icon or "",
+			_hls.padding_right or "",
+			_hls.corner_left or ""
+		}));
+
+		::continue::
+		---_
+	end
+
 	for ref in str:gmatch("%!%[%[([^%]]+)%]%]") do
 		---+${custom, Handle embed files & block references}
 		if ref:match("%#%^(.+)") and blref then
@@ -683,91 +768,6 @@ markdown.output = function (str, buffer)
 		---_
 	end
 
-	for str_b, content, str_a in str:gmatch("([%*]+)(.-)([%*]+)") do
-		---+${custom, Handle italics & bold text}
-		if content == "" then
-			goto continue;
-		elseif #str_b ~= #str_a then
-			local min = math.min(#str_b, #str_a);
-			str_b = str_b:sub(0, min);
-			str_a = str_a:sub(0, min);
-		end
-
-		str = str:gsub(
-			concat({
-				str_b,
-				content,
-				str_a
-			}),
-			string.rep("X", content:len())
-		);
-
-	    ::continue::
-		---_
-	end
-
-	for striked in str:gmatch("%~%~(.-)%~%~") do
-		---+${custom, Handle strike-through text}
-		str = str:gsub(
-			concat({
-				"~~",
-				striked,
-				"~~"
-			}),
-			concat({
-				string.rep("X", striked:len())
-			})
-		);
-		---_
-	end
-
-	for highlight in str:gmatch("%=%=(.-)%=%=") do
-		---+${custom, Handle highlighted text}
-		if not hls then goto continue; end
-
-		local _hls = utils.match(
-			hls,
-			highlight,
-			{
-				fallback = {},
-				eval_args = {
-					buffer,
-					{
-						class = "inline_highlight",
-						text = highlight
-					}
-				}
-			}
-		);
-
-		str = str:gsub(
-			concat({
-				"==",
-				highlight,
-				"=="
-			}),
-			concat({
-				_hls.corner_left or "",
-				_hls.padding_left or "",
-				_hls.icon or "",
-				string.rep("X", highlight:len()),
-				_hls.padding_right or "",
-				_hls.corner_left or ""
-			})
-		);
-
-		decorations = decorations + vim.fn.strdisplaywidth(table.concat({
-			_hls.corner_left or "",
-			_hls.padding_left or "",
-			_hls.icon or "",
-			_hls.padding_right or "",
-			_hls.corner_left or ""
-		}));
-
-		::continue::
-		---_
-	end
-
 	for entity in str:gmatch("%&([%d%a%#]+);") do
 		---+${custom, Handle entities}
 		if not ent then
@@ -816,59 +816,6 @@ markdown.get_visual_text = {
 			---_
 		end
 
-		for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%%<%>$])") do
-			str = str:gsub(concat({
-				"\\",
-				escaped
-			}), " ");
-		end
-
-		for link, _, address, _ in str:gmatch("%!%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
-			---+${custom, Handle image links}
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-				address,
-			}), concat({ link }))
-			---_
-		end
-
-		for link in str:gmatch("%!%[([^%)]*)%]") do
-			---+${custom, Handle image links without address}
-			str = str:gsub(concat({
-				"![",
-				link,
-				"]",
-			}), concat({
-				utils.escape_string(link):gsub(".", "X"),
-			}))
-			---_
-		end
-
-		for link, _, address, _ in str:gmatch("%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
-			---+${custom, Handle hyperlinks}
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-				address
-			}), concat({ utils.escape_string(link):gsub(".", "X") }))
-			---_
-		end
-
-		for link in str:gmatch("%[([^%)]+)%]") do
-			---+${custom, Handle shortcut links}
-			str = str:gsub(concat({
-				"[",
-				link,
-				"]",
-			}), concat({
-				utils.escape_string(link):gsub(".", "X"),
-			}))
-			---_
-		end
-
 		for str_b, content, str_a in str:gmatch("([*]+)(.-)([*]+)") do
 			---+${custom, Handle italics & bold text}
 			if content == "" then
@@ -898,6 +845,63 @@ markdown.get_visual_text = {
 			}), concat({
 				utils.escape_string(striked):gsub(".", "X"),
 			}));
+			---_
+		end
+
+		for escaped in str:gmatch("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%%<%>$])") do
+			str = str:gsub(concat({
+				"\\",
+				escaped
+			}), " ");
+		end
+
+		for link, m1, address, m2 in str:gmatch("%!%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+			---+${custom, Handle image links}
+			str = str:gsub(concat({
+				"![",
+				link,
+				"]",
+				m1,
+				address,
+				m2
+			}), link);
+			---_
+		end
+
+		for link in str:gmatch("%!%[([^%)]*)%]") do
+			---+${custom, Handle image links without address}
+			str = str:gsub(concat({
+				"![",
+				link,
+				"]",
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
+			---_
+		end
+
+		for link, m1, address, m2 in str:gmatch("%[([^%)]*)%]([%(%[])([^%)]*)([%)%]])") do
+			---+${custom, Handle hyperlinks}
+			str = str:gsub(concat({
+				"[",
+				link,
+				"]",
+				m1,
+				address,
+				m2
+			}), link:gsub(".", "X"));
+			---_
+		end
+
+		for link in str:gmatch("%[([^%)]+)%]") do
+			---+${custom, Handle shortcut links}
+			str = str:gsub(concat({
+				"[",
+				link,
+				"]",
+			}), concat({
+				utils.escape_string(link):gsub(".", "X"),
+			}))
 			---_
 		end
 
