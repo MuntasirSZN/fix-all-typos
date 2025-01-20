@@ -7,7 +7,7 @@
 <!-- Video Demo here! -->
 
 <div align="center">
-    <a href="">📚 Wiki</a> | <a href="">🧩 Extras</a> | <a href="">📦 Presets</a>
+    <a href="https://github.com/OXY2DEV/markview.nvim/wiki/Home">📚 Wiki</a> | <a href="#-extra-modules">🧩 Extras</a> | <a href="#-presets">📦 Presets</a>
 </div>
 
 <!-- Screenshots here -->
@@ -756,18 +756,108 @@ These groups are then used as links by other groups responsible for various prev
 > 
 > \*\*\*\* = Linearly interpolated value between 2 highlight groups `fg`.
 
+## 🌟 Presets
+
+>[!IMPORTANT]
+> Presets are looking for contributors!
+>
+> If you have any custom configuration that you would like to have as a preset you can open a `pull request` for that.
+
+### 📚 Usage
+
+```lua
+local presets = require("markview.presets");
+
+require("markview").setup({
+    markdown = {
+        headings = presets.headings.slanted
+    }
+});
+```
+
+Currently available presets are,
+
+### headings
+
+Accessed using `require("markview.presets").headings`.
+
+- `glow`
+  Like the headings in the `Glow` CLI app.
+
+- `glow_center`
+  Centered version of `glow`.
+
+- `slanted`
+  Heading level + slanted tail.
+
+- `arrowed`
+  Heading level + arrowed tail.
+
+- `simple`
+  Headings similar to headings in some books.
+
+- `marker`
+  Simple marker for heading level.
+
+### horizontal_rules
+
+Accessed using `require("markview.presets").horizontal_rules`.
+
+- `thin`
+  Simple line.
+
+- `thick`
+  Slightly thicker line.
+
+- `double`
+  Double lines.
+
+- `dahsed`
+  Dashed line.
+
+- `dotted`
+  Dotted line.
+
+- `solid`
+  Very thick line.
+
+- `arrowed`
+  Arrowed line.
+
+### tables
+
+Accessed using `require("markview.presets").tables`.
+
+- `none`
+  Border-less table(kinda like the ones used in some help files).
+
+- `single`
+  Single border table.
+
+- `double`
+  Double border table.
+
+- `rounded`
+  Single border with rounded edges(default).
+
+- `solid`
+  Solid border table.
+
 ## 🎁 Extra modules
 
 `markview.nvim` comes with a few *extra* things for added functionality. Currently available modules are,
 
 - [checkboxes.lua]()
   Checkbox toggle, state change & more! Supports visual mode too with checkbox state caching!
+  [Wiki section]()
 
 - [editor.lua]()
   A simple `code block` creator & editor with support for nested elements!
+  [Wiki section]()
 
 - [headings.lua]()
   Simple heading level changer with support for `setext` headings.
+  [Wiki section]()
 
 Example usage,
 

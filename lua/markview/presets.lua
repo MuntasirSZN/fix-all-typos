@@ -643,4 +643,93 @@ presets.horizontal_rules = {
 	}
 };
 
+presets.tables = {
+	none = {
+		---+${lua}
+		parts = {
+			top = { " ", " ", " ", " " },
+			header = { " ", " ", " " },
+			separator = { " ", "-", " ", " " },
+			row = { " ", " ", " " },
+			bottom = { " ", " ", " ", " " },
+
+			overlap = { " ", " ", " ", " " },
+
+			align_left = "-",
+			align_right = "-",
+			align_center = { "-", "-" }
+		}
+		---_
+	},
+
+	single = {
+		---+${lua}
+		parts = {
+			top = { "┌", "─", "┐", "┬" },
+			header = { "│", "│", "│" },
+			separator = { "├", "─", "┤", "┼" },
+			row = { "│", "│", "│" },
+			bottom = { "└", "─", "┘", "┴" },
+
+			overlap = { "┝", "━", "┥", "┿" },
+
+			align_left = "╼",
+			align_right = "╾",
+			align_center = { "╴", "╶" }
+		}
+		---_
+	},
+	double = {
+		---+${lua}
+		parts = {
+			top = { "╔", "═", "╗", "╦" },
+			header = { "║", "║", "║" },
+			separator = { "╠", "═", "╣", "╬" },
+			row = { "║", "║", "║" },
+			bottom = { "╚", "═", "╝", "╩" },
+
+			overlap = { "╟", "─", "╢", "╫" },
+
+			align_left = "━",
+			align_right = "━",
+			align_center = { "━", "━" }
+		}
+		---_
+	},
+	rounded = {
+		---+${lua}
+		parts = {
+			top = { "╭", "─", "╮", "┬" },
+			header = { "│", "│", "│" },
+			separator = { "├", "─", "┤", "┼" },
+			row = { "│", "│", "│" },
+			bottom = { "╰", "─", "╯", "┴" },
+
+			overlap = { "┝", "━", "┥", "┿" },
+
+			align_left = "╼",
+			align_right = "╾",
+			align_center = { "╴", "╶" }
+		}
+		---_
+	},
+	solid = {
+		---+${lua}
+		parts = {
+			top = { "█", "█", "█", "█" },
+			header = { "█", "█", "█" },
+			separator = { "█", "█", "█", "█" },
+			row = { "█", "█", "█" },
+			bottom = { "█", "█", "█", "█" },
+
+			overlap = { "█", "█", "█", "█" },
+
+			align_left = "█",
+			align_right = "█",
+			align_center = { "█", "█" }
+		}
+		---_
+	}
+};
+
 return presets;
