@@ -1017,6 +1017,8 @@ markdown.atx_heading = function (buffer, item)
 			space = string.rep(" ", #item.marker * shift_width);
 		end
 
+		--- DO NOT USE `hl_mode = "combine"`
+		--- It causes color bleeding.
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
 			undo_restore = false, invalidate = true,
 			end_col = range.col_start + #item.marker + (#item.text[1] > #item.marker and 1 or 0),
@@ -1030,9 +1032,7 @@ markdown.atx_heading = function (buffer, item)
 				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
 
 				{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) },
-			},
-
-			hl_mode = "combine"
+			}
 		});
 
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
@@ -1049,9 +1049,7 @@ markdown.atx_heading = function (buffer, item)
 			virt_text = {
 				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
 				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
-			},
-
-			hl_mode = "combine"
+			}
 		});
 	elseif config.style == "icon" then
 		vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start, {
