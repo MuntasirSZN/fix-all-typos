@@ -218,28 +218,21 @@ end
 ---@param range node.range
 typst.math = function (buffer, _, text, range)
 	---+${func}
-	local from = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start);
-	local to   = vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, false)[1]:sub(range.col_end + 1);
 
-	local inline, closed = false, true;
+	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
+	local inline = false;
 
-	if string.match(from, ".+") or string.match(text[1], "^%$$") == nil then
+	if from:match("^(%s*)$") == nil then
 		inline = true;
-	elseif string.match(to, ".+") or string.match(text[#text], "^%$$") == nil then
-		--- Rendering should be inline.
+	elseif to:match("^(%s*)%$$") == nil then
 		inline = true;
-	end
-
-	if not text[#text]:match("%$$") then
-		--- The node is closed(ends with `$$`).
-		closed = false;
+	elseif text[1]:match("%$$") == nil then
+		inline = true;
 	end
 
 	---@type __typst.maths
 	typst.insert({
-		class = "typst_math",
-		inline = inline,
-		closed = closed,
+		class = inline == true and "typst_math_span" or "typst_math_block",
 
 		text = text,
 		range = range

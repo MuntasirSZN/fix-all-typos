@@ -727,134 +727,139 @@ end
 
 ---@param buffer integer
 ---@param item __typst.maths
-typst.math = function (buffer, item)
+typst.math_block = function (buffer, item)
 	---+${func}
 	local range = item.range;
 
-	if item.inline == true then
-		---@type config.inline_generic_static?
-		local config = spec.get({ "typst", "math_spans" }, { fallback = nil, eval_args = { buffer, item } });
+	---@type typst.math_blocks?
+	local config = spec.get({ "typst", "math_blocks" }, { fallback = nil, eval_args = { buffer, item } });
 
-		if not config then
-			return;
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 1,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-			},
-
-			hl_mode = "combine"
-		});
-
-		if range.row_start ~= range.row_end then
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start + #item.text[1], {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-				}
-			});
-
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, 0, {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-				}
-			});
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_row = range.row_end,
-			end_col = range.col_end,
-
-			hl_group = utils.set_hl(config.hl),
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - (item.closed and 1 or 0), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			virt_text_pos = "inline",
-			virt_text = {
-				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-				{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
-			},
-
-			hl_mode = "combine"
-		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, math.min(#item.text[l + 1], 0), {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-				}
-			});
-
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, #item.text[l + 1], {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
-				}
-			});
-		end
-	else
-		---@type typst.math_blocks?
-		local config = spec.get({ "typst", "math_blocks" }, { fallback = nil, eval_args = { buffer, item } });
-
-		if not config then
-			return;
-		end
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_start + 1,
-			conceal = "",
-
-			virt_text_pos = "right_align",
-			virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
-
-			hl_mode = "combine",
-			line_hl_group = utils.set_hl(config.hl)
-		});
-
-		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, math.max(0, range.col_end - 1), {
-			undo_restore = false, invalidate = true,
-			end_col = range.col_end,
-			conceal = "",
-
-			line_hl_group = utils.set_hl(config.hl)
-		});
-
-		for l = 1, #item.text - 2 do
-			vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, range.col_start, {
-				undo_restore = false, invalidate = true,
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
-				},
-
-				line_hl_group = utils.set_hl(config.hl)
-			});
-		end
+	if not config then
+		return;
 	end
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = "",
+
+		virt_text_pos = "right_align",
+		virt_text = { { config.text or "", utils.set_hl(config.text_hl or config.hl) } },
+
+		hl_mode = "combine",
+		line_hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, math.max(0, range.col_end - 1), {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		line_hl_group = utils.set_hl(config.hl)
+	});
+
+	for l = 1, #item.text - 2 do
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, range.col_start, {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ string.rep(config.pad_char or "", config.pad_amount or 0), utils.set_hl(config.hl) }
+			},
+
+			line_hl_group = utils.set_hl(config.hl)
+		});
+	end
+	---_
+end
+
+typst.math_span = function (buffer, item)
+	---+${lua}
+
+	---@type config.inline_generic_static?
+	local config = spec.get({ "typst", "math_spans" }, { fallback = nil, eval_args = { buffer, item } });
+	local range = item.range;
+
+	if not config then
+		return;
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_start + 1,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+		},
+
+		hl_mode = "combine"
+	});
+
+	if range.row_start ~= range.row_end then
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start + #item.text[1], {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+			}
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, 0, {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+			}
+		});
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_row = range.row_end,
+		end_col = range.col_end,
+
+		hl_group = utils.set_hl(config.hl),
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_end, range.col_end - 1, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) },
+		},
+
+		hl_mode = "combine"
+	});
+
+	for l = 1, #item.text - 2 do
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, math.min(#item.text[l + 1], 0), {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+			}
+		});
+
+		vim.api.nvim_buf_set_extmark(buffer, typst.ns, range.row_start + l, #item.text[l + 1], {
+			undo_restore = false, invalidate = true,
+
+			virt_text_pos = "inline",
+			virt_text = {
+				{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) }
+			}
+		});
+	end
+
 	---_
 end
 
@@ -965,7 +970,14 @@ typst.raw_block = function (buffer, item)
 
 		--- Get maximum length of the lines within the code block
 		for l, line in ipairs(item.text) do
-			local final = typst.get_visual_text:init(decorations.name, line);
+			local final;
+
+			if item.language == "md" then
+				--- Bug ```md doesn't get recognized as markdown.
+				final = typst.get_visual_text:init("", line);
+			else
+				final = typst.get_visual_text:init(decorations.name, line);
+			end
 
 			if l ~= 1 and l ~= #item.text then
 				table.insert(line_widths, vim.fn.strdisplaywidth(final));
@@ -1529,16 +1541,26 @@ typst.render = function (buffer, content)
 		subscripts = {}
 	};
 
-	for _, item in ipairs(content or {}) do
-		if typst[item.class:gsub("^typst_", "")] then
-			local success, err = pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
+	local custom = spec.get({ "renderers" }, { fallback = {} });
 
-			if success == false then
-				require("markview.health").notify("trace", {
-					level = 4,
-					message = err
-				});
-			end
+	for _, item in ipairs(content or {}) do
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], typst.ns, buffer, item);
+		else
+			success, err = pcall(typst[item.class:gsub("^typst_", "")], buffer, item);
+		end
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = {
+					{ " r/typst.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
+			});
 		end
 	end
 end
