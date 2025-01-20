@@ -295,7 +295,7 @@ presets.headings = {
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette1Fg",
-			icon = "", hl = "MarkviewHeading1",
+			hl = "MarkviewHeading1",
 
 		},
 		heading_2 = {
@@ -304,35 +304,35 @@ presets.headings = {
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette2Fg",
-			icon = "", hl = "MarkviewHeading2",
+			hl = "MarkviewHeading2",
 		},
 		heading_3 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette3Fg",
-			icon = "", hl = "MarkviewHeading3",
+			hl = "MarkviewHeading3",
 		},
 		heading_4 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette4Fg",
-			icon = "", hl = "MarkviewHeading4",
+			hl = "MarkviewHeading4",
 		},
 		heading_5 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette5Fg",
-			icon = "", hl = "MarkviewHeading5",
+			hl = "MarkviewHeading5",
 		},
 		heading_6 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette6Fg",
-			icon = "", hl = "MarkviewHeading6",
+			hl = "MarkviewHeading6",
 		}
 		---_
 	},
@@ -347,7 +347,7 @@ presets.headings = {
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette1Fg",
-			icon = "", hl = "MarkviewHeading1",
+			hl = "MarkviewHeading1",
 
 		},
 		heading_2 = {
@@ -356,35 +356,35 @@ presets.headings = {
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette2Fg",
-			icon = "", hl = "MarkviewHeading2",
+			hl = "MarkviewHeading2",
 		},
 		heading_3 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette3Fg",
-			icon = "", hl = "MarkviewHeading3",
+			hl = "MarkviewHeading3",
 		},
 		heading_4 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette4Fg",
-			icon = "", hl = "MarkviewHeading4",
+			hl = "MarkviewHeading4",
 		},
 		heading_5 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette5Fg",
-			icon = "", hl = "MarkviewHeading5",
+			hl = "MarkviewHeading5",
 		},
 		heading_6 = {
 			style = "label",
 
 			padding_left = " ", padding_right = " ",
 			corner_right = "", corner_right_hl = "MarkviewPalette6Fg",
-			icon = "", hl = "MarkviewHeading6",
+			hl = "MarkviewHeading6",
 		}
 		---_
 	},
