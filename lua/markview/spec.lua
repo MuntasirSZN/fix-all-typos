@@ -1183,6 +1183,10 @@ spec.default = {
 			---_
 		},
 
+		emoji_shorthands = {
+			enable = true
+		},
+
 		escapes = {
 			enable = true
 		},

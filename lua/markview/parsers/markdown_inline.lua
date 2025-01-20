@@ -129,6 +129,58 @@ inline.email = function (_, _, text, range)
 	---_
 end
 
+--- Github like emoji shorthand parser.
+---@param range node.range
+inline.emojis = function (_, TSNode, text, range)
+	---+${lua}
+
+	local parent = TSNode:parent();
+
+	while parent do
+		if parent:type() == "inline" then
+			return;
+		end
+
+		parent = parent:parent();
+	end
+
+	local utils = require("markview.utils");
+	local lines = text;
+
+	for l, line in ipairs(lines) do
+		local col_start = l == 1 and range.col_start or 0;
+
+		local _line = line;
+		_line = _line:gsub("%`.-%`", function (s)
+			return string.rep("Y", vim.fn.strchars(s));
+		end);
+
+		for short_code in _line:gmatch("%:[%a%d%_%+%-]+%:") do
+			local c_s, c_e = _line:find(short_code, 0, #_line, true);
+
+			---@type __inline.emojis
+			inline.insert({
+				class = "inline_emoji",
+				name = short_code:gsub(":", ""),
+				text = { short_code },
+
+				range = {
+					row_start = range.row_start + (l - 1),
+					col_start = col_start + c_s - 1,
+
+					row_end = range.row_start + (l - 1),
+					col_end = col_start + c_e
+				}
+			});
+
+			_line = _line:gsub(utils.escape_string(short_code), function (s)
+				return string.rep("X", vim.fn.strchars(s));
+			end, 1);
+		end
+	end
+	---_
+end
+
 --- Uri autolink parser.
 ---@param text string[]
 ---@param range node.range
@@ -184,37 +236,53 @@ inline.footnote = function (_, _, text, range)
 end
 
 --- Highlight parser.
----@param buffer integer
+---@param TSNode table
+---@param text string[]
 ---@param range node.range
-inline.highlights = function (buffer, _, _, range)
+inline.highlights = function (_, TSNode, text, range)
 	---+${lua}
 
+	local parent = TSNode:parent();
+
+	while parent do
+		if parent:type() == "inline" then
+			return;
+		end
+
+		parent = parent:parent();
+	end
+
 	local utils = require("markview.utils");
-	local lines = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_end + (range.row_end == range.row_start and 1 or 0), false);
+	local lines = text;
 
 	for l, line in ipairs(lines) do
-		local _line = line;
+		local col_start = l == 1 and range.col_start or 0;
 
-		for highlight in line:gmatch("%=%=([^=]+)%=%=") do
-			local c_s, c_e = _line:find("%=%=" .. utils.escape_string(highlight) .. "%=%=")
+		local _line = line;
+		_line = _line:gsub("%`.-%`", function (s)
+			return string.rep("Y", vim.fn.strchars(s));
+		end);
+
+		for highlight in _line:gmatch("%=%=[^=]+%=%=") do
+			local c_s, c_e = _line:find(highlight, 0, #_line, true);
 
 			---@type __inline.highlights
 			inline.insert({
 				class = "inline_highlight",
-				text = highlight,
+				text = { highlight },
 
 				range = {
 					row_start = range.row_start + (l - 1),
-					col_start = c_s - 1,
+					col_start = col_start + c_s - 1,
 
 					row_end = range.row_start + (l - 1),
-					col_end = c_e
+					col_end = col_start + c_e
 				}
 			});
 
-			_line = _line:gsub("%=%=" .. utils.escape_string(highlight) .. "%=%=", function (s)
-				return string.rep("X", vim.fn.strchars(s))
-			end, 1)
+			_line = _line:gsub(utils.escape_string(highlight), function (s)
+				return string.rep("X", vim.fn.strchars(s));
+			end, 1);
 		end
 	end
 	---_
@@ -517,6 +585,9 @@ inline.parse = function (buffer, TSTree, from, to)
 	local scanned_queries = vim.treesitter.query.parse("markdown_inline", [[
 		((inline) @markdown_inline.highlights
 			(#match? @markdown_inline.highlights "\\=\\=.+\\=\\="))
+
+		((inline) @markdown_inline.emojis
+			(#match? @markdown_inline.emojis "\\:.+\\:"))
 
 		((email_autolink) @markdown_inline.email)
 

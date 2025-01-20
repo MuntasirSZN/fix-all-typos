@@ -6,6 +6,7 @@ local utils = require("markview.utils");
 
 local filetypes = require("markview.filetypes");
 local entities = require("markview.entities");
+local symbols = require("markview.symbols");
 
 --- Forces the {index} to be between 1 & the length of {value}.
 ---@param value any | any[]
@@ -57,6 +58,7 @@ markdown.output = function (str, buffer)
 	local uri   = spec.get({ "markdown_inline", "uri_autolinks" },    { fallback = nil });
 	local esc   = spec.get({ "markdown_inline", "escapes" },          { fallback = nil });
 	local ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil });
+	local emo   = spec.get({ "markdown_inline", "emoji_shorthands" }, { fallback = nil });
 	local hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil });
 
 
@@ -135,7 +137,7 @@ markdown.output = function (str, buffer)
 			}),
 			concat({
 				"$",
-				string.rep(" ", latex:len()),
+				string.rep("X", vim.fn.strdisplaywidth(latex)),
 				"$"
 			})
 		);
@@ -158,7 +160,7 @@ markdown.output = function (str, buffer)
 				content,
 				str_a
 			}),
-			string.rep("X", content:len())
+			content
 		);
 
 	    ::continue::
@@ -174,9 +176,55 @@ markdown.output = function (str, buffer)
 				"~~"
 			}),
 			concat({
-				string.rep("X", striked:len())
+				striked
 			})
 		);
+		---_
+	end
+
+	for entity in str:gmatch("%&([%d%a%#]+);") do
+		---+${custom, Handle entities}
+		if not emo then
+			break;
+		elseif not entities.get(entity:gsub("%#", "")) then
+			goto continue;
+		end
+
+		str = str:gsub(
+			concat({
+				"&",
+				entity,
+				";"
+			}),
+			concat({
+				entities.get(entity:gsub("%#", ""))
+			})
+		);
+
+	    ::continue::
+		---_
+	end
+
+	for emoji in str:gmatch(":([%a%d%_%+%-]+):") do
+		---+${lua, Handles emoji shorthands}
+		if not ent then
+			break;
+		elseif not symbols.shorthands[emoji] then
+			goto continue;
+		end
+
+		str = str:gsub(
+			concat({
+				":",
+				emoji,
+				":"
+			}),
+			concat({
+				symbols.shorthands[emoji]
+			})
+		);
+
+		::continue::
 		---_
 	end
 
@@ -209,7 +257,7 @@ markdown.output = function (str, buffer)
 				_hls.corner_left or "",
 				_hls.padding_left or "",
 				_hls.icon or "",
-				string.rep("X", highlight:len()),
+				string.rep("X", vim.fn.strdisplaywidth(highlight)),
 				_hls.padding_right or "",
 				_hls.corner_left or ""
 			})
@@ -257,7 +305,7 @@ markdown.output = function (str, buffer)
 					_blref.corner_left or "",
 					_blref.padding_left or "",
 					_blref.icon or "",
-					string.rep("X", ref:len()),
+					string.rep("X", vim.fn.strdisplaywidth(ref)),
 					_blref.padding_right or "",
 					_blref.corner_right or ""
 				})
@@ -297,7 +345,7 @@ markdown.output = function (str, buffer)
 					_embed.corner_left or "",
 					_embed.padding_left or "",
 					_embed.icon or "",
-					string.rep("X", ref:len()),
+					string.rep("X", vim.fn.strdisplaywidth(ref)),
 					_embed.padding_right or "",
 					_embed.corner_right or ""
 				})
@@ -345,7 +393,7 @@ markdown.output = function (str, buffer)
 				_blref.corner_left or "",
 				_blref.padding_left or "",
 				_blref.icon or "",
-				string.rep("X", ref:len()),
+					string.rep("X", vim.fn.strdisplaywidth(ref)),
 				_blref.padding_right or "",
 				_blref.corner_right or ""
 			})
@@ -469,7 +517,7 @@ markdown.output = function (str, buffer)
 					_image.corner_left or "",
 					_image.padding_left or "",
 					_image.icon or "",
-					string.rep("X", link:len()),
+					string.rep("X", vim.fn.strdisplaywidth(link)),
 					_image.padding_right or "",
 					_image.corner_right or ""
 				})
@@ -496,7 +544,7 @@ markdown.output = function (str, buffer)
 					"]",
 				}),
 				concat({
-					string.rep("X", link:len())
+					string.rep("X", vim.fn.strdisplaywidth(link)),
 				})
 			);
 		else
@@ -527,7 +575,7 @@ markdown.output = function (str, buffer)
 					_image.corner_left or "",
 					_image.padding_left or "",
 					_image.icon or "",
-					string.rep("X", link:len()),
+					string.rep("X", vim.fn.strdisplaywidth(link)),
 					_image.padding_right or "",
 					_image.corner_right or ""
 				})
@@ -555,7 +603,7 @@ markdown.output = function (str, buffer)
 					address
 				}),
 				concat({
-					string.rep("X", link:len())
+					string.rep("X", vim.fn.strdisplaywidth(link)),
 				})
 			);
 		else
@@ -589,7 +637,7 @@ markdown.output = function (str, buffer)
 					_hyper.corner_left or "",
 					_hyper.padding_left or "",
 					_hyper.icon or "",
-					string.rep("X", link:len()),
+					string.rep("X", vim.fn.strdisplaywidth(link)),
 					_hyper.padding_right or "",
 					_hyper.corner_right or ""
 				})
@@ -763,29 +811,6 @@ markdown.output = function (str, buffer)
 			_uri.padding_right or "",
 			_uri.corner_left or ""
 		}));
-
-	    ::continue::
-		---_
-	end
-
-	for entity in str:gmatch("%&([%d%a%#]+);") do
-		---+${custom, Handle entities}
-		if not ent then
-			break;
-		elseif not entities.get(entity:gsub("%#", "")) then
-			goto continue;
-		end
-
-		str = str:gsub(
-			concat({
-				"&",
-				entity,
-				";"
-			}),
-			concat({
-				entities.get(entity:gsub("%#", ""))
-			})
-		);
 
 	    ::continue::
 		---_

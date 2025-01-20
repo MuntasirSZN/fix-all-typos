@@ -14,6 +14,7 @@ local M = {};
 ---@field emails inline.emails | fun(): inline.emails
 ---@field embed_files inline.embed_files | fun(): inline.embed_files
 ---@field entities inline.entities | fun(): inline.entities
+---@field emoji_shorthands inline.emojis | fun(): inline.emojis
 ---@field escapes inline.escapes | fun(): inline.escapes
 ---@field footnotes inline.footnotes | fun(): inline.footnotes
 ---@field highlights inline.highlights | fun(): inline.highlights
@@ -53,6 +54,7 @@ M.markdown_inline = {
 ---@field emails inline.emails Email link configuration.
 ---@field embed_files inline.embed_files Embed file link configuration.
 ---@field entities inline.entities HTML entities configuration.
+---@field emoji_shorthands inline.emojis Github styled emoji shorthands.
 ---@field escapes inline.escapes Escaped characters configuration.
 ---@field footnotes inline.footnotes Footnotes configuration.
 ---@field highlights inline.highlights Highlighted text configuration.
@@ -276,6 +278,51 @@ M.__inline_link_embed_files = {
 	}
 };
 
+-- [ Inline | Emojis ] ------------------------------------------------------------------
+
+--- Configuration for emoji shorthands.
+---@class inline.emojis
+---
+---@field enable boolean
+---
+---@field hl? string | fun(buffer: integer, item: __inline.entities): inline.emojis
+M.inline_entities = {
+	enable = true,
+	hl = "Comment"
+};
+
+-- [ Inline | Emojis • Static ] ---------------------------------------------------------
+
+--- Static configuration for HTML entities.
+---@class inline.emojis_static
+---
+---@field enable boolean
+---
+---@field hl? string Highlight group for the emoji.
+
+-- [ Inline | Emojis > Parameters ] --------------------------------------------------------
+
+---@class __inline.emojis
+---
+---@field class "inline_emoji"
+---
+---@field name string Entity name(text after "\")
+---
+---@field text string[]
+---@field range node.range
+M.__inline_emojis = {
+	class = "inline_emoji",
+	name = "label",
+	text = { ":label:" },
+	range = {
+		row_start = 0,
+		row_end = 0,
+
+		col_start = 0,
+		col_end = 7
+	}
+};
+
 -- [ Inline | Entities ] ------------------------------------------------------------------
 
 --- Configuration for HTML entities.
@@ -296,9 +343,9 @@ M.inline_entities = {
 ---
 ---@field enable boolean
 ---
----@field hl? string Highlight group for the symbol
+---@field hl? string Highlight group for the symbol.
 
--- [ Inline | Entities > Parameters ] ------------------------------------------------------------------
+-- [ Inline | Entities > Parameters ] ------------------------------------------------------
 
 ---@class __inline.entities
 ---

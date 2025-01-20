@@ -4,6 +4,8 @@ local spec = require("markview.spec");
 local utils = require("markview.utils");
 local entities = require("markview.entities");
 
+local symbols = require("markview.symbols");
+
 inline.ns = vim.api.nvim_create_namespace("markview/inline");
 
 --- Render checkbox.
@@ -284,7 +286,7 @@ inline.highlight = function (buffer, item)
 	---@type config.inline_generic?
 	local config = utils.match(
 		main_config,
-		item.text,
+		table.concat(item.text, "\n"),
 		{
 			eval_args = { buffer, item }
 		}
@@ -331,6 +333,34 @@ inline.highlight = function (buffer, item)
 		hl_mode = "combine"
 	});
 	---_
+	---_
+end
+
+--- Renders :emojis:.
+---@param buffer integer
+---@param item __inline.emojis
+inline.emoji = function (buffer, item)
+	---+${lua}
+
+	local config = spec.get({ "markdown_inline", "emoji_shorthands" }, { fallback = nil });
+	local range = item.range;
+
+	if not config then
+		return;
+	elseif not symbols.shorthands[item.name] then
+		return;
+	end
+
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ symbols.shorthands[item.name], utils.set_hl(config.hl) }
+		}
+	});
 	---_
 end
 
