@@ -13,8 +13,8 @@ local M = {};
 ---@field checkboxes inline.checkboxes | fun(): inline.checkboxes
 ---@field emails inline.emails | fun(): inline.emails
 ---@field embed_files inline.embed_files | fun(): inline.embed_files
----@field entities inline.entities | fun(): inline.entities
 ---@field emoji_shorthands inline.emojis | fun(): inline.emojis
+---@field entities inline.entities | fun(): inline.entities
 ---@field escapes inline.escapes | fun(): inline.escapes
 ---@field footnotes inline.footnotes | fun(): inline.footnotes
 ---@field highlights inline.highlights | fun(): inline.highlights
@@ -30,6 +30,7 @@ M.markdown_inline = {
 	checkboxes = {},
 	emails = {},
 	embed_files = {},
+	emoji_shorthands = {},
 	entities = {},
 	escapes = {},
 	footnotes = {},
@@ -53,8 +54,8 @@ M.markdown_inline = {
 ---@field inline_codes inline.inline_codes Inline code/code span configuration.
 ---@field emails inline.emails Email link configuration.
 ---@field embed_files inline.embed_files Embed file link configuration.
----@field entities inline.entities HTML entities configuration.
 ---@field emoji_shorthands inline.emojis Github styled emoji shorthands.
+---@field entities inline.entities HTML entities configuration.
 ---@field escapes inline.escapes Escaped characters configuration.
 ---@field footnotes inline.footnotes Footnotes configuration.
 ---@field highlights inline.highlights Highlighted text configuration.
@@ -286,14 +287,14 @@ M.__inline_link_embed_files = {
 ---@field enable boolean
 ---
 ---@field hl? string | fun(buffer: integer, item: __inline.entities): inline.emojis
-M.inline_entities = {
+M.inline_emojis = {
 	enable = true,
 	hl = "Comment"
 };
 
 -- [ Inline | Emojis • Static ] ---------------------------------------------------------
 
---- Static configuration for HTML entities.
+--- Static configuration for emoji shorthands.
 ---@class inline.emojis_static
 ---
 ---@field enable boolean
@@ -306,7 +307,7 @@ M.inline_entities = {
 ---
 ---@field class "inline_emoji"
 ---
----@field name string Entity name(text after "\")
+---@field name string Emoji name(without `:`).
 ---
 ---@field text string[]
 ---@field range node.range

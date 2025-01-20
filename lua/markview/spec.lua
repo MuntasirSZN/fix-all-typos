@@ -767,7 +767,7 @@ spec.default = {
 			enable = true,
 			wrap = true,
 
-			indent_size = 2,
+			indent_size = 4,
 			shift_width = 4,
 
 			marker_minus = {

@@ -197,16 +197,26 @@ html.render = function (buffer, content)
 		},
 	};
 
-	for _, item in ipairs(content or {}) do
-		if html[item.class:gsub("^html_", "")] then
-			local success, err = pcall(html[item.class:gsub("^html_", "")], buffer, item);
+	local custom = spec.get({ "renderers" }, { fallback = {} });
 
-			if success == false then
-				require("markview.health").notify("trace", {
-					level = 4,
-					message = err
-				});
-			end
+	for _, item in ipairs(content or {}) do
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], html.ns, buffer, item);
+		else
+			success, err = pcall(html[item.class:gsub("^html_", "")], buffer, item);
+		end
+
+		if success == false then
+			require("markview.health").notify("trace", {
+				level = 4,
+				message = {
+					{ " r/html.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
+			});
 		end
 	end
 	---_

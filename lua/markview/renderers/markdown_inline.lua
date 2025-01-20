@@ -824,6 +824,69 @@ inline.link_image = function (buffer, item)
 	---_
 end
 
+--- Render [[internal_links]].
+---@param buffer integer
+---@param item __inline.internal_links
+inline.link_internal = function (buffer, item)
+	---+${func, Render Obsidian's internal links}
+
+	---@type inline.internal_links?
+	local main_config = spec.get({ "markdown_inline", "internal_links" }, { fallback = nil });
+	local range = item.range;
+
+	if not main_config then
+		return;
+	end
+
+	---@type config.inline_generic
+	local config = utils.match(
+		main_config,
+		item.label,
+		{
+			eval_args = { buffer, item }
+		}
+	);
+
+	---+${custom, Draw the parts for the internal links}
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = vim.islist(range.alias) and range.alias[2] or (range.col_start + 2),
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
+			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
+
+			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, range.col_start, {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		hl_group = utils.set_hl(config.hl)
+	});
+
+	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, vim.islist(range.alias) and range.alias[4] or (range.col_end - 2), {
+		undo_restore = false, invalidate = true,
+		end_col = range.col_end,
+		conceal = "",
+
+		virt_text_pos = "inline",
+		virt_text = {
+			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
+			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
+		},
+
+		hl_mode = "combine"
+	});
+	---_
+	---_
+end
+
 --- Render [shortcut_link].
 ---@param buffer integer
 ---@param item __inline.hyperlinks
@@ -1005,80 +1068,29 @@ inline.link_uri_autolink = function (buffer, item)
 	---_
 end
 
---- Render [[internal_links]].
----@param buffer integer
----@param item __inline.internal_links
-inline.link_internal = function (buffer, item)
-	---+${func, Render Obsidian's internal links}
-
-	---@type inline.internal_links?
-	local main_config = spec.get({ "markdown_inline", "internal_links" }, { fallback = nil });
-	local range = item.range;
-
-	if not main_config then
-		return;
-	end
-
-	---@type config.inline_generic
-	local config = utils.match(
-		main_config,
-		item.label,
-		{
-			eval_args = { buffer, item }
-		}
-	);
-
-	---+${custom, Draw the parts for the internal links}
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = vim.islist(range.alias) and range.alias[2] or (range.col_start + 2),
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.corner_left or "", utils.set_hl(config.corner_left_hl or config.hl) },
-			{ config.padding_left or "", utils.set_hl(config.padding_left_hl or config.hl) },
-
-			{ config.icon or "", utils.set_hl(config.icon_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, range.col_start, {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		hl_group = utils.set_hl(config.hl)
-	});
-
-	vim.api.nvim_buf_set_extmark(buffer, inline.ns, range.row_start, vim.islist(range.alias) and range.alias[4] or (range.col_end - 2), {
-		undo_restore = false, invalidate = true,
-		end_col = range.col_end,
-		conceal = "",
-
-		virt_text_pos = "inline",
-		virt_text = {
-			{ config.padding_right or "", utils.set_hl(config.padding_right_hl or config.hl) },
-			{ config.corner_right or "", utils.set_hl(config.corner_right_hl or config.hl) }
-		},
-
-		hl_mode = "combine"
-	});
-	---_
-	---_
-end
-
 --- Renders inline markdown.
 ---@param buffer integer
 ---@param content table[]
 inline.render = function (buffer, content)
+	local custom = spec.get({ "renderers" }, { fallback = {} });
+
 	for _, item in ipairs(content or {}) do
-		local success, err = pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], inline.ns, buffer, item);
+		else
+			success, err = pcall(inline[item.class:gsub("^inline_", "")], buffer, item);
+		end
 
 		if success == false then
 			require("markview.health").notify("trace", {
 				level = 4,
-				message = err
+				message = {
+					{ " r/markdown_inline.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
 			});
 		end
 	end

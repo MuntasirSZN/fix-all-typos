@@ -768,30 +768,51 @@ latex.render = function (buffer, content)
 		},
 	};
 
+	local custom = spec.get({ "renderers" }, { fallback = {} });
 	local post = {};
 
 	for _, item in ipairs(content or {}) do
-		if vim.list_contains({ "latex_ord", "latex_symbol" }, item.class) == true then
+		if vim.list_contains({ "latex_word", "latex_symbol" }, item.class) == true then
 			table.insert(post, item);
 		else
-			local success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+			local success, err;
+
+			if custom[item.class] then
+				success, err = pcall(custom[item.class], latex.ns, buffer, item);
+			else
+				success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+			end
 
 			if success == false then
 				require("markview.health").notify("trace", {
 					level = 4,
-					message = err
+					message = {
+						{ " r/latex.lua: ", "DiagnosticVirtualTextInfo" },
+						{ " " },
+						{ err, "DiagnosticError" }
+					}
 				});
 			end
 		end
 	end
 
 	for _, item in ipairs(post) do
-		local success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], latex.ns, buffer, item);
+		else
+			success, err = pcall(latex[item.class:gsub("^latex_", "")], buffer, item);
+		end
 
 		if success == false then
 			require("markview.health").notify("trace", {
 				level = 4,
-				message = err
+				message = {
+					{ " r/latex.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
 			});
 		end
 	end

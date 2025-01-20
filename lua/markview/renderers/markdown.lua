@@ -957,6 +957,7 @@ markdown.get_visual_text = {
 	---_
 };
 
+---@type integer Namespace for markdown.
 markdown.ns = vim.api.nvim_create_namespace("markview/markdown");
 
 --- Renders atx headings.
@@ -3330,13 +3331,26 @@ end
 markdown.render = function (buffer, content)
 	markdown.cache = {};
 
+	local custom = spec.get({ "renderers" }, { fallback = {} });
+
 	for _, item in ipairs(content or {}) do
-		local success, err = pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], buffer, item);
+		else
+			success, err = pcall(markdown[item.class:gsub("^markdown_", "")], buffer, item);
+		end
+
 
 		if success == false then
 			require("markview.health").notify("trace", {
 				level = 4,
-				message = err
+				message = {
+					{ " r/markdown.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
 			});
 		end
 	end
@@ -3350,20 +3364,32 @@ end
 markdown.post_render = function (buffer, content)
 	markdown.__list_wraps = {};
 
+	local custom = spec.get({ "renderers" }, { fallback = {} });
+
 	for _, item in ipairs(content or {}) do
-		local success, err = pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom["__" .. item.class], markdown.ns, buffer, item);
+		else
+			success, err = pcall(markdown["__" .. item.class:gsub("^markdown_", "")], buffer, item);
+		end
 
 		if success == false then
 			require("markview.health").notify("trace", {
 				level = 4,
-				message = err
+				message = {
+					{ " r/markdown.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
 			});
 		end
 	end
 end
 
 
- -----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------
 
 --- Clears markdown previews.
 ---@param buffer integer

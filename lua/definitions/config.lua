@@ -102,4 +102,15 @@ M.experimental = {
     }
 };
 
+-- [ Markview | Renderers ] ---------------------------------------------------------------
+
+---@class config.renderers Configuration for custom renderers.
+---
+---@field [string] fun(ns: integer, buffer: integer, item: table): nil
+M.renderers = {
+	yaml_property = function (ns, buffer, item)
+		vim.print({ ns, buffer, item });
+	end
+};
+
 return M;

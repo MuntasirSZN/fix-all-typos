@@ -80,13 +80,25 @@ end
 yaml.render = function (buffer, content)
 	yaml.cache = {};
 
+	local custom = spec.get({ "renderers" }, { fallback = {} });
+
 	for _, item in ipairs(content or {}) do
-		local success, err = pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
+		local success, err;
+
+		if custom[item.class] then
+			success, err = pcall(custom[item.class], yaml.ns, buffer, item);
+		else
+			success, err = pcall(yaml[item.class:gsub("^yaml_", "")], buffer, item);
+		end
 
 		if success == false then
 			require("markview.health").notify("trace", {
 				level = 4,
-				message = err
+				message = {
+					{ " r/yaml.lua: ", "DiagnosticVirtualTextInfo" },
+					{ " " },
+					{ err, "DiagnosticError" }
+				}
 			});
 		end
 	end
