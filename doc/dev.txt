@@ -150,4 +150,4 @@ You can manually show previews via these functions,
       Detaches `markview` from any invalid buffer.
 
 ------------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:virtualedit=all:
+vim:ft=help:tw=78:

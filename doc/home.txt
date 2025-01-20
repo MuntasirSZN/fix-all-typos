@@ -455,4 +455,4 @@ ones, see the `LNK[custom highlight groups](placeholder)` section.
 ▋ **** = Linearly interpolated value between 2 highlight groups `fg`.
 
 --------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:
+vim:ft=help:tw=78:

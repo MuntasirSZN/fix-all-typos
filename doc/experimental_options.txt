@@ -117,4 +117,4 @@ date_time_formats ~
 List of `lua patterns` for detecting date & time in YAML.
 
 ------------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:virtualedit=all:
+vim:ft=help:tw=78:

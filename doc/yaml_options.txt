@@ -183,4 +183,4 @@ Configuration for YAML properties.
 <
 
 ------------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:virtualedit=all:
+vim:ft=help:tw=78:

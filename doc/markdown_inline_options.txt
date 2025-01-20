@@ -63,11 +63,10 @@
 	---@field images inline.images Image link configuration.
 	---@field internal_links inline.internal_links Internal link configuration.
 	---@field uri_autolinks inline.uri_autolinks URI autolink configuration.
->
-
->[!NOTE]
-> Almost every element in inline markdown have the same customisation options.
-> As such these options are given below.
+<
+▋ 📜 Note
+▋ Almost every element in inline markdown have the same customisation options.
+▋ As such these options are given below.
 >lua
 	-- [ Markview | Generic inline element ] --------------------------------------------------
 
@@ -1048,7 +1047,7 @@ Configuration for inline codes.
 
 	--- Static configuration for inline codes.
 	---@alias inline.inline_codes_static config.inline_generic_static
->
+<
 >lua
 	-- [ Inline | Inline codes > Parameters ] -------------------------------------------------
 
@@ -1201,4 +1200,4 @@ Configuration for URI autolinks(`<https://example.com>`).
 <
 
 ------------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:virtualedit=all:
+vim:ft=help:tw=78:

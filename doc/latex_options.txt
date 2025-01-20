@@ -948,4 +948,4 @@ Configuration for `\text{}`.
 	};
 <
 ------------------------------------------------------------------------------
-vim:ft=help:colorcolumn=78:virtualedit=all:
+vim:ft=help:tw=78:
