@@ -3257,6 +3257,7 @@ spec.fix_config = function (config)
 		renderers = config.renderers,
 		highlight_groups = config.highlight_groups,
 
+		preview = config.preview,
 		experimental = config.experimental,
 
 		html = config.html,

@@ -228,6 +228,8 @@ vim.api.nvim_create_autocmd({
 
 		---@type string[] List of modes where preview is shown.
 		local modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		---@type string[] List of modes where preview is shown.
+		local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {}, ignore_enable = true });
 		local delay = spec.get({ "preview", "debounce" }, { fallback = 25, ignore_enable = true });
 
 		--- Checks if we need to immediately render
@@ -310,6 +312,22 @@ vim.api.nvim_create_autocmd({
 						markview.render(buffer);
 					end));
 				end
+			elseif vim.list_contains(hybrid_modes, mode) then
+				if not markview.state.buffer_states[buffer] then
+					return;
+				elseif markview.state.buffer_states[buffer].hybrid_mode == false then
+					return;
+				end
+
+				--- Buffer content changes MUST be
+				--- handle via debounce.
+				timer:start(delay, 0, vim.schedule_wrap(function ()
+					if vim.v.exiting ~= vim.NIL then
+						return;
+					end
+
+					markview.render(buffer);
+				end));
 			elseif vim.list_contains({ "TextChanged", "TextChangedI" }, name) then
 				--- Buffer content changes MUST be
 				--- handle via debounce.
