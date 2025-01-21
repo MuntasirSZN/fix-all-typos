@@ -151,14 +151,14 @@ Setext 2
 - Item 1
 + Item 2
 * Item 3
-  - Nest 1
-  + Nest 2
-  * Nest 3
-    1. Nest 4
-    2. Nest 5
-  * [X] Nest 6
-  + [-] Nest 7
-  - [/] Nest 8
+    - Nest 1
+    + Nest 2
+    * Nest 3
+        1. Nest 4
+        2. Nest 5
+    * [X] Nest 6
+    + [-] Nest 7
+    - [/] Nest 8
 
 
 ; Tables
