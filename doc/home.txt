@@ -3,7 +3,7 @@
         A hackable `markdown`, HTML, LaTeX, `Typst` & {YAML} previewer
                                  for Neovim.
 
-▋ 📜 Note:
+▋ 📜 Note
 ▋ This wiki assumes you have basic understanding of `LuaCATS` annotations.
 ▋ If you don’t, check out (this section)¹.
 
@@ -211,7 +211,7 @@ is only a single `:Markview` command.
 
 It comes with the following sub-commands,
 
-▋ 📜 Note:
+▋ 📜 Note
 ▋ When no sub-command name is provided(or an invalid sub-command is used) 
 ▋ `:Markview` will run `:Markview Toggle`.
 

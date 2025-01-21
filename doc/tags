@@ -13,6 +13,10 @@ markview.nvim-experimental.date_time_formats	experimental_options.txt	/*markview
 markview.nvim-experimental.file_open_command	experimental_options.txt	/*markview.nvim-experimental.file_open_command*
 markview.nvim-experimental.list_empty_line_tolerance	experimental_options.txt	/*markview.nvim-experimental.list_empty_line_tolerance*
 markview.nvim-experimental.read_chunk_size	experimental_options.txt	/*markview.nvim-experimental.read_chunk_size*
+markview.nvim-extra	extra.txt	/*markview.nvim-extra*
+markview.nvim-extra.checkboxes	extra.txt	/*markview.nvim-extra.checkboxes*
+markview.nvim-extra.editor	extra.txt	/*markview.nvim-extra.editor*
+markview.nvim-extra.headings	extra.txt	/*markview.nvim-extra.headings*
 markview.nvim-hl	home.txt	/*markview.nvim-hl*
 markview.nvim-html	html_options.txt	/*markview.nvim-html*
 markview.nvim-html.container_elements	html_options.txt	/*markview.nvim-html.container_elements*
@@ -55,6 +59,11 @@ markview.nvim-markdown.metadata_plus	markdown_options.txt	/*markview.nvim-markdo
 markview.nvim-markdown.reference_definitions	markdown_options.txt	/*markview.nvim-markdown.reference_definitions*
 markview.nvim-markdown.tables	markdown_options.txt	/*markview.nvim-markdown.tables*
 markview.nvim-migration	migration.txt	/*markview.nvim-migration*
+markview.nvim-presets	presets.txt	/*markview.nvim-presets*
+markview.nvim-presets.headings	presets.txt	/*markview.nvim-presets.headings*
+markview.nvim-presets.hr	presets.txt	/*markview.nvim-presets.hr*
+markview.nvim-presets.tables	presets.txt	/*markview.nvim-presets.tables*
+markview.nvim-presets.use	presets.txt	/*markview.nvim-presets.use*
 markview.nvim-preview	preview_options.txt	/*markview.nvim-preview*
 markview.nvim-preview.callbacks	preview_options.txt	/*markview.nvim-preview.callbacks*
 markview.nvim-preview.debounce	preview_options.txt	/*markview.nvim-preview.debounce*
