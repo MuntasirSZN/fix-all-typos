@@ -10,6 +10,8 @@
     <a href="https://github.com/OXY2DEV/markview.nvim/wiki/Home">📚 Wiki</a> | <a href="#-extra-modules">🧩 Extras</a> | <a href="#-presets">📦 Presets</a>
 </div>
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/catppuccin_mocha.png">
+
 <!-- Screenshots here -->
 
 ## 📖 Table of contents
