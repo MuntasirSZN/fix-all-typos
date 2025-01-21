@@ -142,6 +142,47 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 	end
 });
 
+local o_timer = vim.uv.new_timer();
+
+--- Option changes(e.g. wrap, linebreak)
+vim.api.nvim_create_autocmd({ "OptionSet" }, {
+	group = markview.augroup,
+	callback = function ()
+		---+${lua}
+		local buffer = vim.api.nvim_get_current_buf();
+		local option = vim.fn.expand("<amatch>");
+
+		local valid_options = { "wrap", "linebreak" };
+
+		---@type string[] List of modes where preview is shown.
+		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		local mode = vim.api.nvim_get_mode().mode;
+
+		if markview.actions.__is_attached(buffer) == false then
+			--- Not attached to a buffer
+			return;
+		elseif markview.actions.__is_enabled(buffer) == false then
+			--- Disabled on this buffer.
+			return;
+		elseif vim.list_contains(preview_modes, mode) == false then
+			--- Wrong mode.
+			return;
+		elseif vim.list_contains(valid_options, option) == false then
+			--- This option shouldn't cause a redraw.
+			return;
+		elseif vim.v.option_old == vim.v.option_new then
+			--- Option value wasn't changed.
+			return;
+		end
+
+		o_timer:stop()
+		o_timer:start(5, 0, vim.schedule_wrap(function ()
+			markview.render(buffer);
+		end));
+		---_
+	end
+});
+
 --- Mode changes.
 vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 	group = markview.augroup,

@@ -1191,6 +1191,19 @@ markdown.block_quote = function (buffer, item)
 		end
 	end
 
+	---@type integer, integer Start & end fold level.
+	local foldlevel_s, foldlevel_e;
+
+	vim.api.nvim_buf_call(buffer, function ()
+		foldlevel_s = vim.fn.foldlevel(range.row_start + 1);
+		foldlevel_e = vim.fn.foldlevel(range.row_end + 1);
+	end)
+
+	if foldlevel_s ~= 0 or foldlevel_e ~= 0 then
+		--- Text was folded.
+		return;
+	end
+
 	--- TODO: Feat
 	local win = utils.buf_getwin(buffer);
 
@@ -1936,6 +1949,19 @@ markdown.list_item = function (buffer, item)
 
 	::exit::
 
+	---@type integer, integer Start & end fold level.
+	local foldlevel_s, foldlevel_e;
+
+	vim.api.nvim_buf_call(buffer, function ()
+		foldlevel_s = vim.fn.foldlevel(range.row_start + 1);
+		foldlevel_e = vim.fn.foldlevel(range.row_end + 1);
+	end)
+
+	if foldlevel_s ~= 0 or foldlevel_e ~= 0 then
+		--- Text was folded.
+		return;
+	end
+
 	local win = utils.buf_getwin(buffer);
 
 	--- BUG, Post-processing effects become inaccurate when
@@ -2108,6 +2134,19 @@ markdown.section = function (buffer, item)
 		});
 	end
 
+	---@type integer, integer Start & end fold level.
+	local foldlevel_s, foldlevel_e;
+
+	vim.api.nvim_buf_call(buffer, function ()
+		foldlevel_s = vim.fn.foldlevel(range.row_start + 1);
+		foldlevel_e = vim.fn.foldlevel(range.row_end + 1);
+	end)
+
+	if foldlevel_s ~= 0 or foldlevel_e ~= 0 then
+		--- Text was folded.
+		return;
+	end
+
 	local win = utils.buf_getwin(buffer);
 
 	if main_config.org_indent_wrap == true and vim.wo[win].wrap == true then
@@ -2219,6 +2258,8 @@ markdown.table = function (buffer, item)
 	local config = spec.get({ "markdown", "tables" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
+	local is_wrapped = false;
+
 	if not config then
 		return;
 	else
@@ -2227,6 +2268,9 @@ markdown.table = function (buffer, item)
 		if type(win) ~= "number" then
 			--- Window doesn't exist.
 			return;
+		elseif vim.wo[win].wrap == true then
+			--- BUG, wrap breaks table rendering.
+			is_wrapped = true;
 		end
 
 		local left_col;
@@ -2242,24 +2286,43 @@ markdown.table = function (buffer, item)
 		end
 	end
 
+	---@type integer[] Visible column widths(may be inaccurate).
 	local col_widths = {};
+
+	--- Holds text for the different table cells.
+	---
+	---@type { header: string[], rows: string[][] }
 	local visible_texts = {
 		header = {},
 		rows = {}
 	};
 
+	---@type integer[] Invisible width used for text wrapping in Neovim.
+	local vim_width = {};
+
 	---+${custom, Get the width of the column(s)}
+
+	---@type integer Current column number.
 	local c = 1;
 
 	---+${custom, Calculate heading column widths}
 	for _, col in ipairs(item.header) do
 		if col.class == "column" then
-			local o = markdown.output(col.text, buffer);
+			local o, dec = markdown.output(col.text, buffer);
 			table.insert(visible_texts.header, o);
+
 			o = vim.fn.strdisplaywidth(o);
 
 			if not col_widths[c] or col_widths[c] < o then
 				col_widths[c] = o;
+			end
+
+			local vim_col_width = vim.fn.strdisplaywidth(col.text) + (dec or 0);
+
+			if not vim_width[c] then
+				vim_width[c] = vim_col_width;
+			elseif vim_col_width > vim_width[c] then
+				vim_width[c] = vim_col_width;
 			end
 
 			c = c + 1;
@@ -2272,10 +2335,18 @@ markdown.table = function (buffer, item)
 
 	for _, col in ipairs(item.separator) do
 		if col.class == "column" then
-			local o = vim.fn.strdisplaywidth(col.text);
+			local o, dec = vim.fn.strdisplaywidth(col.text);
 
 			if not col_widths[c] or col_widths[c] < o then
 				col_widths[c] = o;
+			end
+
+			local vim_col_width = vim.fn.strdisplaywidth(col.text) + (dec or 0);
+
+			if not vim_width[c] then
+				vim_width[c] = vim_col_width;
+			elseif vim_col_width > vim_width[c] then
+				vim_width[c] = vim_col_width;
 			end
 
 			c = c + 1;
@@ -2290,12 +2361,21 @@ markdown.table = function (buffer, item)
 
 		for _, col in ipairs(row) do
 			if col.class == "column" then
-				local o = markdown.output(col.text, buffer);
+				local o, dec = markdown.output(col.text, buffer);
 				table.insert(visible_texts.rows[r], o);
+
 				o = vim.fn.strdisplaywidth(o);
 
 				if not col_widths[c] or col_widths[c] < o then
 					col_widths[c] = o;
+				end
+
+				local vim_col_width = vim.fn.strdisplaywidth(col.text) + (dec or 0);
+
+				if not vim_width[c] then
+					vim_width[c] = vim_col_width;
+				elseif vim_col_width > vim_width[c] then
+					vim_width[c] = vim_col_width;
 				end
 
 				c = c + 1;
@@ -2304,6 +2384,27 @@ markdown.table = function (buffer, item)
 	end
 	---_
 	---_
+
+	if is_wrapped == true then
+		---+${lua}
+
+		local win = utils.buf_getwin(buffer);
+		local width = vim.api.nvim_win_get_width(win);
+
+		local table_width = 1;
+
+		for _, col in ipairs(vim_width) do
+			table_width = table_width + 1 + col;
+		end
+
+		if table_width >= width * 0.9 then
+			--- Most likely the text was wrapped somewhere.
+			--- TODO, Check if a more accurate(& faster) method exists or not.
+			return;
+		end
+
+		---_
+	end
 
 	---@type tables.parts
 	local parts = config.parts;
@@ -2352,20 +2453,26 @@ markdown.table = function (buffer, item)
 				top, top_hl = get_border("top", 3);
 			end
 
-			table.insert(tmp, { top, utils.set_hl(top_hl) });
+			table.insert(tmp, {
+				top,
+				is_wrapped and "@punctuation.special.markdown" or utils.set_hl(top_hl)
+			});
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + part.col_start, {
-				undo_restore = false, invalidate = true,
-				end_col = range.col_start + part.col_end,
-				conceal = "",
+			if is_wrapped == false then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + part.col_start, {
+					undo_restore = false, invalidate = true,
+					end_col = range.col_start + part.col_end,
+					conceal = "",
 
-				virt_text_pos = "inline",
-				virt_text = {
-					{ border, utils.set_hl(border_hl) }
-				},
+					virt_text_pos = "inline",
+					virt_text = {
+						{ border, utils.set_hl(border_hl) }
+					},
 
-				hl_mode = "combine"
-			})
+					hl_mode = "combine"
+				})
+			end
+
 
 			if p == #item.header and config.block_decorator == true then
 				local prev_line = range.row_start == 0 and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_start - 1, range.row_start, false)[1];
@@ -2400,7 +2507,10 @@ markdown.table = function (buffer, item)
 			local border, border_hl = get_border("header", 3);
 			local top, top_hl = get_border("top", 3);
 
-			table.insert(tmp, { top, utils.set_hl(top_hl) });
+			table.insert(tmp, {
+				top,
+				is_wrapped and "@punctuation.special.markdown" or utils.set_hl(top_hl)
+			});
 
 			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start, range.col_start + part.col_start, {
 				undo_restore = false, invalidate = true,
@@ -2409,7 +2519,10 @@ markdown.table = function (buffer, item)
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ border, utils.set_hl(border_hl) }
+					{
+						border,
+						is_wrapped and "@punctuation.special.markdown" or utils.set_hl(border_hl)
+					}
 				},
 
 				hl_mode = "combine"
@@ -2419,9 +2532,13 @@ markdown.table = function (buffer, item)
 				local prev_line = range.row_start == 0 and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_start - 1, range.row_start, false)[1];
 
 				if config.use_virt_lines == true then
-					table.insert(tmp, 1, { string.rep(" ", range.col_start) });
+					table.insert(tmp, 1, {
+						string.rep(" ", range.col_start)
+					});
 				elseif range.row_start > 0 and prev_line < range.col_start then
-					table.insert(tmp, 1, { string.rep(" ", range.col_start - prev_line) });
+					table.insert(tmp, 1, {
+						string.rep(" ", range.col_start - prev_line)
+					});
 				end
 
 				if config.use_virt_lines == true then
@@ -2450,7 +2567,10 @@ markdown.table = function (buffer, item)
 
 			local top, top_hl = get_border("top", 2);
 
-			table.insert(tmp, { string.rep(top, column_width), utils.set_hl(top_hl) });
+			table.insert(tmp, {
+				string.rep(top, column_width),
+				is_wrapped and "@punctuation.special.markdown" or utils.set_hl(top_hl)
+			});
 
 			if visible_width < column_width then
 				if item.alignments[c] == "default" or item.alignments[c] == "left" then
@@ -2507,8 +2627,16 @@ markdown.table = function (buffer, item)
 	c = 1;
 
 	for s, sep in ipairs(item.separator) do
+		local x = range.row_start + 1;
+		local y = range.col_start + sep.col_start;
+
 		if sep.class == "separator" then
 			---+${custom, Handle | in the header}
+
+			if is_wrapped == true then
+				goto continue;
+			end
+
 			local border, border_hl = get_border("separator", 4);
 
 			if s == 1 then
@@ -2517,7 +2645,7 @@ markdown.table = function (buffer, item)
 				border, border_hl = get_border("separator", 3);
 			end
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
+			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
 				undo_restore = false, invalidate = true,
 				end_col = range.col_start + sep.col_end,
 				conceal = "",
@@ -2534,101 +2662,269 @@ markdown.table = function (buffer, item)
 			---+${custom, Handle missing last |}
 			local border, border_hl = get_border("separator", 3);
 
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
-				undo_restore = false, invalidate = true,
-				virt_text_pos = "inline",
-				virt_text = {
-					{ border, utils.set_hl(border_hl) }
-				},
+			if is_wrapped == true then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+					undo_restore = false, invalidate = true,
+					virt_text_pos = "inline",
+					virt_text = {
+						{ "|", "@punctuation.special.markdown" }
+					},
 
-				hl_mode = "combine"
-			})
+					hl_mode = "combine"
+				});
+			else
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+					undo_restore = false, invalidate = true,
+					virt_text_pos = "inline",
+					virt_text = {
+						{ border, utils.set_hl(border_hl) }
+					},
+
+					hl_mode = "combine"
+				});
+			end
 			---_
 		elseif sep.class == "column" then
 			local border, border_hl = get_border("separator", 2);
 			local align, align_hl;
 
-			if item.alignments[c] == "default" then
+			local width = vim.fn.strdisplaywidth(sep.text);
+			local left = col_widths[c] - width;
+
+			if is_wrapped == true then
+				---+${lua, Wrapping enabled}
+				if left > 0 then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, (range.col_start + sep.col_end) - 2, {
+						undo_restore = false, invalidate = true,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{
+								string.rep("-", left),
+								"@punctuation.special.markdown"
+							}
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				end
+				---_
+			elseif item.alignments[c] == "default" then
 				---+${custom, Normal columns}
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
-					undo_restore = false, invalidate = true,
-					end_col = range.col_start + sep.col_end,
-					conceal = "",
+				if left > 0 then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
 
-					virt_text_pos = "inline",
-					virt_text = {
-						{ string.rep(border, col_widths[c]), utils.set_hl(border_hl) }
-					},
+						virt_text_pos = "overlay",
+						virt_text = {
+							{
+								string.rep(border, width),
+								utils.set_hl(border_hl)
+							},
+						},
 
-					right_gravity = false,
-					hl_mode = "combine"
-				})
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, range.col_start + sep.col_end, {
+						undo_restore = false, invalidate = true,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(border, left), utils.set_hl(border_hl) },
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
+
+						virt_text_pos = "overlay",
+						virt_text = {
+							{
+								string.rep(border, width),
+								utils.set_hl(border_hl)
+							}
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				end
 				---_
 			elseif item.alignments[c] == "left" then
 				---+${custom, Left aligned columns}
 				align = parts.align_left or "";
 				align_hl = hls.align_left;
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
-					undo_restore = false, invalidate = true,
-					end_col = range.col_start + sep.col_end,
-					conceal = "",
-					virt_text_pos = "inline",
+				if left > 0 then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
 
-					virt_text = {
-						{ align, utils.set_hl(align_hl) },
-						{ string.rep(border, col_widths[c] - vim.fn.strdisplaywidth(align)), utils.set_hl(border_hl) }
-					},
+						virt_text_pos = "overlay",
+						virt_text = {
+							{ align, utils.set_hl(align_hl) },
+							{
+								string.rep(border, width - 1),
+								utils.set_hl(border_hl)
+							},
+						},
 
-					right_gravity = false,
-					hl_mode = "combine"
-				})
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, range.col_start + sep.col_end, {
+						undo_restore = false, invalidate = true,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(border, left), utils.set_hl(border_hl) },
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
+
+						virt_text_pos = "overlay",
+						virt_text = {
+							{ align, utils.set_hl(align_hl) },
+							{
+								string.rep(border, width - 1),
+								utils.set_hl(border_hl)
+							}
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				end
 				---_
 			elseif item.alignments[c] == "right" then
 				---+${custom, Right aligned columns}
 				align = parts.align_right or "";
 				align_hl = hls.align_right;
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
-					undo_restore = false, invalidate = true,
-					end_col = range.col_start + sep.col_end,
-					conceal = "",
-					virt_text_pos = "inline",
+				if left > 0 then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
 
-					virt_text = {
-						{ string.rep(border, col_widths[c] - vim.fn.strdisplaywidth(align)), utils.set_hl(border_hl) },
-						{ align, utils.set_hl(align_hl) }
-					},
+						virt_text_pos = "overlay",
+						virt_text = {
+							{
+								string.rep(border, width),
+								utils.set_hl(border_hl)
+							},
+						},
 
-					right_gravity = false,
-					hl_mode = "combine"
-				})
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, range.col_start + sep.col_end, {
+						undo_restore = false, invalidate = true,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(border, left - 1), utils.set_hl(border_hl) },
+							{ align, utils.set_hl(align_hl) }
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
+
+						virt_text_pos = "overlay",
+						virt_text = {
+							{
+								string.rep(border, width - 1),
+								utils.set_hl(border_hl)
+							},
+							{ align, utils.set_hl(align_hl) }
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				end
 				---_
 			elseif item.alignments[c] == "center" then
 				---+${custom, Center aligned columns}
 				align = parts.align_center or { "", "" };
 				align_hl = hls.align_center or {};
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1, range.col_start + sep.col_start, {
-					undo_restore = false, invalidate = true,
-					end_col = range.col_start + sep.col_end,
-					conceal = "",
-					virt_text_pos = "inline",
+				if left > 0 then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
 
-					virt_text = {
-						{ align[1], utils.set_hl(align_hl[1]) },
-						{ string.rep(border, col_widths[c] - vim.fn.strdisplaywidth(table.concat(align))), utils.set_hl(border_hl) },
-						{ align[2], utils.set_hl(align_hl[2]) }
-					},
+						virt_text_pos = "overlay",
+						virt_text = {
+							{ align[1], utils.set_hl(align_hl[1]) },
+							{
+								string.rep(border, width - 1),
+								utils.set_hl(border_hl)
+							},
+						},
 
-					right_gravity = false,
-					hl_mode = "combine"
-				})
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, range.col_start + sep.col_end, {
+						undo_restore = false, invalidate = true,
+
+						virt_text_pos = "inline",
+						virt_text = {
+							{ string.rep(border, left - 1), utils.set_hl(border_hl) },
+							{ align[2], utils.set_hl(align_hl[2]) }
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				else
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, x, y, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + sep.col_end,
+
+						virt_text_pos = "overlay",
+						virt_text = {
+							{ align[1], utils.set_hl(align_hl[1]) },
+							{
+								string.rep(border, width - 2),
+								utils.set_hl(border_hl)
+							},
+							{ align[2], utils.set_hl(align_hl[2]) },
+						},
+
+						right_gravity = false,
+						hl_mode = "combine"
+					});
+				end
 				---_
 			end
 
 			c = c + 1;
 		end
+
+		::continue::
 	end
 
 	for r, row in ipairs(item.rows) do
@@ -2649,18 +2945,20 @@ markdown.table = function (buffer, item)
 					border, border_hl = get_border("row", 3);
 				end
 
-				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1 + r, range.col_start + part.col_start, {
-					undo_restore = false, invalidate = true,
-					end_col = range.col_start + part.col_end,
-					conceal = "",
+				if is_wrapped == false then
+					vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_start + 1 + r, range.col_start + part.col_start, {
+						undo_restore = false, invalidate = true,
+						end_col = range.col_start + part.col_end,
+						conceal = "",
 
-					virt_text_pos = "inline",
-					virt_text = {
-						{ border, utils.set_hl(border_hl) }
-					},
+						virt_text_pos = "inline",
+						virt_text = {
+							{ border, utils.set_hl(border_hl) }
+						},
 
-					hl_mode = "combine"
-				})
+						hl_mode = "combine"
+					})
+				end
 				---_
 			elseif part.class == "missing_seperator" then
 				---+${custom, Handle missing last |}
@@ -2670,7 +2968,13 @@ markdown.table = function (buffer, item)
 					undo_restore = false, invalidate = true,
 					virt_text_pos = "inline",
 					virt_text = {
-						{ border, utils.set_hl(border_hl) }
+						is_wrapped and {
+							"|",
+							"@punctuation.special.markdown"
+						} or {
+							border,
+							utils.set_hl(border_hl)
+						}
 					},
 
 					hl_mode = "combine"
@@ -2751,20 +3055,25 @@ markdown.table = function (buffer, item)
 				bottom, bottom_hl = bottom_part(3);
 			end
 
-			table.insert(tmp, { bottom, utils.set_hl(bottom_hl) });
-
-			vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + part.col_start, {
-				undo_restore = false, invalidate = true,
-				end_col = range.col_start + part.col_end,
-				conceal = "",
-
-				virt_text_pos = "inline",
-				virt_text = {
-					{ border, utils.set_hl(border_hl) }
-				},
-
-				hl_mode = "combine"
+			table.insert(tmp, {
+				bottom,
+				is_wrapped and "@punctuation.special.markdown" or utils.set_hl(bottom_hl)
 			});
+
+			if is_wrapped == false then
+				vim.api.nvim_buf_set_extmark(buffer, markdown.ns, range.row_end - 1, range.col_start + part.col_start, {
+					undo_restore = false, invalidate = true,
+					end_col = range.col_start + part.col_end,
+					conceal = "",
+
+					virt_text_pos = "inline",
+					virt_text = {
+						{ border, utils.set_hl(border_hl) }
+					},
+
+					hl_mode = "combine"
+				});
+			end
 
 			if p == #item.header and config.block_decorator == true then
 				local next_line = range.row_end == vim.api.nvim_buf_line_count(buffer) and 0 or #vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, false)[1];
@@ -2845,7 +3154,10 @@ markdown.table = function (buffer, item)
 
 			local bottom, bottom_hl = bottom_part(2);
 
-			table.insert(tmp, { string.rep(bottom, column_width), utils.set_hl(bottom_hl) });
+			table.insert(tmp, {
+				string.rep(bottom, column_width),
+				is_wrapped and "@punctuation.special.markdown" or utils.set_hl(bottom_hl)
+			});
 
 			if visible_width < column_width then
 				if item.alignments[c] == "default" or item.alignments[c] == "left" then
