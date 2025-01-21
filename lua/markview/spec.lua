@@ -3243,7 +3243,7 @@ spec.fixup = {
 };
 
 --- Tries to fix deprecated config spec
----@param config table
+---@param config table?
 ---@return table
 spec.fix_config = function (config)
 	---+${lua}
@@ -3290,9 +3290,11 @@ spec.fix_config = function (config)
 	---_
 end
 
+--- Setup function for markview.
+---@param config mkv.config?
 spec.setup = function (config)
 	config = spec.fix_config(config);
-	spec.config = vim.tbl_deep_extend("force", spec.default, config);
+	spec.config = vim.tbl_deep_extend("force", spec.config, config);
 end
 
 --- Options for the configuration table parser.
