@@ -279,12 +279,24 @@ markdown.list_item = function (buffer, TSNode, _, range)
 		return;
 	end
 
-	before = text[1]:match("^([%s%>]*%>)") or "";
-	indent = text[1]:gsub(utils.escape_string(before), ""):match("^(%s*)" .. utils.escape_string(marker)) or "";
+	before = text[1]:match("^[%s%>]*%>") or "";
 
-	if indent:match("^%>%s") then
-		indent = indent:sub(3);
-		before = before .. "> ";
+	if before:match("%>$") then
+		local tmp = text[1]:gsub(
+			"^" .. utils.escape_string(before),
+			""
+		);
+
+		if tmp:match("^%s") then
+			before = before .. " ";
+			tmp = tmp:gsub("^%s", "");
+
+			vim.print(tmp)
+		end
+
+		indent = tmp:match("^%s*");
+	else
+		indent = text[1]:match("^%s*");
 	end
 
 	range.col_start = before:len();
