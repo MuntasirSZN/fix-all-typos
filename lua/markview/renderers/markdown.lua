@@ -1862,7 +1862,7 @@ markdown.list_item = function (buffer, item)
 
 				virt_text_pos = "inline",
 				virt_text = {
-					{ string.rep(" ", (math.floor(item.indent / indent_size) + 1) * shift_width) }
+					{ string.rep(" ", (math.ceil(item.indent / indent_size) + 1) * shift_width) }
 				}
 			});
 		end
