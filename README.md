@@ -170,6 +170,8 @@ Markdown inline features,
   + Supported named entities: **786**.
   + Supported entity codes: **853**.
 
++ Github emoji shorthands support. Supports **1920** shorthands.
+
 + Custom configuration based on link patterns.
 
 Typst features,
@@ -223,6 +225,9 @@ Internal Icon provider features,
 System,
 
 - **Neovim:** 0.10.3
+
+>[!NOTE]
+> It is recommended to use `nowrap`(though there is wrap support in the plugin) & `expandtab`.
 
 ---
 
@@ -284,6 +289,8 @@ Plug "OXY2DEV/markview.nvim"
 
 >[!WARNING]
 > Do *not* lazy load this plugin as it is already lazy-loaded.
+>
+> Lazy-loading will cause **more time** for the previews to load when starting Neovim.
 
 The plugin should be loaded *after* your colorscheme to ensure the correct highlight groups are used.
 
@@ -762,6 +769,8 @@ These groups are then used as links by other groups responsible for various prev
 > Presets are looking for contributors!
 >
 > If you have any custom configuration that you would like to have as a preset you can open a `pull request` for that.
+
+Check the [wiki page]() for more information.
 
 ### 📚 Usage
 
