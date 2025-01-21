@@ -290,8 +290,6 @@ markdown.list_item = function (buffer, TSNode, _, range)
 		if tmp:match("^%s") then
 			before = before .. " ";
 			tmp = tmp:gsub("^%s", "");
-
-			vim.print(tmp)
 		end
 
 		indent = tmp:match("^%s*");

@@ -523,7 +523,6 @@ typst.idet = function (_, TSNode, text, range)
 	local _n = TSNode:parent();
 
 	while _n do
-		vim.print()
 		if vim.list_contains({ "raw_span", "raw_blck", "code", "field" }, _n:type()) then
 			return;
 		end
