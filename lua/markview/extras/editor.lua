@@ -735,7 +735,7 @@ editor.__completion = utils.create_user_command_class({
 });
 
 --- New command
-vim.api.nvim_create_user_command("Code", function (params)
+vim.api.nvim_create_user_command("Editor", function (params)
 	editor.__completion:exec(params)
 end, {
 	nargs = 1,
@@ -746,23 +746,23 @@ end, {
 
 ---+${lua, v24 commands}
 vim.api.nvim_create_user_command("CodeCreate", function ()
-	require("markview.spec").notify({
-		{ " :CodeCreate ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use " },
-		{ " :Code create ", "DiagnosticVirtualTextOk" },
-		{ " instead." }
-	}, { silent = true });
+	require("markview.health").notify("deprecation" , {
+		ignore = true,
+
+		option = ":CodeCreate",
+		alter = ":Code create"
+	});
 
 	editor.actions.create();
 end, {});
 
 vim.api.nvim_create_user_command("CodeEdit", function ()
-	require("markview.spec").notify({
-		{ " :CodeEdit ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use " },
-		{ " :Code edit ", "DiagnosticVirtualTextOk" },
-		{ " instead." }
-	}, { silent = true });
+	require("markview.health").notify("deprecation" , {
+		ignore = true,
+
+		option = ":CodeEdit",
+		alter = ":Code edit"
+	});
 
 	editor.actions.edit();
 end, {});
