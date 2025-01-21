@@ -177,23 +177,23 @@ end, {
 
 ---+${lua, v24 commands}
 vim.api.nvim_create_user_command("HeadingIncrease", function ()
-	require("markview.spec").notify({
-		{ " :HeadingIncrease ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use " },
-		{ " :Heading increase ", "DiagnosticVirtualTextOk" },
-		{ " instead." }
-	}, { silent = true });
+	require("markview.health").notify("deprecation", {
+		ignore = true,
+
+		option = ":HeadingIncrease",
+		alter = ":Heading increase"
+	});
 
 	headings.increase();
 end, {});
 
 vim.api.nvim_create_user_command("HeadingDecrease", function ()
-	require("markview.spec").notify({
-		{ " :HeadingDecrease ", "DiagnosticVirtualTextError" },
-		{ " is deprecated! Use " },
-		{ " :Heading decrease ", "DiagnosticVirtualTextOk" },
-		{ " instead." }
-	}, { silent = true });
+	require("markview.health").notify("deprecation", {
+		ignore = true,
+
+		option = ":HeadingDecrease",
+		alter = ":Heading decrease"
+	});
 
 	headings.decrease()
 end, {});
