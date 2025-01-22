@@ -193,6 +193,9 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 
 		---@type string[] List of modes where preview is shown.
 		local preview_modes = spec.get({ "preview", "modes" }, { fallback = {}, ignore_enable = true });
+		---@type string[] List of modes where preview is shown.
+		local hybrid_modes = spec.get({ "preview", "hybrid_modes" }, { fallback = {}, ignore_enable = true });
+
 		local old_mode = vim.v.event.old_mode;
 
 		if markview.actions.__is_attached(buffer) == false then
@@ -208,7 +211,22 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 			return;
 		end
 
-		if vim.list_contains(preview_modes, mode) then
+		if vim.list_contains(hybrid_modes, mode) then
+			health.notify("trace", {
+				level = 1,
+				message = string.format("Mode(%s): %d", mode, buffer);
+			});
+			health.__child_indent_in();
+
+			if vim.list_contains(hybrid_modes, old_mode) then
+				--- Switching between 2 hybrid modes.
+				goto callback;
+			else
+				vim.defer_fn(function ()
+					markview.render(buffer);
+				end, 0);
+			end
+		elseif vim.list_contains(preview_modes, mode) then
 			health.notify("trace", {
 				level = 1,
 				message = string.format("Mode(%s): %d", mode, buffer);
@@ -216,7 +234,11 @@ vim.api.nvim_create_autocmd({ "ModeChanged" }, {
 			health.__child_indent_in();
 
 			--- Preview
-			if vim.list_contains(preview_modes, old_mode) then
+			if vim.list_contains(hybrid_modes, old_mode) then
+				vim.defer_fn(function ()
+					markview.render(buffer);
+				end, 0);
+			elseif vim.list_contains(preview_modes, old_mode) then
 				--- Previous mode was a preview
 				--- mode.
 				--- Most likely the text hasn't
