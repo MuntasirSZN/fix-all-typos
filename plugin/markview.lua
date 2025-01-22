@@ -360,8 +360,8 @@ vim.api.nvim_create_autocmd({
 					return;
 				end
 
-				--- Buffer content changes MUST be
-				--- handle via debounce.
+				--- Hybrid mode movements MUST be
+				--- handled through debounce.
 				timer:start(delay, 0, vim.schedule_wrap(function ()
 					if vim.v.exiting ~= vim.NIL then
 						return;

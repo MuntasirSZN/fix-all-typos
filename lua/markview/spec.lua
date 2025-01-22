@@ -2782,7 +2782,7 @@ spec.fixup = {
 			option = "injections",
 			tip = {
 				{ "See ", "Normal" },
-				{ " :h markview-advanced-use ", "DiagnosticVirtualTextHint" }
+				{ " :h markview-advanced ", "DiagnosticVirtualTextHint" }
 			}
 		});
 

@@ -1,4 +1,6 @@
 markview.nvim	home.txt	/*markview.nvim*
+markview.nvim-advanced	advanced_usage.txt	/*markview.nvim-advanced*
+markview.nvim-advanced.header_folding	advanced_usage.txt	/*markview.nvim-advanced.header_folding*
 markview.nvim-autocmds	home.txt	/*markview.nvim-autocmds*
 markview.nvim-commands	home.txt	/*markview.nvim-commands*
 markview.nvim-config	home.txt	/*markview.nvim-config*

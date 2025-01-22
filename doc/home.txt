@@ -61,20 +61,24 @@ are written.
 ------------------------------------------------------------------------------
 📚 Wiki files                                              *markview.nvim-toc*
 
- 🔄 Migration guide .............................. |markview.nvim-migration|
- 💻 Developer docs ..................................... |markview.nvim-dev|
+  🔄 Migration guide .............................. |markview.nvim-migration|
+  💻 Developer docs ..................................... |markview.nvim-dev|
 
- 🌟 Custom renderers ............................. |markview.nvim-renderers|
-
- 🔭 Preview options ................................ |markview.nvim-preview|
- 🚨 Experimental options ...................... |markview.nvim-experimental|
-
- 🧾 Markdown options .............................. |markview.nvim-markdown|
- 🌐 HTML options ...................................... |markview.nvim-html|
- 🔖 Inline markdown options ......................... |markview.nvim-inline|
- 🔢 LaTeX option ..................................... |markview.nvim-latex|
- 📑 Typst options..................................... |markview.nvim-typst|
- 🔩 YAML options ...................................... |markview.nvim-yaml|
+  🌟 Custom renderers ............................. |markview.nvim-renderers|
+ 
+  🔭 Preview options ................................ |markview.nvim-preview|
+  🚨 Experimental options ...................... |markview.nvim-experimental|
+ 
+  🧾 Markdown options .............................. |markview.nvim-markdown|
+  🌐 HTML options ...................................... |markview.nvim-html|
+  🔖 Inline markdown options ......................... |markview.nvim-inline|
+  🔢 LaTeX option ..................................... |markview.nvim-latex|
+  📑 Typst options..................................... |markview.nvim-typst|
+  🔩 YAML options ...................................... |markview.nvim-yaml|
+ 
+  🧩 Presets ........................................ |markview.nvim-presets|
+  🎁 Extra modules .................................... |markview.nvim-extra|
+  🔥 Advanced usage ................................ |markview.nvim-advanced|
 
 ------------------------------------------------------------------------------
 🧭 Configuration                                        *markview.nvim-config*
