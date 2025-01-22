@@ -2875,6 +2875,13 @@ spec.fixup = {
 				health.notify("deprecation", {
 					option = "code_blocks → language_names"
 				});
+			elseif key == "hl" then
+				health.notify("deprecation", {
+					option = "code_blocks → hl",
+					alter = "code_blocks → border_hl"
+				});
+
+				_o.markdown.code_blocks.border_hl = value;
 			elseif key == "style" then
 				if value == "minimal" then
 					health.notify("type", {
@@ -3052,7 +3059,7 @@ spec.fixup = {
 					end
 
 					::invalid_type::
-				else
+				elseif k ~= "__emoji_link_compatability" then
 					_l[k] = v;
 				end
 			end
@@ -3114,7 +3121,7 @@ spec.fixup = {
 					end
 
 					::invalid_type::
-				else
+				elseif k ~= "use_unicode" then
 					_l[k] = v;
 				end
 			end

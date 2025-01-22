@@ -53,7 +53,7 @@ health.notify = function (handler, opts)
 		for _, item in ipairs(tbl) do
 			if type(item[1]) == "string" then
 				if type(item[2]) == "string" and item[2]:match("VirtualText") then
-					_t = _t .. item[1]:gsub("^%s", "|"):gsub("%s$", "|");
+					_t = _t .. item[1]:gsub("^%s", "{"):gsub("%s$", "}");
 				else
 					_t = _t .. item[1];
 				end
@@ -115,7 +115,7 @@ health.notify = function (handler, opts)
 			ignore = opts.ignore,
 
 			alternative = opts.alter,
-			tip = opts.tip
+			tip = opts.tip and to_string(opts.tip) or nil
 		});
 		---_
 	elseif handler == "type" then
@@ -568,39 +568,53 @@ health.check = function ()
 	if pcall(require, "nvim-web-devicons") then
 		vim.health.ok("`nvim-tree/nvim-web-devicons` found.");
 	else
-		vim.health.warn("`nvim-tree/nvim-web-devicons` not found.");
+		vim.health.info("`nvim-tree/nvim-web-devicons` not found.");
 	end
 
 	if pcall(require, "mini.icons") then
 		vim.health.ok("`echasnovski/mini.icons` found.");
 	else
-		vim.health.warn("`echasnovski/mini.icons` not found.");
-	end
-
-	if pcall(require, "markview.filetypes") then
-		vim.health.ok("`Internal icon provider` found.")
-	else
-		vim.health.error("`Internal icon provider` not found.");
+		vim.health.info("`echasnovski/mini.icons` not found.");
 	end
 
  ------------------------------------------------------------------------------------------ 
 
-	vim.health.start("🚧 Configuration::");
+	vim.health.start("🚧 Configuration:");
+	local errors = false;
 
-	if #spec.warnings == 0 then
-		vim.health.ok("No errors in user configuration found!");
-	else
-		for _, msg in ipairs(spec.warnings) do
-			local _c = msg.deprecated and vim.health.error or vim.health.warn;
-
-			if msg.class == "markview_opt_name_change" then
-				_c("Deprecated option found, `" .. msg.old .. "` → `" .. msg.new .. "`");
-			elseif msg.class == "markview_opt_deprecated" then
-				_c("Deprecated option found, `" .. msg.name .. "`. Please see the documentation!");
-			elseif msg.class == "markview_opt_invalid_type" then
-				_c("Invalid value type, `" .. msg.name .. "`, should be a `" .. msg.should_be .. "` instead it is a `" .. msg.is .. "`!");
-			end
+	for _, entry in ipairs(health.log) do
+		if entry.type == "trace" or entry.ignore == true then
+			goto continue;
 		end
+
+		errors = true;
+
+		if entry.kind == "deprecation" then
+			local text = string.format("`%s` is deprecated!", entry.name);
+
+			if entry.alternative then
+				text = text .. string.format(" Use `%s` instead.", entry.alternative);
+			end
+
+			vim.health.warn(text);
+
+			if entry.tip then
+				vim.health.info(string.format("Tip: %s", entry.tip));
+			end
+		elseif entry.kind == "type_error" then
+			vim.health.warn(string.format("%s expects `%s`, not `%s`.", entrtype_errory.option, entry.requires, entry.receives));
+		elseif entry.kind == "hl" then
+			vim.health.warn(string.format("Failed to set highlight: `%s`. Error: %s.", entry.group, entry.message));
+		end
+
+	    ::continue::
+	end
+
+
+	if health.fixed_config then
+		vim.health.info("A patched version of your config is available below:\n" .. vim.inspect(health.fixed_config));
+	elseif errors == false then
+		vim.health.ok("No errors found!")
 	end
 
  ------------------------------------------------------------------------------------------ 
