@@ -4,13 +4,11 @@
     A hackable <b>Markdown</b>, <b>HTML</b>, <b>LaTeX</b>, <b>Typst</b> & <b>YAML</b> previewer for Neovim.
 </p>
 
-<!-- Video Demo here! -->
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/showcase.gif">
 
 <div align="center">
     <a href="https://github.com/OXY2DEV/markview.nvim/wiki/Home">📚 Wiki</a> | <a href="#-extra-modules">🧩 Extras</a> | <a href="#-presets">📦 Presets</a>
 </div>
-
-<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/catppuccin_mocha.png">
 
 <!-- Screenshots here -->
 
