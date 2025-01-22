@@ -34,6 +34,40 @@ local concat = function (list)
 	return table.concat(list);
 end
 
+--- Cached configuration to increase performance.
+markdown.__inline_config = {
+	codes = spec.get({ "markdown_inline", "inline_codes"},      { fallback = nil }),
+	hyper = spec.get({ "markdown_inline", "hyperlinks" },       { fallback = nil }),
+	image = spec.get({ "markdown_inline", "images" },           { fallback = nil }),
+	email = spec.get({ "markdown_inline", "emails" },           { fallback = nil }),
+	embed = spec.get({ "markdown_inline", "embed_files" },      { fallback = nil }),
+	blref = spec.get({ "markdown_inline", "block_references" }, { fallback = nil }),
+	int   = spec.get({ "markdown_inline", "internal_links" },   { fallback = nil }),
+	uri   = spec.get({ "markdown_inline", "uri_autolinks" },    { fallback = nil }),
+	esc   = spec.get({ "markdown_inline", "escapes" },          { fallback = nil }),
+	ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil }),
+	emo   = spec.get({ "markdown_inline", "emoji_shorthands" }, { fallback = nil }),
+	hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil }),
+};
+
+--- Reloads cached configuration.
+markdown.__new_config = function ()
+	markdown.__inline_config = {
+		codes = spec.get({ "markdown_inline", "inline_codes"},      { fallback = nil }),
+		hyper = spec.get({ "markdown_inline", "hyperlinks" },       { fallback = nil }),
+		image = spec.get({ "markdown_inline", "images" },           { fallback = nil }),
+		email = spec.get({ "markdown_inline", "emails" },           { fallback = nil }),
+		embed = spec.get({ "markdown_inline", "embed_files" },      { fallback = nil }),
+		blref = spec.get({ "markdown_inline", "block_references" }, { fallback = nil }),
+		int   = spec.get({ "markdown_inline", "internal_links" },   { fallback = nil }),
+		uri   = spec.get({ "markdown_inline", "uri_autolinks" },    { fallback = nil }),
+		esc   = spec.get({ "markdown_inline", "escapes" },          { fallback = nil }),
+		ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil }),
+		emo   = spec.get({ "markdown_inline", "emoji_shorthands" }, { fallback = nil }),
+		hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil }),
+	};
+end
+
 --- Gets the preview text from a string containing markdown
 --- syntax.
 ---
@@ -47,19 +81,66 @@ markdown.output = function (str, buffer)
 	---+${func}
 	local decorations = 0;
 
+	--- Checks if syntax exists in {str}.
+	---@return boolean
+	local function has_syntax ()
+		---+${lua, Conditions}
+		if str:match("`(.-)`") then
+			return true;
+		elseif str:match("\\([%\\%*%_%{%}%[%]%(%)%#%+%-%.%!%%<%>$])") then
+			return true;
+		elseif str:match("([%*]+)(.-)([%*]+)") then
+			return true;
+		elseif str:match("%~%~(.-)%~%~") then
+			return true;
+		elseif str:match("%&([%d%a%#]+);") then
+			return true;
+		elseif str:match(":([%a%d%_%+%-]+):") then
+			return true;
+		elseif str:match("%=%=(.-)%=%=") then
+			return true;
+		elseif str:match("%!%[%[([^%]]+)%]%]") then
+			return true;
+		elseif str:match("%[%[%#%^([^%]]+)%]%]") then
+			return true;
+		elseif str:match("%[%[([^%]]+)%]%]") then
+			return true;
+		elseif str:match("%!%[([^%]]*)%]([%(%[])([^%)]*)([%)%]])") then
+			return true;
+		elseif str:match("%!%[([^%]]*)%]") then
+			return true;
+		elseif str:match("%[([^%]]*)%]([%(%[])([^%)]*)([%)%]])") then
+			return true;
+		elseif str:match("%[([^%]]+)%]") then
+			return true;
+		elseif str:match("%<([^%s%@]-)@(%S+)%>") then
+			return true;
+		elseif str:match("%<(%S+)%>") then
+			return true;
+		end
+		---_
+
+		return false;
+	end
+
+	--- If no syntax items are found and no highlight exits
+	if has_syntax() == false then
+		return str, decorations;
+	end
+
 	--- Inline codes config
-	local codes = spec.get({ "markdown_inline", "inline_codes"},      { fallback = nil });
-	local hyper = spec.get({ "markdown_inline", "hyperlinks" },       { fallback = nil });
-	local image = spec.get({ "markdown_inline", "images" },           { fallback = nil });
-	local email = spec.get({ "markdown_inline", "emails" },           { fallback = nil });
-	local embed = spec.get({ "markdown_inline", "embed_files" },      { fallback = nil });
-	local blref = spec.get({ "markdown_inline", "block_references" }, { fallback = nil });
-	local int   = spec.get({ "markdown_inline", "internal_links" },   { fallback = nil });
-	local uri   = spec.get({ "markdown_inline", "uri_autolinks" },    { fallback = nil });
-	local esc   = spec.get({ "markdown_inline", "escapes" },          { fallback = nil });
-	local ent   = spec.get({ "markdown_inline", "entities" },         { fallback = nil });
-	local emo   = spec.get({ "markdown_inline", "emoji_shorthands" }, { fallback = nil });
-	local hls   = spec.get({ "markdown_inline", "highlights" },       { fallback = nil });
+	local codes = markdown.__inline_config.codes;
+	local hyper = markdown.__inline_config.hyper;
+	local image = markdown.__inline_config.image;
+	local email = markdown.__inline_config.email;
+	local embed = markdown.__inline_config.embed;
+	local blref = markdown.__inline_config.blref;
+	local int   = markdown.__inline_config.int;
+	local uri   = markdown.__inline_config.url;
+	local esc   = markdown.__inline_config.esc;
+	local ent   = markdown.__inline_config.ent;
+	local emo   = markdown.__inline_config.emo;
+	local hls   = markdown.__inline_config.hls;
 
 
 	str = str:gsub("\\%`", " ");
@@ -118,13 +199,7 @@ markdown.output = function (str, buffer)
 			break;
 		end
 
-		str = str:gsub(
-			concat({
-				"\\",
-				escaped
-			}),
-			" "
-		);
+		str = str:gsub(concat({ "\\", escaped }), " ", 1);
 	end
 
 	for latex in str:gmatch("%$([^%$]*)%$") do
@@ -139,7 +214,8 @@ markdown.output = function (str, buffer)
 				"$",
 				string.rep("X", vim.fn.strdisplaywidth(latex)),
 				"$"
-			})
+			}),
+			1
 		);
 		---_
 	end
@@ -160,7 +236,8 @@ markdown.output = function (str, buffer)
 				content,
 				str_a
 			}),
-			content
+			content,
+			1
 		);
 
 	    ::continue::
@@ -177,7 +254,8 @@ markdown.output = function (str, buffer)
 			}),
 			concat({
 				striked
-			})
+			}),
+			1
 		);
 		---_
 	end
@@ -2305,13 +2383,15 @@ markdown.table = function (buffer, item)
 	---@type integer Current column number.
 	local c = 1;
 
+	markdown.__new_config();
+
 	---+${custom, Calculate heading column widths}
 	for _, col in ipairs(item.header) do
 		if col.class == "column" then
 			local o, dec = markdown.output(col.text, buffer);
-			table.insert(visible_texts.header, o);
 
 			o = vim.fn.strdisplaywidth(o);
+			table.insert(visible_texts.header, o);
 
 			if not col_widths[c] or col_widths[c] < o then
 				col_widths[c] = o;
@@ -2335,13 +2415,13 @@ markdown.table = function (buffer, item)
 
 	for _, col in ipairs(item.separator) do
 		if col.class == "column" then
-			local o, dec = vim.fn.strdisplaywidth(col.text);
+			local o = vim.fn.strdisplaywidth(col.text);
 
 			if not col_widths[c] or col_widths[c] < o then
 				col_widths[c] = o;
 			end
 
-			local vim_col_width = vim.fn.strdisplaywidth(col.text) + (dec or 0);
+			local vim_col_width = vim.fn.strdisplaywidth(col.text);
 
 			if not vim_width[c] then
 				vim_width[c] = vim_col_width;
@@ -2362,9 +2442,9 @@ markdown.table = function (buffer, item)
 		for _, col in ipairs(row) do
 			if col.class == "column" then
 				local o, dec = markdown.output(col.text, buffer);
-				table.insert(visible_texts.rows[r], o);
 
 				o = vim.fn.strdisplaywidth(o);
+				table.insert(visible_texts.rows[r], o);
 
 				if not col_widths[c] or col_widths[c] < o then
 					col_widths[c] = o;
@@ -2562,7 +2642,7 @@ markdown.table = function (buffer, item)
 			---_
 		elseif part.class == "column" then
 			---+${custom, Handle columns of text inside the header}
-			local visible_width = vim.fn.strdisplaywidth(visible_texts.header[c]);
+			local visible_width = visible_texts.header[c];
 			local column_width  = col_widths[c];
 
 			local top, top_hl = get_border("top", 2);
@@ -2982,7 +3062,7 @@ markdown.table = function (buffer, item)
 				---_
 			elseif part.class == "column" then
 				---+${custom, Handle columns of text inside the header}
-				local visible_width = vim.fn.strdisplaywidth(visible_texts.rows[r][c]);
+				local visible_width = visible_texts.rows[r][c];
 				local column_width  = col_widths[c];
 
 				if visible_width < column_width then
@@ -3149,7 +3229,7 @@ markdown.table = function (buffer, item)
 			---_
 		elseif part.class == "column" then
 			---+${custom, Handle columns of text inside the last row}
-			local visible_width = vim.fn.strdisplaywidth(visible_texts.rows[#visible_texts.rows][c]);
+			local visible_width = visible_texts.rows[#visible_texts.rows][c];
 			local column_width  = col_widths[c];
 
 			local bottom, bottom_hl = bottom_part(2);

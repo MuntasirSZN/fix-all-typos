@@ -3335,6 +3335,10 @@ spec.get = function (keys, opts)
 	local function to_static(val, args)
 		---+${lua}
 
+		if type(val) ~= "function" then
+			return val;
+		end
+
 		args = args or {};
 
 		---@diagnostic disable
@@ -3403,7 +3407,12 @@ spec.get = function (keys, opts)
 		local ignore = opts.eval_ignore or {};
 
 		for k, v in pairs(val) do
-			if vim.list_contains(ignore, k) == false then
+			if type(v) ~= "function" then
+				--- A silly attempt at reducing
+				--- wasted time due to extra
+				--- logic.
+				_e[k] = v;
+			elseif vim.list_contains(ignore, k) == false then
 				if vim.list_contains(eval, k) then
 					_e[k] = to_static(v, opts.eval_args);
 				else
