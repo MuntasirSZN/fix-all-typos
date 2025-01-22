@@ -330,8 +330,8 @@ local function trace_view_setup ()
 		health.window = vim.api.nvim_open_win(health.buffer, true, {
 			relative = "editor",
 
-			row = math.ceil((vim.o.columns - w) / 2),
-			col = math.ceil((vim.o.lines - h) / 2),
+			row = math.ceil((vim.o.lines - h) / 2),
+			col = math.ceil((vim.o.columns - w) / 2),
 
 			width = w,
 			height = h,
@@ -342,8 +342,8 @@ local function trace_view_setup ()
 		health.window = vim.api.nvim_open_win(health.buffer, true, {
 			relative = "editor",
 
-			row = math.ceil((vim.o.columns - w) / 2),
-			col = math.ceil((vim.o.lines - h) / 2),
+			row = math.ceil((vim.o.lines - h) / 2),
+			col = math.ceil((vim.o.columns - w) / 2),
 
 			width = w,
 			height = h,
@@ -354,8 +354,8 @@ local function trace_view_setup ()
 		vim.api.nvim_win_set_config(health.window, {
 			relative = "editor",
 
-			row = math.ceil((vim.o.columns - w) / 2),
-			col = math.ceil((vim.o.lines - h) / 2),
+			row = math.ceil((vim.o.lines - h) / 2),
+			col = math.ceil((vim.o.columns - w) / 2),
 
 			width = w,
 			height = h
