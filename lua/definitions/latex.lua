@@ -119,13 +119,16 @@ M.latex_blocks = {
 ---@class __latex.blocks
 ---
 ---@field class "latex_block"
+---@field marker string
 ---
 ---@field text string[]
 ---@field range node.range
 M.__latex_blocks = {
 	class = "latex_block",
-	inline = true,
+	marker = "$$",
+
 	closed = true,
+
 	text = { "$$1 + 2 = 3$$" },
 	range = {
 		row_start = 0,
@@ -382,11 +385,14 @@ M.latex_inlines = {
 ---@class __latex.inlines
 ---
 ---@field class "latex_inlines"
+---@field marker string
+---
 ---@field closed boolean Is there a closing `$`?
 ---@field text string[]
 ---@field range node.range
 M.__latex_inlines = {
 	class = "latex_inlines",
+	marker = "$",
 	closed = true,
 
 	text = { "$1 + 1 = 2$" },

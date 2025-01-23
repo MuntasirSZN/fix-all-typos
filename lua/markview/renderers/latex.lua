@@ -24,7 +24,7 @@ latex.block = function (buffer, item)
 	---+${func}
 	local range = item.range;
 
-	---@type latex.blocks?
+	---@type latex.blocks_static?
 	local config = spec.get({ "latex", "blocks" }, { fallback = nil, eval_args = { buffer, item } });
 
 	if not config then
@@ -33,7 +33,7 @@ latex.block = function (buffer, item)
 
 	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start, range.col_start, {
 		undo_restore = false, invalidate = true,
-		end_col = range.col_start + 2,
+		end_col = range.col_start + #(item.marker or "$$"),
 		conceal = "",
 
 		virt_text_pos = "right_align",
@@ -43,7 +43,7 @@ latex.block = function (buffer, item)
 		line_hl_group = utils.set_hl(config.hl)
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, math.max(0, range.col_end - 2), {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, math.max(0, range.col_end - #(item.marker or "$$")), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
@@ -54,6 +54,7 @@ latex.block = function (buffer, item)
 	for l = 1, #item.text - 2 do
 		vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_start + l, math.min(#item.text[l + 1], range.col_start), {
 			undo_restore = false, invalidate = true,
+			right_gravity = false,
 
 			virt_text_pos = "inline",
 			virt_text = {

@@ -63,25 +63,56 @@ latex.block = function (buffer, TSNode, text, range)
 
 	while parent do
 		if vim.list_contains({ "displayed_equation", "inline_formula" }, parent:type()) then
-			return;
+			break;
 		end
 
 		parent = parent:parent();
 	end
 
-	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
+	local from = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start);
+	local to   = vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(range.col_end + 1);
 	local inline = false;
 
-	if from:match("^(%s*)$") == nil or to:match("^(%s*)%$%$$") == nil then
-		inline = true;
-	elseif text[1]:match("%$%$$") == nil then
-		inline = true;
+	if text[1]:match("^%\\%[") then
+		if from:len() > 1 and from:match("[^%s]") then
+			-- Non-whitespace character before \[.
+			inline = true;
+		elseif text[1]:match("^%\\%[.+") then
+			-- Text after \[.
+			inline = true;
+		elseif to:len() > 1 and to:match("[^%s]") then
+			-- Non-whitespace character after \].
+			inline = true;
+		elseif text[#text]:match(".+%\\%]$") then
+			-- Text before \].
+			inline = true;
+		end
+	elseif text[1]:match("%$%$") then
+		if from:len() > 1 and from:match("[^%s]") then
+			-- Non-whitespace before $$.
+			inline = true;
+		elseif text[1]:match("^%$%$.+") then
+			-- Text after starting $$.
+			inline = true;
+		elseif to:len() > 1 and to:match("[^%s]") then
+			-- Non-whitespace character after closing $$.
+			inline = true;
+		elseif text[#text]:match(".+%$%$$") then
+			-- Text before closing $$.
+			inline = true;
+		end
+	else
+		return;
+	end
+
+	if parent and inline then
+		return;
 	end
 
 	---@class __latex.blocks
 	latex.insert({
 		class = inline == true and "latex_inline" or "latex_block",
-		marker = inline == true and "$$" or nil,
+		marker = "$$",
 
 		text = text,
 		range = range
@@ -187,30 +218,69 @@ end
 --- Inline LaTeX parser.
 ---@param text string[]
 ---@param range node.range
-latex.inline = function (_, TSNode, text, range)
+latex.inline = function (buffer, TSNode, text, range)
 	---+${lua}
 
 	local parent = TSNode:parent();
 
 	while parent do
 		if vim.list_contains({ "displayed_equation", "inline_formula" }, parent:type()) then
-			return;
+			break;
 		end
 
 		parent = parent:parent();
 	end
 
-	local closed = true;
+	local from = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start);
+	local to   = vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(range.col_end + 1);
+	local inline = false;
 
-	if not text[#text]:match("%$$") then
-		closed = false;
+	local marker;
+
+	if text[1]:match("^%\\%(") then
+		marker = "\\(";
+
+		if from:len() > 1 and from:match("[^%s]") then
+			-- Non-whitespace character before \(.
+			inline = true;
+		elseif text[1]:match("^%\\%(.+") then
+			-- Text after \(.
+			inline = true;
+		elseif to:len() > 1 and to:match("[^%s]") then
+			-- Non-whitespace character after \).
+			inline = true;
+		elseif text[#text]:match(".+%\\%)$") then
+			-- Text before \).
+			inline = true;
+		end
+	elseif text[1]:match("%$") then
+		marker = "$";
+
+		if from:len() > 1 and from:match("[^%s]") then
+			-- Non-whitespace before $$.
+			inline = true;
+		elseif text[1]:match("^%$.+") then
+			-- Text after starting $$.
+			inline = true;
+		elseif to:len() > 1 and to:match("[^%s]") then
+			-- Non-whitespace character after closing $$.
+			inline = true;
+		elseif text[#text]:match(".+%$$") then
+			-- Text before closing $$.
+			inline = true;
+		end
+	else
+		return;
+	end
+
+	if parent and inline then
+		return;
 	end
 
 	---@type __latex.inlines
 	latex.insert({
-		class = "latex_inline",
-		marker = "$",
-		closed = closed,
+		class = inline == true and "latex_inline" or "latex_block",
+		marker = marker,
 
 		text = text,
 		range = range

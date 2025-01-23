@@ -1808,6 +1808,50 @@ spec.default = {
 
 			---+${lua, Various commonly used LaTeX math commands}
 
+			["boxed"] = {
+				condition = function (item)
+					return #item.args == 1;
+				end,
+				on_command = {
+					conceal = ""
+				},
+
+				on_args = {
+					{
+						on_before = function (item)
+							return {
+								end_col = item.range[2] + 1,
+								conceal = "",
+
+								virt_text_pos = "inline",
+								virt_text = {
+									{ " ", "MarkviewPalette4Fg" },
+									{ "[", "@punctuation.bracket.latex" }
+								},
+
+								hl_mode = "combine"
+							}
+						end,
+
+						after_offset = function (range)
+							return { range[1], range[2], range[3], range[4] - 1 };
+						end,
+						on_after = function (item)
+							return {
+								end_col = item.range[4],
+								conceal = "",
+
+								virt_text_pos = "inline",
+								virt_text = {
+									{ "]", "@punctuation.bracket" }
+								},
+
+								hl_mode = "combine"
+							}
+						end
+					}
+				}
+			},
 			["frac"] = {
 				condition = function (item)
 					return #item.args == 2;
