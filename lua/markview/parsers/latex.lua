@@ -56,8 +56,18 @@ end
 ---@param buffer integer
 ---@param text string[]
 ---@param range node.range
-latex.block = function (buffer, _, text, range)
+latex.block = function (buffer, TSNode, text, range)
 	---+${lua}
+
+	local parent = TSNode:parent();
+
+	while parent do
+		if vim.list_contains({ "displayed_equation", "inline_formula" }, parent:type()) then
+			return;
+		end
+
+		parent = parent:parent();
+	end
 
 	local from, to = vim.api.nvim_buf_get_lines(buffer, range.row_start, range.row_start + 1, false)[1]:sub(0, range.col_start), vim.api.nvim_buf_get_lines(buffer, range.row_end, range.row_end + 1, true)[1]:sub(0, range.col_end);
 	local inline = false;
@@ -177,8 +187,18 @@ end
 --- Inline LaTeX parser.
 ---@param text string[]
 ---@param range node.range
-latex.inline = function (_, _, text, range)
+latex.inline = function (_, TSNode, text, range)
 	---+${lua}
+
+	local parent = TSNode:parent();
+
+	while parent do
+		if vim.list_contains({ "displayed_equation", "inline_formula" }, parent:type()) then
+			return;
+		end
+
+		parent = parent:parent();
+	end
 
 	local closed = true;
 
