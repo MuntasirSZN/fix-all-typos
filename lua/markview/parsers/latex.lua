@@ -253,7 +253,7 @@ latex.inline = function (buffer, TSNode, text, range)
 			-- Text before \).
 			inline = true;
 		end
-	elseif text[1]:match("%$") then
+	elseif text[1]:match("^%$") then
 		marker = "$";
 
 		if from:len() > 1 and from:match("[^%s]") then

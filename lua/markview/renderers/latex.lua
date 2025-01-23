@@ -262,7 +262,7 @@ end
 latex.inline = function (buffer, item)
 	---+${func}
 
-	---@type latex.inlines?
+	---@type latex.inlines_static?
 	local config = spec.get({ "latex", "inlines" }, { fallback = nil, eval_args = { buffer, item } });
 	local range = item.range;
 
@@ -303,7 +303,7 @@ latex.inline = function (buffer, item)
 		hl_group = utils.set_hl(config.hl),
 	});
 
-	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (item.closed and #item.marker or 0), {
+	vim.api.nvim_buf_set_extmark(buffer, latex.ns, range.row_end, range.col_end - (#item.marker or 0), {
 		undo_restore = false, invalidate = true,
 		end_col = range.col_end,
 		conceal = "",
