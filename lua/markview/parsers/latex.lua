@@ -83,7 +83,7 @@ latex.block = function (buffer, TSNode, text, range)
 		elseif to:len() > 1 and to:match("[^%s]") then
 			-- Non-whitespace character after \].
 			inline = true;
-		elseif text[#text]:match(".+%\\%]$") then
+		elseif text[#text]:match("[^%s]+%\\%]$") then
 			-- Text before \].
 			inline = true;
 		end
@@ -97,7 +97,7 @@ latex.block = function (buffer, TSNode, text, range)
 		elseif to:len() > 1 and to:match("[^%s]") then
 			-- Non-whitespace character after closing $$.
 			inline = true;
-		elseif text[#text]:match(".+%$%$$") then
+		elseif text[#text]:match("[^%s]+%$%$$") then
 			-- Text before closing $$.
 			inline = true;
 		end
@@ -249,7 +249,7 @@ latex.inline = function (buffer, TSNode, text, range)
 		elseif to:len() > 1 and to:match("[^%s]") then
 			-- Non-whitespace character after \).
 			inline = true;
-		elseif text[#text]:match(".+%\\%)$") then
+		elseif text[#text]:match("[^%s]+%\\%)$") then
 			-- Text before \).
 			inline = true;
 		end
@@ -265,7 +265,7 @@ latex.inline = function (buffer, TSNode, text, range)
 		elseif to:len() > 1 and to:match("[^%s]") then
 			-- Non-whitespace character after closing $$.
 			inline = true;
-		elseif text[#text]:match(".+%$$") then
+		elseif text[#text]:match("[^%s]+%$$") then
 			-- Text before closing $$.
 			inline = true;
 		end
