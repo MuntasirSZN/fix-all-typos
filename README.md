@@ -231,6 +231,12 @@ YAML features,
 
 Hybrid mode features,
 
+
+| Normal hybrid mode | Linewise hybrid mode |
+|--------------------|----------------------|
+| ![hybrid_mode](https://github.com/OXY2DEV/markview.nvim/blob/images/v25/wiki/hybrid_mode.png) | ![linewise_hybrid_mode](https://github.com/OXY2DEV/markview.nvim/blob/images/v25/wiki/linewise_hybrid_mode.png) |
+
+
 + *Node-based* edit range.
   Clears the current nodes range of lines. Useful when editing lists, block quotes, code blocks, tables etc.
 
