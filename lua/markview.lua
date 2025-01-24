@@ -13,6 +13,8 @@ local health = require("markview.health");
 --- Plugin state variables.
 ---@type mkv.state
 markview.state = {
+	enable = true,
+
 	attached_buffers = {},
 	buffer_states = {},
 
@@ -1267,6 +1269,13 @@ markview.commands = {
 
 	["splitClose"] = function ()
 		markview.actions.splitClose()
+	end,
+
+	["Start"] = function ()
+		markview.state.enable = true;
+	end,
+	["Stop"] = function ()
+		markview.state.enable = false;
 	end,
 
 	["open"] = function ()

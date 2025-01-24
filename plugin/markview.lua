@@ -118,7 +118,10 @@ vim.api.nvim_create_autocmd({ "BufAdd", "BufEnter" }, {
 		---+${lua}
 		local buffer = event.buf;
 
-		if markview.actions.__is_attached(buffer) == true then
+		if markview.state.enable == false then
+			--- New buffers shouldn't be registered.
+			return;
+		elseif markview.actions.__is_attached(buffer) == true then
 			--- Already attached to this buffer!
 			return;
 		end
