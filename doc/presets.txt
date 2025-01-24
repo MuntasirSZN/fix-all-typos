@@ -5,48 +5,48 @@ Pre-defined configurations to take inspiration from.
 ------------------------------------------------------------------------------
 🔩 Usage                                           *markview.nvim-presets.use*
 >lua
-	local presets = require("markview.presets");
+    local presets = require("markview.presets");
 
-	require("markview").setup({
-		markdown = {
-			headings = presets.headings.glow
-		}
-	});
+    require("markview").setup({
+        markdown = {
+            headings = presets.headings.glow
+        }
+    });
 
-	--- You can again call `setup()` to modify
-	--- the options without changing the preset.
-	require("markview").setup({
-		markdown = {
-			headings = { shift_width = 1 }
-		}
-	});
+    --- You can again call `setup()` to modify
+    --- the options without changing the preset.
+    require("markview").setup({
+        markdown = {
+            headings = { shift_width = 1 }
+        }
+    });
 <
 ------------------------------------------------------------------------------
 🔖 Heading presets                            *markview.nvim-presets.headings*
 
 📚 Use: ~
 >lua
-	local presets = require("markview.presets").headings;
+    local presets = require("markview.presets").headings;
 
-	require("markview").setup({
-		markdown = {
-			headings = presets.glow
-		}
-	});
+    require("markview").setup({
+        markdown = {
+            headings = presets.glow
+        }
+    });
 <
 🌟 Showcase: ~
 
-	- glow
+    - glow
 
-	- glow_center
+    - glow_center
 
-	- slanted
+    - slanted
 
-	- arrowed
+    - arrowed
 
-	- simple
+    - simple
 
-	- marker
+    - marker
 
 ------------------------------------------------------------------------------
 🔖 Horizontal rules presets                        *markview.nvim-presets.hr*
@@ -54,54 +54,54 @@ Pre-defined configurations to take inspiration from.
 📚 Use: ~
 
 >lua
-	local presets = require("markview.horizontal_rules").horizontal_rules;
+    local presets = require("markview.horizontal_rules").horizontal_rules;
 
-	require("markview").setup({
-		markdown = {
-			horizontal_rules = presets.arrowed
-		}
-	});
+    require("markview").setup({
+        markdown = {
+            horizontal_rules = presets.arrowed
+        }
+    });
 <
 
 🌟 Showcase: ~
 
-	- thin
+    - thin
 
-	- thick
+    - thick
 
-	- double
+    - double
 
-	- dashed
+    - dashed
 
-	- dotted
+    - dotted
 
-	- solid
+    - solid
 
-	- arrowed
+    - arrowed
 
 ------------------------------------------------------------------------------
 🔖 Tables presets                               *markview.nvim-presets.tables*
 
 📚 Use: ~
 >lua
-	local presets = require("markview.presets").tables;
+    local presets = require("markview.presets").tables;
 
-	require("markview").setup({
-		markdown = {
-			tables = presets.none
-		}
-	});
+    require("markview").setup({
+        markdown = {
+            tables = presets.none
+        }
+    });
 <
 🌟 Showcase: ~
 
-	- none
+    - none
 
-	- single
+    - single
 
-	- double
+    - double
 
-	- rounded
+    - rounded
 
-	- solid
+    - solid
 
 vim:ft=help:tw=78:
