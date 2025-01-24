@@ -4,13 +4,11 @@
     A hackable <b>Markdown</b>, <b>HTML</b>, <b>LaTeX</b>, <b>Typst</b> & <b>YAML</b> previewer for Neovim.
 </p>
 
-<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/showcase.gif">
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/markdown-catppuccin_mocha.png">
 
 <div align="center">
     <a href="https://github.com/OXY2DEV/markview.nvim/wiki/Home">📚 Wiki</a> | <a href="#-extra-modules">🧩 Extras</a> | <a href="#-presets">📦 Presets</a>
 </div>
-
-<!-- Screenshots here -->
 
 ## 📖 Table of contents
 
@@ -42,133 +40,142 @@ Core features,
 
 HTML features,
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/html-tokyonight_night.png">
+
 + Allows customising how various container & void elements are shown.
 + Supports *heading* elements out of the box.
 + Supports the following container elements out of the box,
-  + `<b></b>`
-  + `<code></code>`
-  + `<em></em>`
-  + `<i></i>`
-  + `<mark></mark>`
-  + `<strong></strong>`
-  + `<sub></sub>`
-  + `<sup></sup>`
-  + `<u></u>`
+    + `<b></b>`
+    + `<code></code>`
+    + `<em></em>`
+    + `<i></i>`
+    + `<mark></mark>`
+    + `<strong></strong>`
+    + `<sub></sub>`
+    + `<sup></sup>`
+    + `<u></u>`
 
 + Supports the following void elements out of the box,
-  + `<hr>`
-  + `<br>`
+    + `<hr>`
+    + `<br>`
 
 LaTeX features,
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/latex-cyberdream.png">
+
 + Supports the following items,
-  + Math blocks(typically `$$...$$`) & inline math(typically `$...$`).
-  + LaTeX commands.
-  + Escaped characters.
-  + Math fonts
-  + Subscript.
-  + Superscript.
-  + Math symbols.
-  + `\text{}`.
+    + Math blocks(typically `$$...$$`) & inline math(typically `$...$`).
+    + LaTeX commands.
+    + Escaped characters.
+    + Math fonts
+    + Subscript.
+    + Superscript.
+    + Math symbols.
+    + `\text{}`.
 
 + Supports commonly used math commands out of the box,
-  + `\frac{}`
-  + `\sin{}`
-  + `\cos{}`
-  + `\tan{}`
-  + `\sinh{}`
-  + `\cosh{}`
-  + `\tanh{}`
-  + `\csc{}`
-  + `\sec{}`
-  + `\cot{}`
-  + `\csch{}`
-  + `\sech{}`
-  + `\coth{}`
-  + `\arcsin{}`
-  + `\arccos{}`
-  + `\arctan{}`
-  + `\arg{}`
-  + `\deg{}`
-  + `\drt{}`
-  + `\dim{}`
-  + `\exp{}`
-  + `\gcd{}`
-  + `\hom{}`
-  + `\inf{}`
-  + `\ker{}`
-  + `\lg{}`
-  + `\lim{}`
-  + `\liminf{}`
-  + `\limsup{}`
-  + `\ln{}`
-  + `\log{}`
-  + `\min{}`
-  + `\max{}`
-  + `\Pr{}`
-  + `\sup{}`
-  + `\sqrt{}`
-  + `\lvert{}`
-  + `\lVert{}`
+    + `\frac{}`
+    + `\sin{}`
+    + `\cos{}`
+    + `\tan{}`
+    + `\sinh{}`
+    + `\cosh{}`
+    + `\tanh{}`
+    + `\csc{}`
+    + `\sec{}`
+    + `\cot{}`
+    + `\csch{}`
+    + `\sech{}`
+    + `\coth{}`
+    + `\arcsin{}`
+    + `\arccos{}`
+    + `\arctan{}`
+    + `\arg{}`
+    + `\deg{}`
+    + `\drt{}`
+    + `\dim{}`
+    + `\exp{}`
+    + `\gcd{}`
+    + `\hom{}`
+    + `\inf{}`
+    + `\ker{}`
+    + `\lg{}`
+    + `\lim{}`
+    + `\liminf{}`
+    + `\limsup{}`
+    + `\ln{}`
+    + `\log{}`
+    + `\min{}`
+    + `\max{}`
+    + `\Pr{}`
+    + `\sup{}`
+    + `\sqrt{}`
+    + `\lvert{}`
+    + `\lVert{}`
+    + `\boxed{}`
 
 + Supports the following fonts(requires any *modern* Unicode font),
-  + `default`(Default math font).
-  + `\mathbb{}`
-  + `\mathbf{}`
-  + `\mathbffrak{}`
-  + `\mathbfit{}`
-  + `\nathbfscr{}`
-  + `\mathcal{}`
-  + `\mathfrak{}`
-  + `\mathsf{}`
-  + `\mathsfbf{}`
-  + `\mathsfbfit{}`
-  + `\mathsfit{}`
-  + `\mathtt{}`
+    + `default`(Default math font).
+    + `\mathbb{}`
+    + `\mathbf{}`
+    + `\mathbffrak{}`
+    + `\mathbfit{}`
+    + `\nathbfscr{}`
+    + `\mathcal{}`
+    + `\mathfrak{}`
+    + `\mathsf{}`
+    + `\mathsfbf{}`
+    + `\mathsfbfit{}`
+    + `\mathsfit{}`
+    + `\mathtt{}`
 
 + Supports Unicode based *subscript* & *superscript* texts.
 + Supports **2056** different math symbol definitions.
 
 Markdown features,
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/markdown-catppuccin_mocha.png">
+
 + Supports the following items,
-  + Block quotes(with support for `callouts` & titles).
-  + Fenced code blocks.
-  + Headings(setext & atx).
-  + Horizontal rules.
-  + List items(`+`, `-`, `*`, `n.` & `n)`).
-  + Minus & plus metadata.
-  + Reference link definitions.
-  + Tables.
+    + Block quotes(with support for `callouts` & titles).
+    + Fenced code blocks.
+    + Headings(setext & atx).
+    + Horizontal rules.
+    + List items(`+`, `-`, `*`, `n.` & `n)`).
+    + Minus & plus metadata.
+    + Reference link definitions.
+    + Tables.
 
 + `wrap` option support for the following items,
-  + Block quotes.
-  + Headings(when `org_indent` is used).
-  + List items(when `add_padding` is true).
+    + Block quotes.
+    + Headings(when `org_indent` is used).
+    + List items(when `add_padding` is true).
 
 + Org-mode like indentation for headings.
 
 Markdown inline features,
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/markdown_inline-nightfly.png">
+
 + Supports the following items,
-  + Checkboxes(supports *minimal-style* checkboxes).
-  + Email links.
-  + Entities.
-  + Escaped characters.
-  + Footnotes.
-  + Hyperlinks.
-  + Images.
-  + Inline codes/Code spans.
-  + URI autolinks.
+    + Checkboxes(supports *minimal-style* checkboxes).
+    + Email links.
+    + Entities.
+    + Escaped characters.
+    + Footnotes.
+    + Hyperlinks.
+    + Images.
+    + Inline codes/Code spans.
+    + URI autolinks.
 
 + Obsidian/PKM extended item support,
-  + Block reference links.
-  + Embed file links.
-  + Internal links(supports *aliases*).
+    + Block reference links.
+    + Embed file links.
+    + Internal links(supports *aliases*).
 
 + Wide variety of HTML entity names & codes support.
-  + Supported named entities: **786**.
-  + Supported entity codes: **853**.
+    + Supported named entities: **786**.
+    + Supported entity codes: **853**.
 
 + Github emoji shorthands support. Supports **1920** shorthands.
 
@@ -176,29 +183,49 @@ Markdown inline features,
 
 Typst features,
 
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/typst-kanagawa_wave.png">
+
 + Supports the following items,
-  + Code blocks.
-  + Code spans.
-  + Escaped characters.
-  + Headings.
-  + Labels.
-  + List items(`-`, `+` & `n.`).
-  + Math blocks.
-  + Math spans.
-  + Raw blocks.
-  + Raw spans.
-  + Reference links.
-  + Subscripts.
-  + Superscripts.
-  + Symbols.
-  + Terms.
-  + URL links.
+    + Code blocks.
+    + Code spans.
+    + Escaped characters.
+    + Headings.
+    + Labels.
+    + List items(`-`, `+` & `n.`).
+    + Math blocks.
+    + Math spans.
+    + Raw blocks.
+    + Raw spans.
+    + Reference links.
+    + Subscripts.
+    + Superscripts.
+    + Symbols.
+    + Terms.
+    + URL links.
 
 + Supports a variety of typst symbols,
-  + Symbol entries: **932**
-  + Symbol shorthands: **40**
+    + Symbol entries: **932**
+    + Symbol shorthands: **40**
 
 + Supports Unicode based *subscript* & *superscript* texts.
+
+YAML features,
+
+<img src="https://github.com/OXY2DEV/markview.nvim/blob/images/v25/repo/yaml-material_palenight.png">
+
+- Custom property icons.
+- Custom property scope decorations.
+- Custom icons(/decorations) based on property type & value(e.g. `booleans`).
+
+- Supports the following properties out of the box,
+    + tags.
+    + aliases.
+    + cssclasses.
+    + publish.
+    + permalink.
+    + description.
+    + images.
+    + cover.
 
 ---
 
@@ -249,7 +276,7 @@ External icon providers,
 > ```
 
 - [mini.icons]()
-- [ nvim-web-devicons]()
+- [nvim-web-devicons]()
 
 Parsers,
 
@@ -856,17 +883,17 @@ Accessed using `require("markview.presets").tables`.
 
 `markview.nvim` comes with a few *extra* things for added functionality. Currently available modules are,
 
-- [checkboxes.lua]()
+- [checkboxes.lua](https://github.com/OXY2DEV/markview.nvim/blob/main/lua/markview/extras/checkboxes.lua)
   Checkbox toggle, state change & more! Supports visual mode too with checkbox state caching!
-  [Wiki section]()
+  [Wiki section](https://github.com/OXY2DEV/markview.nvim/wiki/Extra-modules#-checkboxes)
 
-- [editor.lua]()
+- [editor.lua](https://github.com/OXY2DEV/markview.nvim/blob/main/lua/markview/extras/editor.lua)
   A simple `code block` creator & editor with support for nested elements!
-  [Wiki section]()
+  [Wiki section](https://github.com/OXY2DEV/markview.nvim/wiki/Extra-modules#-editor)
 
-- [headings.lua]()
+- [headings.lua](https://github.com/OXY2DEV/markview.nvim/blob/main/lua/markview/extras/headings.lua)
   Simple heading level changer with support for `setext` headings.
-  [Wiki section]()
+  [Wiki section](https://github.com/OXY2DEV/markview.nvim/wiki/Extra-modules#-heading)
 
 Example usage,
 
@@ -881,4 +908,15 @@ Go over a line with a checkbox and run,
 :Checkbox interactive
 ```
 Now use `h`, `j`, `k`, `l` to change the checkbox state.
+
+## ✅ Contributing to the projects
+
+If you have time and want to make this project better, consider helping me fix any of these issues,
+
+- [ ] Add support for more filetypes in the internal icon provider.
+- [ ] Optimization of `require("markview.renderers.markdown").output()`.
+- [ ] Optimization of the table renderer.
+- [ ] Stricter logic to reduce preview redraws.
+- [ ] Make `splitview` update as little content as possible.
+- [ ] Make the help files/wiki more beginner friendly.
 
